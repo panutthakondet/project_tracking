@@ -105,7 +105,8 @@
         @foreach (var cooperative in cooperatives)
         {
             var projects = cooperative.GroupBy(x => new { x.ProjectId, x.ProjectName })
-                .OrderBy(x => x.Key.ProjectName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.ProjectId).ToList();
+                .OrderByDescending(x => x.Any(task => !task.IsDone))
+                .ThenBy(x => x.Key.ProjectName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.ProjectId).ToList();
             <section class="summary-coop-card">
                 <header class="summary-coop-header summary-heading">
                     <h2>🏢 @cooperative.Key.CoopName</h2>
