@@ -27,6 +27,7 @@ public class EmployeeWorkSummaryItem
     public string Title { get; set; } = "";
     public string Status { get; set; } = "";
     public DateTime? DueDate { get; set; }
+    public DateTime? ContractDueDate { get; set; }
     public bool IsDone { get; set; }
     public string Url { get; set; } = "";
 

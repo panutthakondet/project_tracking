@@ -52,7 +52,7 @@
     }
     .summary-project-header { padding: 16px 20px; background: var(--pt-surface-soft, #f4f7fb); border-bottom: 1px solid var(--pt-border, #d8e3ef); }
     .summary-project-header h3 { margin: 0; font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; }
-    .employee-work-summary .summary-table { width: 100%; min-width: 1040px; border-spacing: 0; table-layout: fixed; }
+    .employee-work-summary .summary-table { width: 100%; min-width: 1200px; border-spacing: 0; table-layout: fixed; }
     .employee-work-summary .summary-table :is(th, td) { padding: 14px 16px; overflow-wrap: anywhere; }
     .employee-work-summary .summary-table tbody td { border-bottom: 1px solid var(--pt-border, #d8e3ef); }
     .employee-work-summary .summary-table tbody tr:last-child td { border-bottom: 0; }
@@ -120,8 +120,8 @@
                             <div class="table-responsive">
                                 <table class="table summary-table mb-0 align-middle">
                                     <caption class="visually-hidden">รายการงานของ @project.Key.ProjectName — @cooperative.Key.CoopName</caption>
-                                    <colgroup><col style="width:11%" /><col style="width:32%" /><col style="width:13%" /><col style="width:16%" /><col style="width:18%" /><col style="width:10%" /></colgroup>
-                                    <thead><tr><th scope="col">ประเภท</th><th scope="col">งาน</th><th scope="col">สถานะเดิม</th><th scope="col">กำหนดส่ง</th><th scope="col">สรุปสถานะ</th><th scope="col">จัดการ</th></tr></thead>
+                                    <colgroup><col style="width:9%" /><col style="width:27%" /><col style="width:11%" /><col style="width:15%" /><col style="width:15%" /><col style="width:15%" /><col style="width:8%" /></colgroup>
+                                    <thead><tr><th scope="col">ประเภท</th><th scope="col">งาน</th><th scope="col">สถานะเดิม</th><th scope="col">กำหนดตามแผน</th><th scope="col">กำหนดตามสัญญา</th><th scope="col">สรุปสถานะ</th><th scope="col">จัดการ</th></tr></thead>
                                     <tbody>
                                     @foreach (var row in project)
                                     {
@@ -136,6 +136,7 @@
                                                 @if (category == "overdue") { <div>เกิน @((Model.Today - row.DueDate!.Value.Date).Days) วัน</div> }
                                                 @if (category == "risk") { <div>@(row.DueDate!.Value.Date == Model.Today ? "ครบกำหนดวันนี้" : $"เหลือ {(row.DueDate.Value.Date - Model.Today).Days} วัน")</div> }
                                             </td>
+                                            <td class="summary-due">@(row.ContractDueDate?.ToString("dd MMM yyyy", culture) ?? "ไม่ระบุ")</td>
                                             <td><span class="summary-category">@label</span></td>
                                             <td><a href="@row.Url" class="btn btn-sm btn-outline-primary summary-open-task">ดูงาน</a></td>
                                         </tr>

@@ -70,6 +70,7 @@ namespace ProjectTracking.Controllers
                     Title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"งาน #{row.AssignId}" : row.Role,
                     Status = row.StatusDescription,
                     DueDate = row.PlanEnd ?? row.Phase?.PlanEnd,
+                    ContractDueDate = row.Phase?.PeriodEndDate,
                     IsDone = IsDone(row.WorkStatus, row.Phase?.PhaseStatus) || IsClosedPhaseForSelection(row.Phase?.PhaseStatus),
                     Url = Url.Action("Index", "PhaseAssigns", new { projectId = row.Phase?.ProjectId, empId = id }) ?? ""
                 });
