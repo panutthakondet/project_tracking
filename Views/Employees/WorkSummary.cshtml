@@ -31,7 +31,6 @@
     .employee-work-metric:hover, .employee-work-metric.is-active { border-color: var(--pt-accent, #0ea5a6); background: var(--pt-surface-soft, #f4f7fb); }
     .employee-work-metric.is-active { outline: 2px solid var(--pt-accent, #0ea5a6); outline-offset: 2px; }
     .employee-work-metric strong { font-size: 2rem; }
-    .employee-work-summary .summary-help { color: var(--pt-surface-contrast-muted, #64748b); }
     .employee-work-summary .summary-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
     .employee-work-summary .summary-table { --bs-table-color: var(--pt-surface-contrast, #10233f); --bs-table-bg: var(--pt-surface, #fff); }
     .employee-work-summary .summary-table thead th { background: var(--pt-surface-soft, #f4f7fb) !important; color: var(--pt-surface-contrast, #10233f) !important; }
@@ -90,9 +89,6 @@
             </a>
         }
     </div>
-    <p class="summary-help">รวมงานมอบหมาย (Phase Assign), Issue และ Support ที่พนักงานเป็นผู้รับผิดชอบ · งานเสี่ยงและเกินกำหนดนับรวมในงานยังไม่เสร็จ</p>
-    <p class="summary-help">เสี่ยงเกินกำหนด = งานที่ยังไม่เสร็จและครบกำหนดตั้งแต่วันนี้ถึงอีก @Model.RiskDays วัน ตามค่าตั้งระบบ · เกินกำหนด = วันกำหนดส่งก่อนวันนี้ · งานไม่ระบุวันส่งอยู่ในงานยังไม่เสร็จ</p>
-    <p class="summary-help">งานเสร็จแล้วรวมงานที่ปิดตามสถานะระบบ (เช่น PASS, REJECT, DONE, CLOSED) · งานที่ส่งแก้แล้วแต่ยังไม่ปิดยังนับเป็นงานไม่เสร็จ</p>
 
     <div class="summary-heading summary-results-heading">
         <strong>@filterLabel (@rows.Count.ToString("N0") รายการ)</strong>
