@@ -20,6 +20,9 @@ public class EmployeeWorkSummaryViewModel
 public class EmployeeWorkSummaryItem
 {
     public string Type { get; set; } = "";
+    public int? CoopId { get; set; }
+    public string CoopName { get; set; } = "ไม่ระบุสหกรณ์";
+    public int? ProjectId { get; set; }
     public string ProjectName { get; set; } = "";
     public string Title { get; set; } = "";
     public string Status { get; set; } = "";

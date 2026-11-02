@@ -56,13 +56,16 @@ namespace ProjectTracking.Controllers
 
             var assignments = await _context.PhaseAssigns.AsNoTracking()
                 .Include(x => x.StatusDefinition)
-                .Include(x => x.Phase!).ThenInclude(x => x.Project)
+                .Include(x => x.Phase!).ThenInclude(x => x.Project!).ThenInclude(x => x.Coop)
                 .Where(x => x.EmpId == id).ToListAsync();
             foreach (var row in assignments)
             {
                 model.Items.Add(new EmployeeWorkSummaryItem
                 {
                     Type = "งานมอบหมาย",
+                    CoopId = row.Phase?.Project?.CoopId,
+                    CoopName = string.IsNullOrWhiteSpace(row.Phase?.Project?.Coop?.CoopName) ? "ไม่ระบุสหกรณ์" : row.Phase.Project.Coop.CoopName.Trim(),
+                    ProjectId = row.Phase?.ProjectId,
                     ProjectName = ProjectNameForSelection(row.Phase?.Project),
                     Title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"งาน #{row.AssignId}" : row.Role,
                     Status = row.StatusDescription,
@@ -72,26 +75,32 @@ namespace ProjectTracking.Controllers
                 });
             }
 
-            var issues = await _context.ProjectIssues.AsNoTracking().Include(x => x.Project)
+            var issues = await _context.ProjectIssues.AsNoTracking().Include(x => x.Project!).ThenInclude(x => x.Coop)
                 .Where(x => x.AssignTo == id).ToListAsync();
             foreach (var row in issues)
             {
                 model.Items.Add(new EmployeeWorkSummaryItem
                 {
                     Type = "Issue", ProjectName = ProjectNameForSelection(row.Project), Title = row.IssueName,
+                    CoopId = row.Project?.CoopId,
+                    CoopName = string.IsNullOrWhiteSpace(row.Project?.Coop?.CoopName) ? "ไม่ระบุสหกรณ์" : row.Project.Coop.CoopName.Trim(),
+                    ProjectId = row.ProjectId,
                     Status = row.IssueStatus, DueDate = row.EndDate,
                     IsDone = IsIssueDoneForSelection(row.IssueStatus, row.DevStatus),
                     Url = Url.Action("DevDetails", "ProjectIssues", new { id = row.IssueId }) ?? ""
                 });
             }
 
-            var supportOrders = await _context.ProjectSupportOrders.AsNoTracking().Include(x => x.Project)
+            var supportOrders = await _context.ProjectSupportOrders.AsNoTracking().Include(x => x.Project!).ThenInclude(x => x.Coop)
                 .Where(x => x.AssignTo == id).ToListAsync();
             foreach (var row in supportOrders)
             {
                 model.Items.Add(new EmployeeWorkSummaryItem
                 {
                     Type = "Support", ProjectName = ProjectNameForSelection(row.Project),
+                    CoopId = row.Project?.CoopId,
+                    CoopName = string.IsNullOrWhiteSpace(row.Project?.Coop?.CoopName) ? "ไม่ระบุสหกรณ์" : row.Project.Coop.CoopName.Trim(),
+                    ProjectId = row.ProjectId,
                     Title = row.OrderTitle ?? $"Support #{row.OrderId}",
                     Status = row.Status ?? "-", DueDate = row.EndDate,
                     IsDone = IsSupportDoneForSelection(row.Status, row.DevStatus),
