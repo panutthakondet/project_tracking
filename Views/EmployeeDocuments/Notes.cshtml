@@ -107,8 +107,9 @@
     .employee-notes-workspace {
         display: grid;
         grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-        --notes-workspace-height: max(420px, calc(100dvh - var(--notes-workspace-top, 280px) - 24px));
-        min-height: var(--notes-workspace-height);
+        min-height: 0;
+        height: 70dvh;
+        grid-template-rows: minmax(0, 1fr);
         overflow: hidden;
         border: 1px solid var(--notes-border);
         border-radius: 22px;
@@ -118,11 +119,15 @@
 
     .employee-notes-sidebar {
         min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         border-right: 1px solid var(--notes-border);
         background: var(--notes-soft);
     }
 
     .employee-notes-sidebar-head {
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -159,7 +164,8 @@
     }
 
     .employee-notes-list {
-        max-height: calc(var(--notes-workspace-height) - 77px);
+        min-height: 0;
+        flex: 1;
         overflow: auto;
         padding: 12px;
     }
@@ -228,12 +234,17 @@
 
     .employee-note-editor {
         min-width: 0;
+        min-height: 0;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         background: var(--notes-bg);
     }
 
     .employee-note-toolbar {
+        flex-shrink: 0;
+        max-height: 45%;
+        overflow-y: auto;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -300,6 +311,7 @@
     }
 
     .employee-note-title {
+        flex-shrink: 0;
         width: 100%;
         padding: 0 0 16px;
         border: 0;
@@ -313,10 +325,11 @@
 
     .employee-note-content {
         width: 100%;
-        min-height: 400px;
+        min-height: 0;
+        height: 0;
         flex: 1;
         resize: none;
-        overflow-y: hidden;
+        overflow-y: auto;
         padding: 22px 0;
         border: 0;
         outline: none;
@@ -334,6 +347,7 @@
     }
 
     .employee-note-meta {
+        flex-shrink: 0;
         display: flex;
         justify-content: space-between;
         gap: 16px;
@@ -343,10 +357,24 @@
         font-size: .78rem;
     }
 
+    @@media (min-width: 901px) {
+        html:has(.employee-notes-page), body:has(.employee-notes-page) { height: 100%; overflow: hidden; }
+        body:has(.employee-notes-page) .v2-page { height: 100dvh; min-height: 0; padding-bottom: 12px; overflow: hidden; }
+        body:has(.employee-notes-page) .v2-page > .container,
+        body:has(.employee-notes-page) main.route-controller-employeedocuments.route-action-notes { height: 100%; min-height: 0; }
+        body:has(.employee-notes-page) .footer-modern { display: none; }
+        .employee-notes-page { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+        .employee-notes-hero { flex-shrink: 0; max-height: 30dvh; overflow: auto; }
+        .employee-notes-page > .alert { flex-shrink: 0; }
+        .employee-notes-workspace { flex: 1; height: auto; }
+    }
+
     @@media (max-width: 900px) {
         .employee-notes-hero { align-items: flex-start; flex-direction: column; }
         .employee-notes-actions { justify-content: flex-start; }
-        .employee-notes-workspace { grid-template-columns: 1fr; min-height: 0; }
+        .employee-notes-workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; min-height: 0; }
+        .employee-note-content { height: 60dvh; min-height: 300px; flex: none; }
+        .employee-note-toolbar { max-height: none; }
         .employee-notes-sidebar { border-right: 0; border-bottom: 1px solid var(--notes-border); }
         .employee-notes-list { display: flex; max-height: 230px; overflow-x: auto; }
         .employee-note-link { min-width: 230px; margin: 0 8px 0 0; }
@@ -525,24 +553,6 @@
     (() => {
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
-        const workspace = document.querySelector('.employee-notes-workspace');
-        const expandContent = () => {
-            if (!content) return;
-            content.style.height = 'auto';
-            const borderHeight = content.offsetHeight - content.clientHeight;
-            content.style.height = `${content.scrollHeight + borderHeight}px`;
-        };
-        const updateWorkspace = () => {
-            if (workspace) {
-                const top = Math.max(0, workspace.getBoundingClientRect().top + window.scrollY);
-                workspace.style.setProperty('--notes-workspace-top', `${top}px`);
-            }
-            expandContent();
-        };
-        content?.addEventListener('input', expandContent);
-        window.addEventListener('resize', updateWorkspace);
-        requestAnimationFrame(updateWorkspace);
-        document.fonts?.ready.then(updateWorkspace);
         const form = document.getElementById('employeeNoteSaveForm');
         const originalTitle = title?.value;
         const originalContent = content?.value;
