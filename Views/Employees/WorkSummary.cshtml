@@ -12,7 +12,8 @@
     var filterLabel = metrics.FirstOrDefault(x => x.Key == Model.Filter).Label ?? "งานทั้งหมด";
     var rows = Model.VisibleItems.ToList();
     var cooperatives = rows.GroupBy(x => new { x.CoopId, x.CoopName })
-        .OrderBy(x => x.Key.CoopName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.CoopId);
+        .OrderByDescending(x => x.Any(task => !task.IsDone))
+        .ThenBy(x => x.Key.CoopName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.CoopId);
 }
 <style>
     .employee-work-summary {
