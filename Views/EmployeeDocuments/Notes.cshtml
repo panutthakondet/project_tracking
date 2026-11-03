@@ -414,7 +414,7 @@
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+        <div id="employeeNoteSuccess" class="alert alert-success fw-bold" role="status">@TempData["Success"]</div>
     }
     @if (TempData["Error"] != null)
     {
@@ -561,6 +561,8 @@
 
 <script>
     (() => {
+        const successMessage = document.getElementById('employeeNoteSuccess');
+        if (successMessage) setTimeout(() => successMessage.remove(), 3000);
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
         const form = document.getElementById('employeeNoteSaveForm');
