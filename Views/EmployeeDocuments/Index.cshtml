@@ -1,3 +1,4 @@
+@using ProjectTracking.ViewModels
 @using Microsoft.AspNetCore.Http
 @using System.Linq
 @model IEnumerable<ProjectTracking.Models.EmployeeDocument>
@@ -11,6 +12,12 @@
     var documentTypes = ViewBag.DocumentTypes as IEnumerable<ProjectTracking.Models.EmployeeDocumentType>
         ?? Enumerable.Empty<ProjectTracking.Models.EmployeeDocumentType>();
     var searchTerm = ViewBag.SearchTerm as string ?? string.Empty;
+    var typeTabs = DocumentTypeTabsViewModel.Create(
+        documentTypes.Select(x => (x.DocumentTypeCode, x.DocumentTypeName)),
+        Model.Select(x => x.DocumentType), Context.Request.Query["type"].ToString(),
+        new Dictionary<string, string> { ["empId"] = selectedEmpId.ToString(), ["q"] = searchTerm });
+    var visibleDocuments = Model.Where(x => typeTabs.SelectedType.Length == 0
+        || DocumentTypeTabsViewModel.Normalize(x.DocumentType) == typeTabs.SelectedType).ToList();
     var documentTypeNames = documentTypes.ToDictionary(
         x => x.DocumentTypeCode.Trim(),
         x => x.DocumentTypeName,
@@ -137,6 +144,7 @@
     <div class="card employee-doc-select-card">
         <div class="card-body">
             <form method="get" asp-action="Index">
+                <input type="hidden" name="type" value="@typeTabs.SelectedType" />
                 <input type="hidden" name="q" value="@searchTerm" />
                 <label class="form-label fw-bold" for="employeeDocumentEmployee">👤 พนักงาน</label>
                 <select id="employeeDocumentEmployee" name="empId" class="form-select form-select-lg" onchange="this.form.submit()">
@@ -161,6 +169,7 @@
                 </div>
 
                 <form method="get" asp-action="Index" class="employee-doc-search">
+                    <input type="hidden" name="type" value="@typeTabs.SelectedType" />
                     <input type="hidden" name="empId" value="@selectedEmpId" />
                     <label class="form-label fw-bold" for="employeeDocumentSearch">🔎 ค้นหาเอกสาร</label>
                     <div class="input-group">
@@ -172,7 +181,7 @@
                         <button type="submit" class="btn btn-primary">ค้นหา</button>
                         @if (!string.IsNullOrWhiteSpace(searchTerm))
                         {
-                            <a asp-action="Index" asp-route-empId="@selectedEmpId" class="btn btn-outline-secondary">ล้าง</a>
+                            <a asp-action="Index" asp-route-empId="@selectedEmpId" asp-route-type="@typeTabs.SelectedType" class="btn btn-outline-secondary">ล้าง</a>
                         }
                     </div>
                 </form>
@@ -235,9 +244,10 @@
             รายการเอกสาร
             @if (selectedEmpId > 0 && !string.IsNullOrWhiteSpace(searchTerm))
             {
-                <span class="text-muted fw-normal">· ผลการค้นหา “@searchTerm” (@Model.Count() รายการ)</span>
+                <span class="text-muted fw-normal">· ผลการค้นหา “@searchTerm” (@visibleDocuments.Count รายการ)</span>
             }
         </div>
+        <partial name="_DocumentTypeTabs" model="typeTabs" />
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-striped table-hover mb-0 align-middle">
@@ -254,14 +264,14 @@
                         {
                             <tr><td colspan="4" class="text-center text-muted py-4">กรุณาเลือกพนักงานเพื่อดูเอกสาร</td></tr>
                         }
-                        else if (!Model.Any())
+                        else if (visibleDocuments.Count == 0)
                         {
-                            <tr><td colspan="4" class="text-center text-muted py-4">@(string.IsNullOrWhiteSpace(searchTerm) ? "ยังไม่มีเอกสารของพนักงานคนนี้" : "ไม่พบเอกสารที่ค้นหา")</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-4">@(string.IsNullOrWhiteSpace(searchTerm) ? "ยังไม่มีเอกสารในประเภทที่เลือก" : "ไม่พบเอกสารที่ค้นหา")</td></tr>
                         }
                         else
                         {
                             var sequence = 1;
-                            foreach (var document in Model)
+                            foreach (var document in visibleDocuments)
                             {
                                 <tr>
                                     <td class="fw-bold text-center">@sequence</td>

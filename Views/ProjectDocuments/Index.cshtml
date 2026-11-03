@@ -1,3 +1,4 @@
+@using ProjectTracking.ViewModels
 @model IEnumerable<ProjectTracking.Models.ProjectDocument>
 
 @{
@@ -6,6 +7,13 @@
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var documentTypes = ViewBag.DocumentTypes as IEnumerable<ProjectTracking.Models.ProjectDocumentType> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDocumentType>();
+    var typeTabs = DocumentTypeTabsViewModel.Create(
+        documentTypes.Select(x => (x.DocumentTypeCode, x.DocumentTypeName)),
+        Model.Select(x => x.DocumentType), Context.Request.Query["type"].ToString(),
+        new Dictionary<string, string> { ["projectId"] = selectedProjectId.ToString() });
+    var visibleDocuments = Model.Where(x => typeTabs.SelectedType.Length == 0
+        || DocumentTypeTabsViewModel.Normalize(x.DocumentType) == typeTabs.SelectedType).ToList();
+
 }
 
 @using Microsoft.AspNetCore.Http
@@ -165,6 +173,7 @@
     <div class="card project-doc-select-card">
         <div class="card-body">
             <form method="get" asp-action="Index">
+                <input type="hidden" name="type" value="@typeTabs.SelectedType" />
                 <div class="row g-3 align-items-end">
                     <div class="col-12">
                         <label class="form-label fw-bold">📁 โครงการ</label>
@@ -249,6 +258,7 @@
             Document List
         </div>
 
+        <partial name="_DocumentTypeTabs" model="typeTabs" />
         <div class="card-body p-0">
 
             <table class="table table-striped table-hover mb-0">
@@ -272,18 +282,18 @@
                             </td>
                         </tr>
                     }
-                    else if (!Model.Any())
+                    else if (visibleDocuments.Count == 0)
                     {
                         <tr>
                             <td colspan="4" class="text-center text-muted py-4">
-                                No documents uploaded
+                                ยังไม่มีเอกสารในประเภทที่เลือก
                             </td>
                         </tr>
                     }
                     else
                     {
                         var seq = 1;
-                        foreach (var doc in Model)
+                        foreach (var doc in visibleDocuments)
                         {
                             <tr>
                                 <td class="fw-bold text-center">@seq</td>

@@ -1,0 +1,12 @@
+@model ProjectTracking.ViewModels.DocumentTypeTabsViewModel
+<link rel="stylesheet" href="~/css/document-type-tabs.css" asp-append-version="true" />
+<nav class="document-type-tabs" aria-label="ประเภทเอกสาร">
+    @foreach (var tab in Model.Tabs)
+    {
+        var route = new Dictionary<string, string>(Model.RouteValues) { ["type"] = tab.Code };
+        var active = Model.SelectedType == tab.Code;
+        <a asp-action="Index" asp-all-route-data="route" class="document-type-tab @(active ? "is-active" : "")" aria-current="@(active ? "page" : null)">
+            <span>@tab.Name</span><span class="document-type-tab-count">@tab.Count.ToString("N0")</span>
+        </a>
+    }
+</nav>
