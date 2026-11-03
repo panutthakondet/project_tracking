@@ -41,6 +41,24 @@
 }
 
 <style>
+    .employee-note-success-toast {
+        position: fixed;
+        top: max(20px, env(safe-area-inset-top));
+        right: max(20px, env(safe-area-inset-right));
+        z-index: 1080;
+        width: max-content;
+        max-width: min(420px, calc(100vw - 40px));
+        margin: 0;
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+        overflow-wrap: anywhere;
+        transition: opacity .3s ease, transform .3s ease;
+    }
+    .employee-note-success-toast.is-hiding { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+    @@media (prefers-reduced-motion: reduce) {
+        .employee-note-success-toast { transition: none; }
+    }
+
     .employee-notes-page,
     .employee-notes-page * {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif !important;
@@ -414,7 +432,7 @@
 
     @if (TempData["Success"] != null)
     {
-        <div id="employeeNoteSuccess" class="alert alert-success fw-bold" role="status">@TempData["Success"]</div>
+        <div id="employeeNoteSuccess" class="alert alert-success fw-bold employee-note-success-toast" role="status" aria-live="polite" aria-atomic="true">✅ @TempData["Success"]</div>
     }
     @if (TempData["Error"] != null)
     {
@@ -562,7 +580,10 @@
 <script>
     (() => {
         const successMessage = document.getElementById('employeeNoteSuccess');
-        if (successMessage) setTimeout(() => successMessage.remove(), 3000);
+        if (successMessage) setTimeout(() => {
+            successMessage.classList.add('is-hiding');
+            setTimeout(() => successMessage.remove(), 300);
+        }, 3000);
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
         const form = document.getElementById('employeeNoteSaveForm');
