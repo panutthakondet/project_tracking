@@ -21,6 +21,9 @@
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
     var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
     var pendingStatusApprovalCount = Convert.ToInt32(ViewBag.PendingStatusApprovalCount ?? 0);
+    var canAttendanceCalendar = string.Equals(Context.Session.GetString("Role")?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase)
+        || (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), "Attendance.Index", StringComparison.OrdinalIgnoreCase));
     var canEmployeeNotes = string.Equals(Context.Session.GetString("Role")?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase)
         || (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(x => string.Equals(x.Trim(), "EmployeeDocuments.Index", StringComparison.OrdinalIgnoreCase));
@@ -266,6 +269,19 @@
                         <path d="m8 13 2 2 5-5" />
                     </svg>
                     <span class="dashboard-global-tool-count">@pendingStatusApprovalCount</span>
+                </a>
+            }
+            @if (canAttendanceCalendar)
+            {
+                <a class="dashboard-global-tool work-calendar"
+                   asp-controller="Attendance" asp-action="Calendar"
+                   title="ปฏิทินวันหยุด การประชุม และงานเข้าไซต์"
+                   aria-label="เปิดปฏิทินวันหยุด การประชุม และงานเข้าไซต์">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M8 2v4M16 2v4M3 10h18" />
+                        <path d="M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z" />
+                        <path d="M7 14h2M12 14h2M7 18h2M12 18h2" />
+                    </svg>
                 </a>
             }
             <a class="dashboard-global-tool attendance"
@@ -1813,7 +1829,8 @@
 }
 
 .dashboard-global-tool.employee-notes,
-.dashboard-global-tool.employee-documents {
+.dashboard-global-tool.employee-documents,
+.dashboard-global-tool.work-calendar {
     color:var(--pt-surface-contrast, #10233f);
     background:var(--pt-accent-soft, #e0f2f1);
     border-color:var(--pt-accent, #0ea5a6);

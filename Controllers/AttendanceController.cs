@@ -60,6 +60,10 @@ namespace ProjectTracking.Controllers
 
         [HttpGet]
         [RequireMenu("Attendance.Index")]
+        public IActionResult Calendar() => View();
+
+        [HttpGet]
+        [RequireMenu("Attendance.Index")]
         public async Task<IActionResult> HolidayEvents(
             DateTime? start,
             DateTime? end,
