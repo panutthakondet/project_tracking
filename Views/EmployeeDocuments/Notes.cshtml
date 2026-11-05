@@ -358,6 +358,11 @@
         font-size: 1.15rem;
     }
 
+    .employee-emoji-item { position: relative; display: inline-flex; }
+    .employee-emoji-remove { position: absolute; top: -6px; right: -5px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--notes-border); border-radius: 50%; background: var(--notes-bg); color: var(--notes-text); font-size: 14px; line-height: 1; }
+    .employee-emoji-remove:hover { color: #b91c1c; border-color: #b91c1c; }
+    .employee-emoji-quick { row-gap: 14px; }
+
     .employee-emoji-button:hover {
         border-color: var(--notes-accent);
         background: var(--notes-bg);
@@ -576,14 +581,14 @@
                     <div class="employee-note-toolbar-left" aria-label="เลือก Emoji">
                         <details class="employee-emoji-collapse">
                             <summary>😀 Emoji <span class="employee-emoji-collapse-hint" aria-hidden="true"></span></summary>
-                            <div class="employee-emoji-quick">
+                            <div class="employee-emoji-quick" data-user-id="@Context.Session.GetInt32("UserId")">
                                 @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
                                 {
                                     <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
                                 }
                                 @if (canEdit)
                                 {
-                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เลือก Emoji เพิ่มเติม" aria-label="เลือก Emoji เพิ่มเติม" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><span class="employee-emoji-plus" aria-hidden="true"></span></button>
+                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-label="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><span class="employee-emoji-plus" aria-hidden="true"></span></button>
                                 }
                             </div>
                         </details>
@@ -645,7 +650,7 @@
     {
         <dialog id="employeeEmojiDialog" class="employee-emoji-dialog" aria-labelledby="employeeEmojiHeading">
             <div class="employee-emoji-dialog-head">
-                <h2 id="employeeEmojiHeading">เลือก Emoji (80 แบบ)</h2>
+                <h2 id="employeeEmojiHeading">เพิ่ม Emoji ในแถบใช้งานด่วน</h2>
                 <button type="button" id="employeeEmojiClose" class="btn btn-sm btn-outline-secondary" aria-label="ปิดตัวเลือก Emoji">ปิด ✕</button>
             </div>
             <div class="employee-emoji-categories">
@@ -736,18 +741,74 @@
             input.addEventListener('focus', () => target = input);
         });
 
-        document.querySelectorAll('.employee-emoji-button').forEach(button => {
-            button.addEventListener('click', () => {
-                if (!target || target.disabled) return;
-                const emoji = button.dataset.emoji || '';
-                const start = target.selectionStart ?? target.value.length;
-                const end = target.selectionEnd ?? target.value.length;
-                if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
-                target.setRangeText(emoji, start, end, 'end');
-                if (emojiDialog?.open) emojiDialog.close();
-                target.focus();
-                target.dispatchEvent(new Event('input', { bubbles: true }));
+        const quick = document.querySelector('.employee-emoji-quick');
+        const addButton = document.getElementById('employeeEmojiOpen');
+        const initialEmojis = [...(quick?.querySelectorAll('[data-emoji]') || [])].map(button => button.dataset.emoji);
+        const available = new Set([...initialEmojis, ...[...(emojiDialog?.querySelectorAll('[data-emoji]') || [])].map(button => button.dataset.emoji)]);
+        const storageKey = `employee-notes.quick-emojis.${quick?.dataset.userId || 'guest'}`;
+        let emojis = initialEmojis;
+        if (quick && addButton) {
+            try {
+                const saved = JSON.parse(localStorage.getItem(storageKey));
+                if (Array.isArray(saved)) emojis = [...new Set(saved.filter(emoji => available.has(emoji)))];
+            } catch { /* Use the default palette when browser storage is unavailable. */ }
+        }
+        const renderEmojis = () => {
+            if (!quick || !addButton) return;
+            quick.querySelectorAll('.employee-emoji-item, :scope > [data-emoji]').forEach(item => item.remove());
+            emojis.forEach(emoji => {
+                const item = document.createElement('span');
+                item.className = 'employee-emoji-item';
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'employee-emoji-button';
+                button.dataset.emoji = emoji;
+                button.textContent = emoji;
+                button.title = `แทรก ${emoji} ในโน้ต`;
+                button.setAttribute('aria-label', button.title);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'employee-emoji-remove';
+                remove.dataset.removeEmoji = emoji;
+                remove.textContent = '×';
+                remove.title = `ลบ ${emoji} ออกจากแถบ`;
+                remove.setAttribute('aria-label', remove.title);
+                item.append(button, remove);
+                quick.insertBefore(item, addButton);
             });
+        };
+        const saveEmojis = () => {
+            try { localStorage.setItem(storageKey, JSON.stringify(emojis)); } catch { /* The palette still works for this page. */ }
+            renderEmojis();
+        };
+        renderEmojis();
+        quick?.addEventListener('click', event => {
+            const remove = event.target.closest('[data-remove-emoji]');
+            if (remove) {
+                emojis = emojis.filter(emoji => emoji !== remove.dataset.removeEmoji);
+                saveEmojis();
+                addButton?.focus({ preventScroll: true });
+            }
+        });
+        document.addEventListener('click', event => {
+            const button = event.target.closest('.employee-emoji-button[data-emoji]');
+            if (!button || button.disabled) return;
+            const emoji = button.dataset.emoji;
+            if (emojiDialog?.contains(button)) {
+                if (!emojis.includes(emoji)) {
+                    emojis.push(emoji);
+                    saveEmojis();
+                }
+                emojiDialog.close();
+                return;
+            }
+            if (!quick?.contains(button) || !target || target.disabled) return;
+            const start = target.selectionStart ?? target.value.length;
+            const end = target.selectionEnd ?? target.value.length;
+            if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
+            target.setRangeText(emoji, start, end, 'end');
+            target.focus();
+            target.dispatchEvent(new Event('input', { bubbles: true }));
         });
     })();
 </script>
