@@ -239,19 +239,25 @@
                 <a class="dashboard-global-tool employee-documents"
                    asp-controller="EmployeeDocuments" asp-action="Index"
                    title="เอกสารพนักงาน" aria-label="เปิดหน้าเอกสารพนักงาน">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v1" />
                         <path d="M3 7h17a1 1 0 0 1 1 1l-2 11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2L2 9a2 2 0 0 1 1-2Z" />
                     </svg>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">เอกสาร</span>
                 </a>
                 <a class="dashboard-global-tool employee-notes"
                    asp-controller="EmployeeDocuments" asp-action="MyNotes"
                    title="จดบันทึกของฉัน" aria-label="เปิดหน้าจดบันทึกของฉัน">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="m16 3 5 5M10 14l-1 4 4-1L22 8l-4-4Z" />
                         <path d="M7 7h4M7 11h2" />
                     </svg>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">บันทึก</span>
                 </a>
             }
             @if (pendingStatusApprovalCount > 0)
@@ -262,13 +268,16 @@
                    asp-route-status="PENDING"
                    title="รายการรออนุมัติสถานะ"
                    aria-label="มีรายการรออนุมัติ @pendingStatusApprovalCount รายการ">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M9 5h6" />
                         <path d="M9 3h6a1 1 0 0 1 1 1v3H8V4a1 1 0 0 1 1-1Z" />
                         <path d="M8 5H6a2 2 0 0 0-2 2v14h16V7a2 2 0 0 0-2-2h-2" />
                         <path d="m8 13 2 2 5-5" />
                     </svg>
                     <span class="dashboard-global-tool-count">@pendingStatusApprovalCount</span>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">อนุมัติ</span>
                 </a>
             }
             @if (canAttendanceCalendar)
@@ -277,11 +286,14 @@
                    asp-controller="Attendance" asp-action="Calendar"
                    title="ปฏิทินวันหยุด การประชุม และงานเข้าไซต์"
                    aria-label="เปิดปฏิทินวันหยุด การประชุม และงานเข้าไซต์">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M8 2v4M16 2v4M3 10h18" />
                         <path d="M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z" />
                         <path d="M7 14h2M12 14h2M7 18h2M12 18h2" />
                     </svg>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">ปฏิทิน</span>
                 </a>
             }
             <a class="dashboard-global-tool attendance"
@@ -289,20 +301,24 @@
                asp-action="Index"
                title="Attendance"
                aria-label="Attendance">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M8 2v4" />
                     <path d="M16 2v4" />
                     <path d="M3 10h18" />
                     <path d="M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z" />
                     <path d="m9 16 2 2 4-5" />
                 </svg>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">ลงเวลา</span>
             </a>
             <a class="dashboard-global-tool open-work"
                asp-controller="OpenWork"
                asp-action="Index"
                title="งานทั้งหมดที่ยังไม่เสร็จสิ้น"
                aria-label="งานทั้งหมดที่ยังไม่เสร็จสิ้น">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <span class="dashboard-global-tool-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M9 4h6" />
                     <path d="M10 2h4a2 2 0 0 1 2 2v2H8V4a2 2 0 0 1 2-2Z" />
                     <path d="M8 4H6a2 2 0 0 0-2 2v16h16V6a2 2 0 0 0-2-2h-2" />
@@ -310,6 +326,8 @@
                     <path d="M8 16h5" />
                 </svg>
                 <span class="dashboard-global-tool-count @(openIssueSupportCount == 0 ? "is-empty" : "")">@openIssueSupportCount</span>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">งานค้าง</span>
             </a>
         </div>
     </section>
@@ -1777,6 +1795,24 @@
 }
 
 .dashboard-global-tool {
+    width:60px;
+    display:inline-flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+    text-decoration:none;
+    cursor:pointer;
+}
+.dashboard-global-tool-label {
+    color:var(--pt-surface-contrast,#10233f) !important;
+    -webkit-text-fill-color:var(--pt-surface-contrast,#10233f) !important;
+    font-size:11px;
+    font-weight:600;
+    line-height:1.4;
+    white-space:nowrap;
+}
+.dashboard-global-tool-icon {
     position:relative;
     width:44px;
     height:44px;
@@ -1784,65 +1820,59 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    color:#fff;
-    text-decoration:none;
     border:1.5px solid rgba(80,156,220,.42);
-    box-shadow:0 10px 20px rgba(15,39,70,.08), 0 0 0 1px rgba(255,255,255,.36), inset 0 1px 0 rgba(255,255,255,.48);
-    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
-    padding:0;
-    cursor:pointer;
-    font:inherit;
+    transition:transform .18s ease, box-shadow .18s ease;
 }
 
-.dashboard-global-tool:hover {
+.dashboard-global-tool:hover .dashboard-global-tool-icon {
     transform:translateY(-2px);
     box-shadow:0 13px 24px rgba(15,39,70,.13), inset 0 1px 0 rgba(255,255,255,.52);
     filter:saturate(1.06);
 }
 
-.dashboard-global-tool.notification {
+.dashboard-global-tool.notification .dashboard-global-tool-icon {
     color:#0f9f8c;
     background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(226,252,248,.34));
     border-color:rgba(15,159,140,.62);
     box-shadow:0 10px 20px rgba(15,159,140,.1), 0 0 0 1px rgba(15,159,140,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.approval {
+.dashboard-global-tool.approval .dashboard-global-tool-icon {
     color:#f97316;
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,237,213,.38));
     border-color:rgba(249,115,22,.66);
     box-shadow:0 10px 20px rgba(249,115,22,.11), 0 0 0 1px rgba(249,115,22,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.open-work {
+.dashboard-global-tool.open-work .dashboard-global-tool-icon {
     color:#f05a00;
     background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(255,241,224,.34));
     border-color:rgba(240,90,0,.62);
     box-shadow:0 10px 20px rgba(240,90,0,.1), 0 0 0 1px rgba(240,90,0,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.attendance {
+.dashboard-global-tool.attendance .dashboard-global-tool-icon {
     color:#1688f5;
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(226,244,255,.38));
     border-color:rgba(22,136,245,.62);
     box-shadow:0 10px 20px rgba(22,136,245,.1), 0 0 0 1px rgba(22,136,245,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.employee-documents {
+.dashboard-global-tool.employee-documents .dashboard-global-tool-icon {
     color:#d18b00;
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(254,243,199,.48));
     border-color:rgba(209,139,0,.66);
     box-shadow:0 10px 20px rgba(209,139,0,.1), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.employee-notes {
+.dashboard-global-tool.employee-notes .dashboard-global-tool-icon {
     color:#8b5cf6;
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(237,233,254,.48));
     border-color:rgba(139,92,246,.66);
     box-shadow:0 10px 20px rgba(139,92,246,.1), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.work-calendar {
+.dashboard-global-tool.work-calendar .dashboard-global-tool-icon {
     color:#0f9f8c;
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(204,251,241,.48));
     border-color:rgba(15,159,140,.66);
@@ -7089,10 +7119,7 @@
         height:34px;
     }
 
-    .dashboard-global-tool {
-        width:44px;
-        height:44px;
-    }
+    .dashboard-global-tool-icon { width:44px; height:44px; }
 
     .kpi-grid {
         --kpi-grid-gap:12px;
@@ -7364,10 +7391,7 @@
         gap:5px;
         flex:0 0 auto;
     }
-    .dashboard-global-tool {
-        width:42px;
-        height:42px;
-    }
+    .dashboard-global-tool-icon { width:42px; height:42px; }
     .dashboard-global-tool svg {
         width:20px;
         height:20px;
@@ -7756,6 +7780,27 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
     color:#ffffff !important;
     filter:brightness(1.05);
 }
+
+.dashboard-global-searchbar { flex-wrap:wrap; }
+.dashboard-global-tools { flex-wrap:wrap; gap:12px 6px; min-width:0; max-width:100%; flex:0 1 auto; }
+@@media (max-width:640px) {
+    .dashboard-global-tools {
+        display:grid;
+        grid-template-columns:repeat(6,minmax(0,1fr));
+        width:100%;
+        flex:1 1 100%;
+        gap:12px 4px;
+        padding:8px 0 2px;
+        order:4;
+    }
+    .dashboard-global-tools::before { display:none; }
+    .dashboard-global-tools .dashboard-global-tool { width:100%; min-width:0; }
+    .dashboard-global-tool-label { font-size:10px; }
+}
+@@media (max-width:360px) {
+    .dashboard-global-tools { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+
 </style>
 }
 
