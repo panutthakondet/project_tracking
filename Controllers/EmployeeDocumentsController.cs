@@ -190,7 +190,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("EmployeeDocuments.Upload")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content)
+        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content, bool isRichText = false)
         {
             var note = await _context.EmployeeNotes
                 .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
@@ -204,7 +204,17 @@ namespace ProjectTracking.Controllers
             note.Title = LimitTextElements(
                 string.IsNullOrWhiteSpace(title) ? "ไม่มีชื่อ" : title.Trim(),
                 255);
-            note.Content = content ?? string.Empty;
+            if (isRichText)
+            {
+                try { note.Content = EmployeeNoteRichText.Normalize(content ?? ""); }
+                catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException)
+                {
+                    TempData["Error"] = "รูปแบบข้อความไม่ถูกต้อง กรุณาลองบันทึกใหม่";
+                    return RedirectToAction(nameof(Notes), new { empId, noteId = employeeNoteId });
+                }
+            }
+            else note.Content = content ?? string.Empty;
+            note.IsRichText = isRichText;
             note.UpdatedBy = CurrentUsername();
             note.UpdatedAt = DateTime.Now;
 

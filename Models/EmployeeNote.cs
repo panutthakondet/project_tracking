@@ -26,6 +26,9 @@ namespace ProjectTracking.Models
         [Column("is_pinned")]
         public bool IsPinned { get; set; }
 
+        [Column("is_rich_text")]
+        public bool IsRichText { get; set; }
+
         [Column("created_by")]
         [StringLength(100)]
         public string? CreatedBy { get; set; }
