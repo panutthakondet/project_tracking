@@ -11,7 +11,12 @@
     <!-- ✅ Google Font (Thai): Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    @{
+        var isProjectsListPage = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Projects", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+        var promptFontDisplay = isProjectsListPage ? "optional" : "swap";
+    }
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=@promptFontDisplay" rel="stylesheet">
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />

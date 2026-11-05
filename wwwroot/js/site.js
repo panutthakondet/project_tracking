@@ -419,9 +419,13 @@
     };
 
     document.addEventListener("DOMContentLoaded", function () {
-        setTimeout(function () {
+        if (document.querySelector("main.route-controller-projects.route-action-index")) {
+            // คืนค่าตัวกรองและสร้างช่องค้นหาให้เสร็จในรอบเดียว ก่อนเปิดแสดงหน้า Projects
             initProjectDropdowns(document);
-        }, 0);
+            document.dispatchEvent(new Event("projecttracking:dropdowns-ready"));
+        } else {
+            setTimeout(function () { initProjectDropdowns(document); }, 0);
+        }
     });
 })();
 
