@@ -124,7 +124,7 @@
 
     .employee-notes-workspace {
         display: grid;
-        grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+        grid-template-columns: minmax(220px, 28%) minmax(0, 1fr);
         min-height: 0;
         height: 70dvh;
         grid-template-rows: minmax(0, 1fr);
@@ -401,7 +401,7 @@
         font-size: .78rem;
     }
 
-    @@media (min-width: 901px) {
+    @@media (min-width: 1200px) {
         html:has(.employee-notes-page), body:has(.employee-notes-page) { height: 100%; overflow: hidden; }
         body:has(.employee-notes-page) .v2-page { height: 100dvh; min-height: 0; padding-bottom: 12px; overflow: hidden; }
         body:has(.employee-notes-page) .v2-page > .container,
@@ -413,25 +413,60 @@
         .employee-notes-workspace { flex: 1; height: auto; }
     }
 
-    @@media (max-width: 900px) {
+    @@media (max-width: 1199.98px) {
         .employee-notes-hero { align-items: flex-start; flex-direction: column; }
         .employee-notes-actions { justify-content: flex-start; }
         .employee-notes-workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; min-height: 0; }
         .employee-note-content { height: 60dvh; min-height: 300px; flex: none; }
         .employee-note-toolbar { max-height: none; }
         .employee-notes-sidebar { border-right: 0; border-bottom: 1px solid var(--notes-border); }
-        .employee-notes-list { display: flex; max-height: 230px; overflow-x: auto; }
-        .employee-note-link { min-width: 230px; margin: 0 8px 0 0; }
+        .employee-notes-list { display: flex; flex: none; max-height: 190px; overflow-x: auto; overflow-y: hidden; gap: 10px; }
+        .employee-note-link { flex: 0 0 240px; min-width: 0; margin: 0; }
         .employee-note-toolbar { align-items: flex-start; flex-direction: column; }
     }
 
-    @@media (max-width: 560px) {
-        .employee-notes-hero { padding: 18px; }
-        .employee-note-form { padding-inline: 18px; }
-        .employee-note-toolbar-right { width: 100%; }
-        .employee-note-toolbar-right .btn { flex: 1; }
-        .employee-note-meta { flex-direction: column; gap: 3px; }
+    .employee-notes-page { min-width: 0; max-width: 100%; }
+    .employee-notes-hero > div { min-width: 0; }
+    .employee-notes-hero h1 { overflow-wrap: anywhere; white-space: normal; }
+    .employee-note-toolbar-right { min-width: 0; }
+    .employee-note-toolbar-right form { margin: 0; min-width: 0; }
+    .employee-note-meta span { min-width: 0; overflow-wrap: anywhere; }
+    .employee-note-content { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    @@media (max-width: 1199.98px) {
+        .employee-note-toolbar { gap: 12px; padding: 14px 18px; }
+        .employee-note-toolbar-left, .employee-note-toolbar-right { width: 100%; }
+        .employee-note-toolbar-right { justify-content: flex-end; }
+        .employee-note-form { padding: 18px 22px; }
+        .employee-note-meta { flex-wrap: wrap; gap: 6px 16px; }
     }
+    @@media (max-width: 575.98px) {
+        .employee-notes-page { padding-left: 0 !important; padding-right: 0 !important; }
+        .employee-notes-hero { padding: 16px; gap: 14px; border-radius: 16px; margin-bottom: 12px; }
+        .employee-notes-hero h1 { font-size: 1.3rem; line-height: 1.5; }
+        .employee-notes-subtitle { font-size: .85rem; }
+        .employee-notes-actions { width: 100%; gap: 8px; }
+        .employee-notes-actions .btn { flex: 1 1 120px; min-height: 42px; font-size: .85rem; }
+        .employee-notes-workspace { border-radius: 16px; }
+        .employee-notes-sidebar-head { min-height: 60px; padding: 10px 14px; }
+        .employee-notes-list { padding: 10px; max-height: 155px; }
+        .employee-note-link { flex-basis: min(240px, 75vw); padding: 10px 12px; }
+        .employee-note-list-title { font-size: .9rem; }
+        .employee-note-list-preview { font-size: .78rem; }
+        .employee-note-toolbar { padding: 12px; }
+        .employee-note-toolbar-left { gap: 6px; }
+        .employee-note-toolbar-left > .employee-emoji-button:nth-child(n+5) { display: none; }
+        .employee-note-toolbar-right { justify-content: stretch; gap: 6px; }
+        .employee-note-toolbar-right > .btn, .employee-note-toolbar-right > form { flex: 1 1 80px; }
+        .employee-note-toolbar-right .btn { width: 100%; min-height: 44px; padding: 8px 6px; font-size: .82rem; white-space: normal; }
+        .employee-note-form { padding: 16px 14px 12px; }
+        .employee-note-title { font-size: 1.2rem; padding-bottom: 12px; }
+        .employee-note-content { height: 55dvh; min-height: 260px; font-size: 16px; padding: 16px 0; }
+        .employee-note-meta { flex-direction: column; font-size: .72rem; gap: 5px; }
+        .employee-emoji-dialog { width: calc(100vw - 24px); max-height: 85dvh; }
+        .employee-emoji-dialog-head { padding: 12px; }
+        .employee-emoji-dialog-head h2 { font-size: 1rem; }
+    }
+
 </style>
 
 <div class="container-fluid employee-notes-page px-lg-4 py-3">
