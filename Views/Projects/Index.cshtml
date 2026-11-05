@@ -272,278 +272,6 @@
     </div>
 </div>
 
-<div class="table-responsive project-table-wrapper" style="display:none;">
-    <table id="projectTable" class="table table-bordered table-hover align-middle project-table">
-        <thead class="table-dark text-center">
-            <tr>
-                <th class="sticky-col-1 col-id">#</th>
-                <th class="sticky-col-2 col-name">ชื่อโครงการ</th>
-                <th class="col-department">ฝ่าย</th>
-                <th class="col-detail">รายละเอียดเพิ่มเติม</th>
-                <th class="col-pm">PM</th>
-                <th class="col-ba">BA</th>
-                <th class="col-system">ระบบ</th>
-                <th class="col-db">ฐานข้อมูล</th>
-                <th class="col-test">ทะเบียนทดสอบ</th>
-                <th class="col-url">รีโมท / URL</th>
-                <th class="col-date">วันที่เริ่ม</th>
-                <th class="col-date">วันที่สิ้นสุด</th>
-                <th class="col-date">เริ่มรับประกัน</th>
-                <th class="col-date">สิ้นสุดรับประกัน</th>
-                <th class="col-status">สถานะรับประกัน</th>
-                <th class="col-status">สถานะ</th>
-                <th class="col-mini">Figma</th>
-                <th class="col-action">จัดการ</th>
-            </tr>
-        </thead>
-
-        <tbody>
-        @if (!orderedProjects.Any())
-        {
-            <tr>
-                <td colspan="18" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
-            </tr>
-        }
-        else
-        {
-            var rowNo = 1;
-            foreach (var p in orderedProjects)
-            {
-                var projectDisplayName = p.ProjectDisplayName;
-                var coopName = p.Coop?.CoopName ?? "";
-                var departmentValue = p.EffectiveDepartmentIds.Count > 0 ? string.Join(",", p.EffectiveDepartmentIds) : "unassigned";
-                var projectManagers = p.ProjectManagers;
-                var businessAnalysts = p.BusinessAnalysts;
-                <tr data-ba-id="@string.Join(",", businessAnalysts.Select(e => e.EmpId))"
-                    data-project-id="@p.ProjectId"
-                    data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
-                    data-project="@projectDisplayName.ToLower()"
-                    data-project-name="@p.ProjectName.ToLower()"
-                    data-coop="@coopName.ToLower()"
-                    data-department="@departmentValue"
-                    data-ba="@(p.BusinessAnalystNames.ToLower())"
-                    data-pm="@(p.ProjectManagerNames.ToLower())"
-                    data-status="@((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)).ToLowerInvariant())">
-                    <td class="sticky-col-1 col-id text-center">@rowNo</td>
-
-                    <td class="sticky-col-2 col-name">
-                        <div class="project-name-stack">
-                            <div class="project-coop-name">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</div>
-                            <div class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</div>
-                        </div>
-                    </td>
-
-                    <td class="col-department">@p.DepartmentNames</td>
-
-                    <td class="col-detail project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</td>
-
-                    <td class="col-pm text-center">
-                        @if (projectManagers.Count > 0)
-                        {
-                            foreach (var member in projectManagers)
-                            {
-                                <span class="project-person is-table is-profile">
-                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text">@member.EmpName</span>
-                                </span>
-                            }
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-
-                    <td class="col-ba text-center">
-                        @if (businessAnalysts.Count > 0)
-                        {
-                            foreach (var member in businessAnalysts)
-                            {
-                                <span class="project-person is-table is-profile">
-                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text">@member.EmpName</span>
-                                </span>
-                            }
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-
-                    <td class="col-system">
-                        @{
-                            var tableSystemItems = ProjectSystemItems(p.LinkName);
-                        }
-                        @if (tableSystemItems.Count > 0)
-                        {
-                            <span class="project-system-value is-table">
-                                @foreach (var item in tableSystemItems)
-                                {
-                                    <span class="project-system-chip">
-                                        @if (!string.IsNullOrWhiteSpace(item.Url))
-                                        {
-                                            <span class="project-system-key">@item.Label</span>
-                                            <a href="@item.Url" target="_blank" rel="noopener noreferrer">@item.Url</a>
-                                        }
-                                        else
-                                        {
-                                            <span class="project-system-text">@item.Label</span>
-                                        }
-                                    </span>
-                                }
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-                    <td class="col-db">@p.DatabaseName</td>
-                    <td class="col-test">@p.TestAccount</td>
-                    <td class="col-url small">@p.RemoteUrl</td>
-
-                    <td class="text-center col-date">
-                        @(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                    </td>
-
-                    <td class="text-center col-date">
-                        @(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                    </td>
-
-                    <td class="text-center col-date">
-                        @(p.WarrantyStartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                    </td>
-
-                    <td class="text-center col-date">
-                        @(p.WarrantyEndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                    </td>
-
-                    <td class="text-center col-status">
-                        @if (p.WarrantyEndDate.HasValue)
-                        {
-                            <span class="project-warranty-status @(p.IsWarrantyActive ? "is-active" : "is-expired")">@p.WarrantyStatusDescription</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-
-                    <td class="text-center col-status">
-                        <span class="badge
-                            @((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "DONE"
-                                ? "bg-success"
-                                : (p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "IN_PROGRESS"
-                                    ? "bg-info"
-                                    : "bg-warning text-dark")">
-                            @p.StatusDescription
-                        </span>
-                    </td>
-
-                    <td class="text-center col-mini">
-                        @if (!string.IsNullOrEmpty(p.FigmaLink))
-                        { <a href="@p.FigmaLink" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">🎨</a> }
-                        else { <span class="text-muted">-</span> }
-                    </td>
-
-
-                    <td class="text-center col-action">
-                        <div class="d-flex justify-content-center gap-1 flex-wrap">
-                            <a asp-action="ProductionMemo"
-                               asp-route-id="@p.ProjectId"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="btn btn-sm btn-outline-dark"
-                               title="บันทึกภายใน Production">📄</a>
-                            @if (CanMenu("Projects.Edit"))
-                            {
-                                <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary" title="แก้ไขโครงการ">✏️</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                    ✏️
-                                </button>
-                            }
-                            <a asp-controller="ProjectPhases" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-sm btn-outline-info">🧩</a>
-                            <a asp-controller="ProjectDocuments" 
-                               asp-action="Index" 
-                               asp-route-projectId="@p.ProjectId"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="btn btn-sm btn-outline-secondary">📂</a>
-                            @if (CanMenu("ProjectIssues.Index"))
-                            {
-                                <a asp-controller="ProjectIssues"
-                                   asp-action="Index"
-                                   asp-route-projectId="@p.ProjectId"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="btn btn-sm btn-outline-danger"
-                                   title="ดูปัญหาโครงการ">🐞</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูปัญหาโครงการ">🐞</button>
-                            }
-                            @if (CanMenu("SupportOrders.Index"))
-                            {
-                                <a asp-controller="SupportOrders"
-                                   asp-action="Index"
-                                   asp-route-projectId="@p.ProjectId"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="btn btn-sm btn-outline-warning"
-                                   title="ดูงาน Support">🛠</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูงาน Support">🛠</button>
-                            }
-                            @if (CanMenu("TestScenarios.Index"))
-                            {
-                                <a asp-controller="TestScenarios"
-                                   asp-action="Index"
-                                   asp-route-projectId="@p.ProjectId"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="ดูข้อมูลทดสอบ">🧪</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูข้อมูลทดสอบ">🧪</button>
-                            }
-                            @if (CanMenu("Projects.Delete"))
-                            {
-                                <form asp-action="Delete"
-                                      asp-route-id="@p.ProjectId"
-                                      method="post"
-                                      class="project-delete-form"
-                                      onsubmit="return confirm('ต้องการลบโครงการนี้หรือไม่?');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit"
-                                            class="btn btn-sm btn-outline-danger"
-                                            title="ลบโครงการ">🗑</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                    🗑
-                                </button>
-                            }
-                        </div>
-                    </td>
-                </tr>
-                rowNo++;
-            }
-        }
-        </tbody>
-    </table>
-</div>
-
 <!-- Mobile Card View -->
 <div class="project-mobile-cards">
     @if (orderedProjects.Any())
@@ -1537,7 +1265,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-card {
-    transition: .2s ease;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
     width: 100%;
     min-width: 0;
     overflow: hidden;
@@ -2981,66 +2709,17 @@ window.applyProjectFilter = function () {
 
         const visible = matchCoop && matchProject && matchDepartment && matchBa && matchPm && matchStatus;
 
-        card.style.display = visible ? "block" : "none";
+        const display = visible ? "block" : "none";
+        if (card.style.display !== display) card.style.display = display;
 
         if (visible) {
             const numberEl = card.querySelector(".project-row-number");
-            if (numberEl) numberEl.textContent = String(visibleCardNo++);
+            const number = String(visibleCardNo++);
+            if (numberEl && numberEl.textContent !== number) numberEl.textContent = number;
         }
     });
 
-    // desktop table (กันไว้)
-    let visibleRowNo = 1;
-    document.querySelectorAll("#projectTable tbody tr").forEach(row => {
 
-        const projectId = (
-            row.dataset.projectId || ""
-        ).trim().toLowerCase();
-
-        const coopId = (
-            row.dataset.coopId || "unassigned"
-        ).trim().toLowerCase();
-
-        const baName = (
-            row.dataset.ba || ""
-        ).trim().toLowerCase();
-
-        const department = (row.dataset.department || "unassigned").trim().toLowerCase();
-
-        const pmName = (
-            row.dataset.pm || ""
-        ).trim().toLowerCase();
-
-        const statusName = (
-            row.dataset.status || ""
-        ).trim().toLowerCase();
-
-        const matchProject = !selectedProject ||
-                             projectId === selectedProject;
-
-        const matchCoop = !selectedCoop ||
-                          coopId === selectedCoop;
-
-        const matchBa = !selectedBa ||
-                        baName.includes(selectedBa);
-
-        const matchDepartment = !selectedDepartment || department.split(",").includes(selectedDepartment);
-
-        const matchPm = !selectedPm ||
-                        pmName.includes(selectedPm);
-
-        const matchStatus = !selectedStatus ||
-                            statusName.includes(selectedStatus);
-
-        const visible = matchCoop && matchProject && matchDepartment && matchBa && matchPm && matchStatus;
-
-        row.style.display = visible ? "table-row" : "none";
-
-        if (visible) {
-            const numberCell = row.querySelector(".col-id");
-            if (numberCell) numberCell.textContent = String(visibleRowNo++);
-        }
-    });
 };
 
 function restoreFilter(selectId, storageKey) {
@@ -3147,10 +2826,8 @@ document.getElementById("departmentFilter")?.addEventListener("change", function
 });
 
 syncProjectFilterOptions();
-setTimeout(() => {
-    window.applyProjectFilter();
-    openRequestedProjectCardTab();
-}, 50);
+window.applyProjectFilter();
+openRequestedProjectCardTab();
 });
 </script>
 }

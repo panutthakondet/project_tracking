@@ -40,12 +40,12 @@ namespace ProjectTracking.Controllers
             int? projectId)
         {
             // Load Business Analyst list for dropdown filter
-            ViewBag.Employees = _context.Employees
+            ViewBag.Employees = await _context.Employees.AsNoTracking()
                 .Where(e => e.Status == "ACTIVE"
                     && e.PositionDefinition != null
                     && e.PositionDefinition.PositionName == "Business Analyst")
                 .OrderBy(e => e.EmpName)
-                .ToList();
+                .ToListAsync();
 
             var query = _context.Projects
                 .Include(p => p.BA)
@@ -61,6 +61,7 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(link => link.Department)
                 .Include(p => p.StatusDefinition)
                 .AsNoTracking()
+                .AsSplitQuery()
                 .AsQueryable();
 
             if (baEmpId.HasValue)
