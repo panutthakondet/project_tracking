@@ -181,6 +181,16 @@
         line-height: 1;
     }
 
+    .employee-note-add svg {
+        display: block;
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
     .employee-notes-list {
         min-height: 0;
         flex: 1;
@@ -451,7 +461,7 @@
                     <form asp-action="CreateNote" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
-                        <button type="submit" class="employee-note-add" title="เพิ่มบันทึกใหม่" aria-label="เพิ่มบันทึกใหม่">+</button>
+                        <button type="submit" class="employee-note-add" title="เพิ่มบันทึกใหม่" aria-label="เพิ่มบันทึกใหม่"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
                     </form>
                 }
             </div>
