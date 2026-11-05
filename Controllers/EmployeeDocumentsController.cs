@@ -144,6 +144,13 @@ namespace ProjectTracking.Controllers
                 .ThenByDescending(x => x.EmployeeNoteId)
                 .ToListAsync();
 
+            // เปิดโน้ตที่เคยจัดรูปแบบเป็นข้อความธรรมดา โดยรักษาเนื้อหาเดิมไว้
+            foreach (var note in notes)
+            {
+                if (note.IsRichText)
+                    note.Content = EmployeeNoteRichText.PlainText(note.Content);
+            }
+
             var selectedNote = noteId.HasValue
                 ? notes.FirstOrDefault(x => x.EmployeeNoteId == noteId.Value)
                 : notes.FirstOrDefault();
@@ -190,7 +197,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("EmployeeDocuments.Upload")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content, bool isRichText = false)
+        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content)
         {
             var note = await _context.EmployeeNotes
                 .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
@@ -204,17 +211,8 @@ namespace ProjectTracking.Controllers
             note.Title = LimitTextElements(
                 string.IsNullOrWhiteSpace(title) ? "ไม่มีชื่อ" : title.Trim(),
                 255);
-            if (isRichText)
-            {
-                try { note.Content = EmployeeNoteRichText.Normalize(content ?? ""); }
-                catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException)
-                {
-                    TempData["Error"] = "รูปแบบข้อความไม่ถูกต้อง กรุณาลองบันทึกใหม่";
-                    return RedirectToAction(nameof(Notes), new { empId, noteId = employeeNoteId });
-                }
-            }
-            else note.Content = content ?? string.Empty;
-            note.IsRichText = isRichText;
+            note.Content = content ?? string.Empty;
+            note.IsRichText = false;
             note.UpdatedBy = CurrentUsername();
             note.UpdatedAt = DateTime.Now;
 

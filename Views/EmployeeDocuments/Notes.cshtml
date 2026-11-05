@@ -1,6 +1,5 @@
 @using Microsoft.AspNetCore.Http
 @using System.Globalization
-@using ProjectTracking.Services
 @using System.Linq
 @model ProjectTracking.Models.EmployeeNotesViewModel
 
@@ -18,9 +17,9 @@
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 
-    string NotePreview(string? content, bool isRichText)
+    string NotePreview(string? content)
     {
-        var normalized = string.Join(" ", EmployeeNoteRichText.PlainText(content ?? string.Empty, isRichText)
+        var normalized = string.Join(" ", (content ?? string.Empty)
             .Split(new[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries))
             .Trim();
         if (string.IsNullOrWhiteSpace(normalized)) return "ยังไม่มีรายละเอียด";
@@ -358,20 +357,12 @@
         background: transparent;
         color: var(--notes-text);
         font-size: 1rem;
-        font-weight: 400;
+        font-weight: 430;
         line-height: 1.75;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
     }
 
-    .employee-note-formatbar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:10px 0; flex-shrink:0; border-bottom:1px solid var(--notes-border); }
-    .employee-note-formatbar label { display:inline-flex; align-items:center; gap:5px; margin:0; font-size:.8rem; }
-    .employee-note-formatbar input[type="color"] { width:32px; height:30px; padding:2px; border:1px solid var(--notes-border); background:var(--notes-bg); border-radius:6px; cursor:pointer; }
-    .employee-note-formatbar select { color:var(--notes-text); background:var(--notes-bg); border:1px solid var(--notes-border); border-radius:6px; height:30px; }
-    .employee-note-formatbar button[aria-pressed="true"] { outline:2px solid var(--notes-accent); outline-offset:-2px; }
-    .employee-note-content:focus-visible { box-shadow:inset 0 0 0 1px var(--notes-border); }
-    .employee-note-content > div, .employee-note-content > p { margin:0; }
-    .employee-note-title:disabled {
+    .employee-note-title:disabled,
+    .employee-note-content:disabled {
         opacity: 1;
         -webkit-text-fill-color: var(--notes-text);
     }
@@ -486,7 +477,7 @@
                            asp-route-noteId="@note.EmployeeNoteId"
                            class="employee-note-link @(isActive ? "is-active" : string.Empty)">
                             <span class="employee-note-list-title">@if (note.IsPinned) { <span title="ปักหมุดแล้ว" aria-label="ปักหมุดแล้ว">📌 </span> }@note.Title</span>
-                            <span class="employee-note-list-preview">@NotePreview(note.Content, note.IsRichText)</span>
+                            <span class="employee-note-list-preview">@NotePreview(note.Content)</span>
                             <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         </a>
                     }
@@ -554,30 +545,12 @@
                            placeholder="หัวข้อบันทึก"
                            aria-label="หัวข้อบันทึก"
                            disabled="@editorDisabled" />
-                    @if (canEdit)
-                    {
-                        <div id="employeeNoteFormatBar" class="employee-note-formatbar" role="toolbar" aria-label="จัดรูปแบบข้อความ">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-format="bold" title="ตัวหนา" aria-label="ตัวหนา" aria-pressed="false"><b>B</b></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-format="normal" title="ตัวปกติ" aria-label="ตัวปกติ">ปกติ</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-format="italic" title="ตัวเอียง" aria-label="ตัวเอียง" aria-pressed="false"><i>I</i></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-format="underline" title="ขีดเส้นใต้" aria-label="ขีดเส้นใต้" aria-pressed="false"><u>U</u></button>
-                            <label>สีตัวอักษร <input type="color" data-format-color="foreColor" value="#102f35" aria-label="สีตัวอักษร" /></label>
-                            <label>ไฮไลท์ <input type="color" data-format-color="hiliteColor" value="#ffff00" aria-label="สีไฮไลท์" /></label>
-                            <label>ขนาด <select data-format-size aria-label="ขนาดตัวอักษร">
-                                @foreach (var size in EmployeeNoteRichText.FontSizes)
-                                {
-                                    <option value="@size" selected="@(size == 16 ? "selected" : null)">@size px</option>
-                                }
-                            </select></label>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-format="removeFormat" title="ล้างรูปแบบ">ล้างรูปแบบ</button>
-                        </div>
-                    }
-                    @{
-                        var richDocument = EmployeeNoteRichText.Read(Model.SelectedNote.Content, Model.SelectedNote.IsRichText);
-                    }
-                    <input type="hidden" name="isRichText" value="true" />
-                    <textarea id="employeeNoteContentValue" name="content" hidden>@EmployeeNoteRichText.Serialize(richDocument)</textarea>
-                    <div id="employeeNoteContent" class="employee-note-content" contenteditable="@(canEdit ? "true" : "false")" role="textbox" aria-label="รายละเอียดบันทึก" aria-multiline="true" aria-readonly="@(!canEdit ? "true" : "false")" tabindex="0">@foreach (var run in richDocument.Runs) {<span style="@run.Css">@run.Text</span>}</div>
+                    <textarea id="employeeNoteContent"
+                              name="content"
+                              class="employee-note-content"
+                              placeholder="เริ่มจดบันทึก... รองรับ Emoji 😀"
+                              aria-label="รายละเอียดบันทึก"
+                              disabled="@editorDisabled">@Model.SelectedNote.Content</textarea>
                     <div class="employee-note-meta">
                         <span>สร้างโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.CreatedBy) ? "-" : Model.SelectedNote.CreatedBy) · @Model.SelectedNote.CreatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         <span>แก้ไขล่าสุดโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.UpdatedBy) ? "-" : Model.SelectedNote.UpdatedBy) · @Model.SelectedNote.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
@@ -611,7 +584,6 @@
     }
 </div>
 
-<script src="~/js/employee-note-editor.js" asp-append-version="true"></script>
 <script>
     (() => {
         const successMessage = document.getElementById('employeeNoteSuccess');
@@ -622,13 +594,12 @@
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
         const form = document.getElementById('employeeNoteSaveForm');
-        const richEditor = content ? window.EmployeeNoteEditor.attach(content, document.getElementById('employeeNoteContentValue'), document.getElementById('employeeNoteFormatBar')) : null;
         const originalTitle = title?.value;
-        const originalContent = richEditor?.getValue();
+        const originalContent = content?.value;
         let saving = false;
         let leavingConfirmed = false;
         const hasChanges = () => !saving && title && !title.disabled &&
-            (title.value !== originalTitle || richEditor.getValue() !== originalContent);
+            (title.value !== originalTitle || content.value !== originalContent);
         const confirmLeaving = () => {
             if (!hasChanges()) return true;
             if (!window.confirm('คุณมีข้อความที่ยังไม่ได้บันทึก หากออกจากหน้านี้ ข้อความที่แก้ไขจะหายไป\n\nต้องการออกจากหน้านี้โดยไม่บันทึกหรือไม่?')) return false;
@@ -661,14 +632,14 @@
                 event.stopImmediatePropagation();
             }
         });
-        form?.addEventListener('submit', () => { richEditor?.sync(); saving = true; });
+        form?.addEventListener('submit', () => saving = true);
         window.addEventListener('beforeunload', event => {
             if (leavingConfirmed || !hasChanges()) return;
             event.preventDefault();
             event.returnValue = '';
         });
         const emojiDialog = document.getElementById('employeeEmojiDialog');
-        document.getElementById('employeeEmojiOpen')?.addEventListener('click', () => { richEditor?.capture(); emojiDialog?.showModal(); });
+        document.getElementById('employeeEmojiOpen')?.addEventListener('click', () => emojiDialog?.showModal());
         document.getElementById('employeeEmojiClose')?.addEventListener('click', () => emojiDialog?.close());
         emojiDialog?.addEventListener('click', event => {
             if (event.target !== emojiDialog) return;
@@ -687,12 +658,6 @@
             button.addEventListener('click', () => {
                 if (!target || target.disabled) return;
                 const emoji = button.dataset.emoji || '';
-                if (target === content) {
-                    if (!content.isContentEditable) return;
-                    if (emojiDialog?.open) emojiDialog.close();
-                    richEditor.insertText(emoji);
-                    return;
-                }
                 const start = target.selectionStart ?? target.value.length;
                 const end = target.selectionEnd ?? target.value.length;
                 if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
