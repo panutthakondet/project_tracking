@@ -1722,6 +1722,7 @@ namespace ProjectTracking.Data
                 entity.HasKey(x => x.EmployeeNoteId);
 
                 entity.Property(x => x.EmployeeNoteId).HasColumnName("employee_note_id");
+                entity.Property(x => x.IsPinned).HasColumnName("is_pinned").HasColumnType("tinyint(1)").HasDefaultValue(false);
                 entity.Property(x => x.EmpId).HasColumnName("emp_id");
                 entity.Property(x => x.Title).HasColumnName("title").HasColumnType("varchar(255)").IsRequired();
                 entity.Property(x => x.Content).HasColumnName("content").HasColumnType("longtext").IsRequired();

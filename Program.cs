@@ -1800,6 +1800,7 @@ static async Task EnsureEmployeeNotesTableAsync(IServiceProvider services)
             CREATE TABLE IF NOT EXISTS `employee_notes` (
               `employee_note_id` int(11) NOT NULL AUTO_INCREMENT,
               `emp_id` int(11) NOT NULL,
+              `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
               `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'บันทึกใหม่',
               `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
               `created_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
@@ -1810,6 +1811,16 @@ static async Task EnsureEmployeeNotesTableAsync(IServiceProvider services)
               KEY `idx_employee_notes_employee_updated` (`emp_id`, `updated_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employee_notes'
+              AND COLUMN_NAME = 'is_pinned';";
+        if (Convert.ToInt32(await command.ExecuteScalarAsync()) == 0)
+        {
+            command.CommandText = "ALTER TABLE `employee_notes` ADD COLUMN `is_pinned` tinyint(1) NOT NULL DEFAULT 0 AFTER `emp_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         // แปลงเฉพาะตารางเดิมที่ยังไม่รองรับ Emoji เพื่อไม่ ALTER ทุกครั้งที่เริ่มระบบ
         command.CommandText = @"

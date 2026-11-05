@@ -476,7 +476,7 @@
                            asp-route-empId="@Model.Employee.EmpId"
                            asp-route-noteId="@note.EmployeeNoteId"
                            class="employee-note-link @(isActive ? "is-active" : string.Empty)">
-                            <span class="employee-note-list-title">@note.Title</span>
+                            <span class="employee-note-list-title">@if (note.IsPinned) { <span title="ปักหมุดแล้ว" aria-label="ปักหมุดแล้ว">📌 </span> }@note.Title</span>
                             <span class="employee-note-list-preview">@NotePreview(note.Content)</span>
                             <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         </a>
@@ -513,6 +513,13 @@
                         @if (canEdit)
                         {
                             <button type="submit" form="employeeNoteSaveForm" class="btn btn-primary">💾 บันทึก</button>
+                            <form asp-action="SetNotePinned" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
+                                <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
+                                <input type="hidden" name="isPinned" value="@(!Model.SelectedNote.IsPinned ? "true" : "false")" />
+                                <button type="submit" class="btn btn-outline-secondary">@(Model.SelectedNote.IsPinned ? "📌 เลิกปักหมุด" : "📌 ปักหมุด")</button>
+                            </form>
                         }
                         @if (canDelete)
                         {

@@ -139,7 +139,8 @@ namespace ProjectTracking.Controllers
             var notes = await _context.EmployeeNotes
                 .AsNoTracking()
                 .Where(x => x.EmpId == empId)
-                .OrderByDescending(x => x.UpdatedAt)
+                .OrderByDescending(x => x.IsPinned)
+                .ThenByDescending(x => x.UpdatedAt)
                 .ThenByDescending(x => x.EmployeeNoteId)
                 .ToListAsync();
 
@@ -209,6 +210,25 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "บันทึกข้อความเรียบร้อย";
+            return RedirectToAction(nameof(Notes), new { empId, noteId = employeeNoteId });
+        }
+
+        [RequireMenu("EmployeeDocuments.Upload")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetNotePinned(int empId, int employeeNoteId, bool isPinned)
+        {
+            var note = await _context.EmployeeNotes
+                .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
+            if (note == null)
+            {
+                TempData["Error"] = "ไม่พบบันทึกที่ต้องการปักหมุด";
+                return RedirectToAction(nameof(Notes), new { empId });
+            }
+
+            note.IsPinned = isPinned;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = isPinned ? "ปักหมุดบันทึกแล้ว" : "ยกเลิกปักหมุดบันทึกแล้ว";
             return RedirectToAction(nameof(Notes), new { empId, noteId = employeeNoteId });
         }
 
