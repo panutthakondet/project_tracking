@@ -222,6 +222,19 @@
         box-shadow: inset 4px 0 0 var(--notes-accent);
     }
 
+    .employee-note-pin-icon {
+        display: inline-block;
+        width: 17px;
+        height: 17px;
+        vertical-align: -3px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .employee-note-pinned-marker { color: var(--notes-accent); margin-right: 5px; }
+
     .employee-note-list-title {
         display: block;
         overflow: hidden;
@@ -486,7 +499,7 @@
                            asp-route-empId="@Model.Employee.EmpId"
                            asp-route-noteId="@note.EmployeeNoteId"
                            class="employee-note-link @(isActive ? "is-active" : string.Empty)">
-                            <span class="employee-note-list-title">@if (note.IsPinned) { <span title="ปักหมุดแล้ว" aria-label="ปักหมุดแล้ว">📌 </span> }@note.Title</span>
+                            <span class="employee-note-list-title">@if (note.IsPinned) { <span class="employee-note-pinned-marker" title="ปักหมุดแล้ว" role="img" aria-label="ปักหมุดแล้ว"><svg class="employee-note-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 9l3 3v2H5v-2l3-3V3h8v6ZM12 14v7M7 3h10" /></svg></span> }@note.Title</span>
                             <span class="employee-note-list-preview">@NotePreview(note.Content)</span>
                             <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         </a>
@@ -528,7 +541,10 @@
                                 <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
                                 <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
                                 <input type="hidden" name="isPinned" value="@(!Model.SelectedNote.IsPinned ? "true" : "false")" />
-                                <button type="submit" class="btn btn-outline-secondary">@(Model.SelectedNote.IsPinned ? "📌 เลิกปักหมุด" : "📌 ปักหมุด")</button>
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <svg class="employee-note-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 9l3 3v2H5v-2l3-3V3h8v6ZM12 14v7M7 3h10" />@if (Model.SelectedNote.IsPinned) { <path d="M3 3l18 18" /> }</svg>
+                                    @(Model.SelectedNote.IsPinned ? "เลิกปักหมุด" : "ปักหมุด")
+                                </button>
                             </form>
                         }
                         @if (canDelete)
