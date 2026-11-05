@@ -181,7 +181,8 @@
         line-height: 1;
     }
 
-    .employee-note-add svg {
+    .employee-note-add svg,
+    #employeeEmojiOpen svg {
         display: block;
         width: 20px;
         height: 20px;
@@ -190,6 +191,8 @@
         stroke-width: 2;
         stroke-linecap: round;
     }
+
+    #employeeEmojiOpen { display: inline-grid; place-items: center; width: 37px; padding: 0; }
 
     .employee-notes-list {
         min-height: 0;
@@ -573,7 +576,7 @@
                                 }
                                 @if (canEdit)
                                 {
-                                    <button type="button" id="employeeEmojiOpen" class="btn btn-sm btn-outline-secondary" aria-haspopup="dialog" aria-controls="employeeEmojiDialog">😀 Emoji เพิ่มเติม</button>
+                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เลือก Emoji เพิ่มเติม" aria-label="เลือก Emoji เพิ่มเติม" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
                                 }
                             </div>
                         </details>
