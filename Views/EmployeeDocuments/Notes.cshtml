@@ -181,8 +181,7 @@
         line-height: 1;
     }
 
-    .employee-note-add svg,
-    #employeeEmojiOpen svg {
+    .employee-note-add svg {
         display: block;
         width: 20px;
         height: 20px;
@@ -193,6 +192,14 @@
     }
 
     #employeeEmojiOpen { display: inline-grid; place-items: center; width: 37px; padding: 0; }
+    .employee-emoji-plus { position: relative; display: block; width: 18px; height: 18px; }
+    .employee-emoji-plus::before, .employee-emoji-plus::after {
+        content: ""; position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%); border-radius: 1px;
+        background: var(--notes-text, #102f35) !important;
+    }
+    .employee-emoji-plus::before { width: 18px; height: 2px; }
+    .employee-emoji-plus::after { width: 2px; height: 18px; }
 
     .employee-notes-list {
         min-height: 0;
@@ -576,7 +583,7 @@
                                 }
                                 @if (canEdit)
                                 {
-                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เลือก Emoji เพิ่มเติม" aria-label="เลือก Emoji เพิ่มเติม" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
+                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เลือก Emoji เพิ่มเติม" aria-label="เลือก Emoji เพิ่มเติม" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><span class="employee-emoji-plus" aria-hidden="true"></span></button>
                                 }
                             </div>
                         </details>
