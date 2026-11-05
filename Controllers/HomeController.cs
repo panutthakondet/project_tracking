@@ -221,6 +221,38 @@ namespace ProjectTracking.Controllers
             }
 
             ViewBag.PendingStatusApprovalCount = pendingStatusApprovalCount;
+            var calendarQueueCount = 0;
+            if (currentEmpId.HasValue && (role == "ADMIN" || menuKeys.Contains("Attendance.Index")))
+            {
+                var now = AttendancePolicyService.ThailandNow;
+                var yesterday = now.Date.AddDays(-1);
+                var meetings = await _context.Meetings.AsNoTracking()
+                    .Where(m => m.MeetingDate >= yesterday && m.Status != "CANCELLED"
+                        && m.Status != "COMPLETED" && m.Status != "DONE"
+                        && (m.CreatedBy == currentEmpId.Value || m.Attendees.Any(a =>
+                            a.UserId == currentEmpId.Value && a.Status != "rejected" && a.Status != "REJECTED")))
+                    .Select(m => new { m.MeetingDate, m.StartTime, m.EndTime }).ToListAsync();
+                calendarQueueCount += meetings.Count(m =>
+                {
+                    var start = m.MeetingDate.Date.Add(m.StartTime);
+                    var end = m.MeetingDate.Date.Add(m.EndTime);
+                    return (end <= start ? end.AddDays(1) : end) > now;
+                });
+                var visits = await _context.FieldServiceVisits.AsNoTracking()
+                    .Where(v => (v.EndVisitDate ?? v.VisitDate) >= yesterday
+                        && v.Status != "CANCELLED" && v.Status != "COMPLETED"
+                        && v.Assignees.Any(a => a.EmpId == currentEmpId.Value))
+                    .Select(v => new { v.VisitDate, v.EndVisitDate, v.StartTime, v.EndTime }).ToListAsync();
+                calendarQueueCount += visits.Count(v =>
+                {
+                    var lastDate = (v.EndVisitDate ?? v.VisitDate).Date;
+                    if (lastDate > v.VisitDate.Date || !v.StartTime.HasValue) return lastDate.AddDays(1) > now;
+                    var start = v.VisitDate.Date.Add(v.StartTime.Value);
+                    var end = v.EndTime.HasValue ? lastDate.Add(v.EndTime.Value) : lastDate.AddDays(1);
+                    return (end <= start ? end.AddDays(1) : end) > now;
+                });
+            }
+            ViewBag.CalendarQueueCount = calendarQueueCount;
             var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin, department);
 
             var unreadNotificationCount = 0;

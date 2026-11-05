@@ -21,6 +21,7 @@
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
     var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
     var pendingStatusApprovalCount = Convert.ToInt32(ViewBag.PendingStatusApprovalCount ?? 0);
+    var calendarQueueCount = Convert.ToInt32(ViewBag.CalendarQueueCount ?? 0);
     var canAttendanceCalendar = string.Equals(Context.Session.GetString("Role")?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase)
         || (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(x => string.Equals(x.Trim(), "Attendance.Index", StringComparison.OrdinalIgnoreCase));
@@ -284,14 +285,18 @@
             {
                 <a class="dashboard-global-tool work-calendar"
                    asp-controller="Attendance" asp-action="Calendar"
-                   title="ปฏิทินวันหยุด การประชุม และงานเข้าไซต์"
-                   aria-label="เปิดปฏิทินวันหยุด การประชุม และงานเข้าไซต์">
+                   title="ปฏิทิน · การประชุมและงานเข้าไซต์ที่รออยู่ @calendarQueueCount รายการ"
+                   aria-label="เปิดปฏิทิน มีการประชุมและงานเข้าไซต์ที่รออยู่ @calendarQueueCount รายการ">
                     <span class="dashboard-global-tool-icon">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M8 2v4M16 2v4M3 10h18" />
                         <path d="M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z" />
                         <path d="M7 14h2M12 14h2M7 18h2M12 18h2" />
                     </svg>
+                        @if (calendarQueueCount > 0)
+                        {
+                            <span class="dashboard-global-tool-count">@calendarQueueCount</span>
+                        }
                     </span>
                     <span class="dashboard-global-tool-label" aria-hidden="true">ปฏิทิน</span>
                 </a>
