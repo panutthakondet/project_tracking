@@ -305,6 +305,13 @@
     }
 
     .employee-note-toolbar-left { min-width: 0; flex: 1; }
+    .employee-emoji-collapse { width: 100%; }
+    .employee-emoji-collapse summary { width: fit-content; cursor: pointer; padding: 8px 10px; border: 1px solid var(--notes-border); border-radius: 10px; color: var(--notes-text); background: var(--notes-soft); font-size: .9rem; }
+    .employee-emoji-collapse summary:focus-visible { outline: 2px solid var(--notes-accent); outline-offset: 2px; }
+    .employee-emoji-collapse-hint::after { content: "แสดง"; font-size: .8rem; color: var(--notes-muted); margin-left: 6px; }
+    .employee-emoji-collapse[open] .employee-emoji-collapse-hint::after { content: "ซ่อน"; }
+    .employee-emoji-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; }
+
     .employee-emoji-dialog {
         width: min(560px, calc(100vw - 32px)); max-height: 80dvh;
         padding: 0; border: 1px solid var(--notes-border); border-radius: 18px;
@@ -454,7 +461,6 @@
         .employee-note-list-preview { font-size: .78rem; }
         .employee-note-toolbar { padding: 12px; }
         .employee-note-toolbar-left { gap: 6px; }
-        .employee-note-toolbar-left > .employee-emoji-button:nth-child(n+5) { display: none; }
         .employee-note-toolbar-right { justify-content: stretch; gap: 6px; }
         .employee-note-toolbar-right > .btn, .employee-note-toolbar-right > form { flex: 1 1 80px; }
         .employee-note-toolbar-right .btn { width: 100%; min-height: 44px; padding: 8px 6px; font-size: .82rem; white-space: normal; }
@@ -558,14 +564,19 @@
             {
                 <div class="employee-note-toolbar">
                     <div class="employee-note-toolbar-left" aria-label="เลือก Emoji">
-                        @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
-                        {
-                            <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
-                        }
-                        @if (canEdit)
-                        {
-                            <button type="button" id="employeeEmojiOpen" class="btn btn-sm btn-outline-secondary" aria-haspopup="dialog" aria-controls="employeeEmojiDialog">😀 Emoji เพิ่มเติม</button>
-                        }
+                        <details class="employee-emoji-collapse">
+                            <summary>😀 Emoji <span class="employee-emoji-collapse-hint" aria-hidden="true"></span></summary>
+                            <div class="employee-emoji-quick">
+                                @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
+                                {
+                                    <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
+                                }
+                                @if (canEdit)
+                                {
+                                    <button type="button" id="employeeEmojiOpen" class="btn btn-sm btn-outline-secondary" aria-haspopup="dialog" aria-controls="employeeEmojiDialog">😀 Emoji เพิ่มเติม</button>
+                                }
+                            </div>
+                        </details>
                     </div>
                     <div class="employee-note-toolbar-right">
                         @if (canEdit)
