@@ -233,6 +233,14 @@
         <div class="dashboard-global-tools" aria-label="ทางลัดและแจ้งเตือนงาน">
             @if (canEmployeeNotes)
             {
+                <a class="dashboard-global-tool employee-documents"
+                   asp-controller="EmployeeDocuments" asp-action="Index"
+                   title="เอกสารพนักงาน" aria-label="เปิดหน้าเอกสารพนักงาน">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v1" />
+                        <path d="M3 7h17a1 1 0 0 1 1 1l-2 11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2L2 9a2 2 0 0 1 1-2Z" />
+                    </svg>
+                </a>
                 <a class="dashboard-global-tool employee-notes"
                    asp-controller="EmployeeDocuments" asp-action="MyNotes"
                    title="จดบันทึกของฉัน" aria-label="เปิดหน้าจดบันทึกของฉัน">
@@ -1804,7 +1812,8 @@
     box-shadow:0 10px 20px rgba(22,136,245,.1), 0 0 0 1px rgba(22,136,245,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
-.dashboard-global-tool.employee-notes {
+.dashboard-global-tool.employee-notes,
+.dashboard-global-tool.employee-documents {
     color:var(--pt-surface-contrast, #10233f);
     background:var(--pt-accent-soft, #e0f2f1);
     border-color:var(--pt-accent, #0ea5a6);
