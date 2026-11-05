@@ -9,8 +9,10 @@
 <script>
     document.documentElement.classList.add('projects-initializing');
     document.addEventListener('projecttracking:dropdowns-ready', () => document.documentElement.classList.remove('projects-initializing'), { once:true });
-    // ถ้า initialization ผิดพลาด ยังเปิดดูข้อมูลได้โดยไม่ค้างหน้ารอ
-    setTimeout(() => document.documentElement.classList.remove('projects-initializing'), 3000);
+    // รอให้ HTML โหลดครบก่อนเสมอ เพื่อไม่เปิดการ์ดทั้งหมดกลางทางเมื่อเครือข่ายช้า
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => document.documentElement.classList.remove('projects-initializing'), 0);
+    }, { once:true });
 </script>
 }
 
@@ -311,6 +313,7 @@
             var canViewPhaseWorkload = CanMenu("PhaseWorkload.Index");
             var hasProjectOverviewActions = canViewProjectPhases || canViewPhaseWorkload;
             <div class="project-card"
+                style="@((selectedProjectId.HasValue && p.ProjectId != selectedProjectId.Value) || (!selectedProjectId.HasValue && selectedCoopId.HasValue && p.CoopId != selectedCoopId.Value) ? "display:none" : null)"
                  data-project-id="@p.ProjectId"
                  data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
                  data-project="@projectDisplayName.ToLower()"
