@@ -1770,6 +1770,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         }
     </style>
     <link rel="stylesheet" href="~/css/typography-overrides.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/responsive-pages.css" asp-append-version="true" />
     @{
         var layoutThemeCss = await LayoutThemeService.GetThemeCssAsync(Context.Session.GetInt32("UserId"));
     }
@@ -2661,12 +2662,15 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 @{
     var routeController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "unknown").ToLowerInvariant();
     var routeAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "unknown").ToLowerInvariant();
+    var responsiveControllers = new[] { "projects", "projectphases", "phaseassigns", "meetings", "openwork", "attendance", "employees", "employeedocuments", "projectdocuments", "fieldservice", "projectissues", "supportorders", "supportordersdev" };
+    var useResponsivePage = responsiveControllers.Contains(routeController)
+        && !(routeController == "employeedocuments" && routeAction == "notes");
 }
 
 <div class="v2-page">
 
 <div class="container">
-    <main role="main" class="pb-3 route-controller-@routeController route-action-@routeAction">
+    <main role="main" class="pb-3 route-controller-@routeController route-action-@routeAction @(useResponsivePage ? "pt-responsive-page" : "")">
         @RenderBody()
     </main>
 </div>

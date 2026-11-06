@@ -1,0 +1,100 @@
+/* Scoped to work pages; dashboard, notes, boards and printed reports keep their layouts. */
+@media screen {
+    main.pt-responsive-page { container:work-page / inline-size; min-width:0; }
+    .pt-responsive-page :is(.card, .card-body, .row > *, .index-hero__content, .index-actions, .project-filter-row, .phase-filter-row, .assign-filter-row) { min-width:0; }
+    .pt-responsive-page :is(.table-responsive, .calendar-scroll) { max-width:100%; overscroll-behavior-inline:contain; -webkit-overflow-scrolling:touch; }
+    .pt-responsive-page .table-responsive:focus-visible { outline:3px solid var(--pt-accent,#2563eb); outline-offset:2px; }
+    .pt-responsive-page :is(.index-title, .index-subtitle) { overflow-wrap:anywhere; }
+    .pt-responsive-page :is(.form-control, .form-select) { max-width:100%; }
+
+    @container work-page (max-width:1000px) {
+        .pt-responsive-page .phase-assign-item { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .pt-responsive-page .phase-selected-overview { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .assign-card { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .assign-card .assign-card-right { border-left:0; border-top:1px solid var(--pt-border,#d8e3ef); max-width:none; }
+        .pt-responsive-page .assign-card-actions { justify-content:flex-start; flex-wrap:wrap; }
+        .pt-responsive-page .mc-page { grid-template-columns:minmax(0,1fr); gap:20px; }
+        .pt-responsive-page .mc-sidebar { position:static; min-width:0; }
+        .pt-responsive-page .mc-main { min-width:0; padding-inline:0; }
+        .pt-responsive-page .mc-topbar { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .mc-stats { text-align:left; }
+        .pt-responsive-page .mc-group-list { grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); }
+        .pt-responsive-page .employee-card { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .calendar-card__toolbar { flex-wrap:wrap; gap:12px; }
+        .pt-responsive-page .calendar-heading { flex-wrap:wrap; }
+        .pt-responsive-page #calendar { min-width:0; width:100%; }
+        .pt-responsive-page .fc .fc-toolbar { flex-wrap:wrap; gap:12px; }
+        .pt-responsive-page .fc .fc-toolbar-chunk { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+        .pt-responsive-page .fc .fc-button { min-height:40px; }
+        .pt-responsive-page .open-work-card { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .open-work-side { justify-items:start; text-align:left; }
+        .pt-responsive-page .open-work-status-row { justify-content:flex-start; flex-wrap:wrap; }
+    }
+
+    @container work-page (max-width:760px) {
+        .pt-responsive-page .index-hero { flex-wrap:wrap; gap:16px; padding:20px 16px; }
+        .pt-responsive-page .index-actions { width:100%; display:flex; flex-wrap:wrap; justify-content:flex-start; gap:8px; }
+        .pt-responsive-page .index-actions > .btn { flex:1 1 150px; white-space:normal; }
+        .pt-responsive-page .index-title { font-size:clamp(1.35rem,4cqi,1.8rem); line-height:1.4; }
+        .pt-responsive-page :is(.btn, .mc-btn) { min-height:44px; }
+        .pt-responsive-page :is(input.form-control, textarea.form-control, .form-select, .mc-input, .mc-search) { font-size:16px; }
+        .pt-responsive-page :is(.phase-filter-row, .project-filter-pair, .employee-department-filter__controls) { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+        .pt-responsive-page :is(.employee-department-filter, .open-work-filter) { flex-wrap:wrap; }
+        .pt-responsive-page :is(.phase-card, .project-overview-grid, .project-tech-panel) { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .phase-card-side { border-left:0; border-top:1px solid var(--pt-border,#d8e3ef); }
+        .pt-responsive-page :is(.phase-card-actions, .assign-card-actions) { flex-wrap:wrap; justify-content:flex-start; }
+        .pt-responsive-page .phase-card-actions .btn { flex:1 1 130px; }
+        .pt-responsive-page .project-tech-column + .project-tech-column { border-left:0; border-top:1px solid var(--project-card-border); margin:12px 0 0; padding:12px 0 0; }
+        .pt-responsive-page .project-card :is(.project-top-people, .project-related-list) { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .project-mobile-cards .project-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .pt-responsive-page .project-card :is(.project-person, .project-related-member) { min-width:0; max-width:100%; }
+        .pt-responsive-page .project-card :is(.project-person-text, .project-related-list) { overflow-wrap:anywhere; }
+        .pt-responsive-page .project-card { padding:14px; }
+        .pt-responsive-page .assign-card-header-row { flex-wrap:wrap; }
+        .pt-responsive-page .assign-card :is(.assign-card-left, .assign-card-right) { padding:14px; min-width:0; }
+        .pt-responsive-page :is(.assign-card-phase, .assign-card-role, .assign-card-remark, .phase-assign-item, .open-work-title, .open-work-value) { overflow-wrap:anywhere; }
+        .pt-responsive-page .mc-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); }
+        .pt-responsive-page .mc-section-head { flex-wrap:wrap; }
+        .pt-responsive-page .mc-title { min-width:0; overflow-wrap:anywhere; }
+        .pt-responsive-page .mc-panel { width:min(360px,calc(100cqi - 24px)); max-width:calc(100cqi - 24px); }
+        .pt-responsive-page .calendar-card__body { padding:10px; }
+        .pt-responsive-page .calendar-card__toolbar { padding:16px 12px; }
+        .pt-responsive-page :is(.calendar-heading, .toolbar-right, .calendar-actions) { min-width:0; max-width:100%; flex-wrap:wrap; }
+        .pt-responsive-page .calendar-heading__date { min-width:0; max-width:100%; white-space:normal; }
+        .pt-responsive-page .fc .fc-toolbar-title { font-size:1.15rem; white-space:normal; }
+        .pt-responsive-page .fc .fc-header-toolbar { flex-direction:column; align-items:stretch; }
+        .pt-responsive-page .fc .fc-toolbar-chunk { justify-content:center; }
+        .pt-responsive-page .meeting-row { flex-direction:column; gap:12px; }
+        .pt-responsive-page .meeting-row > .meeting-col { width:100%; flex:auto; min-width:0; }
+        .pt-responsive-page .meeting-list-card .card-header { flex-wrap:wrap; }
+        .pt-responsive-page :is(.attendance-today-head, .attendance-calendar-head) { flex-direction:column; gap:12px; }
+        .pt-responsive-page .attendance-calendar-legends { justify-content:flex-start; gap:10px; }
+        .pt-responsive-page :is(.attendance-today-card, .attendance-calendar-card) { padding:16px 12px; }
+        .pt-responsive-page .attendance-time-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+        .pt-responsive-page .attendance-time-box { min-height:110px; padding:12px 8px; }
+        .pt-responsive-page .attendance-time-box strong { font-size:1.4rem; overflow-wrap:anywhere; }
+        .pt-responsive-page .open-work-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .pt-responsive-page :is(.open-work-card-head, .open-work-coop-header, .open-work-group-header) { flex-wrap:wrap; gap:10px; }
+        .pt-responsive-page .open-work-people { flex-wrap:wrap; min-width:0; }
+        .pt-responsive-page [data-document-list] table { min-width:640px; }
+    }
+
+    @container work-page (max-width:480px) {
+        .pt-responsive-page :is(.phase-assign-item, .phase-selected-actions, .project-phase-actions, .attendance-time-grid) { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .phase-assign-item > * { min-width:0; }
+        .pt-responsive-page :is(.project-summary-row, .project-tech-row, .project-tech-date-row) { grid-template-columns:24px minmax(0,1fr); }
+        .pt-responsive-page :is(.project-summary-value, .project-tech-value, .project-system-value) { grid-column:2; }
+        .pt-responsive-page .attendance-time-box { min-height:90px; }
+        .pt-responsive-page .table-assign .sticky-col { position:static; }
+        .pt-responsive-page .pagination { flex-wrap:wrap; gap:4px; }
+        .pt-responsive-page .mc-panel { position:fixed; inset:auto 12px 12px !important; width:auto; max-width:none; max-height:calc(100dvh - 24px); overflow:auto; z-index:1200; }
+        .pt-responsive-page .mc-panel .mc-form .mc-form-actions { padding-left:0 !important; flex-wrap:wrap; }
+        .pt-responsive-page .mc-panel:has(> .mc-form) > form:last-child { position:static; margin-top:10px; }
+    }
+
+    @container work-page (max-width:600px) {
+        .pt-responsive-page form .row > :is(.col-md-4,.col-md-6,.col-md-8,.col-lg-4,.col-lg-6,.col-lg-8) { width:100%; flex:0 0 100%; }
+        .pt-responsive-page .meeting-attendee-picker__department-controls { grid-template-columns:minmax(0,1fr); }
+        .pt-responsive-page .pt-search-select__input { min-width:0; font-size:16px; }
+    }
+}
