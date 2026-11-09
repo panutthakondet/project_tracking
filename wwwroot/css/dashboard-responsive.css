@@ -15,7 +15,7 @@
     text-shadow:0 2px 2px #001c28 !important;
 }
 .dashboard-view .project-status-art .project-status-donut-3d {
-    width:min(340px,100%);
+    width:min(290px,90%);
     aspect-ratio:320 / 340;
     background:none !important;
     filter:drop-shadow(0 12px 10px rgba(0,12,20,.6));
