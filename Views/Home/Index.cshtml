@@ -518,8 +518,8 @@
                     </div>
                 </div>
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
-                    <div class="donut-layout project-status-donut-layout">
-                        <h3 class="project-status-card-title">ภาพรวมสถานะโครงการ</h3>
+                    <div class="donut-layout project-status-donut-layout project-status-art">
+                        <h3 class="project-status-card-title">โครงการ</h3>
                         <div class="donut project-status-donut project-status-donut-3d" data-project-status-donut role="img" aria-label="กราฟโดนัทสามมิติแสดงสัดส่วนสถานะโครงการ รายละเอียดอยู่ในรายการด้านล่าง" style="--donut:@dashboard.ProjectStatusDonut">
                             <div>
                                 <strong data-project-status-total>@dashboard.TotalProjectCount</strong>
@@ -529,7 +529,7 @@
                         <div class="metric-list">
                             @foreach (var metric in dashboard.ProjectStatusMetrics)
                             {
-                                <span data-project-status-metric="@metric.StatusCode" data-project-status-color="@metric.HexColor"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                                <span data-project-status-metric="@metric.StatusCode" data-project-status-count="@metric.Count" data-project-status-color="@metric.HexColor"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                             }
                         </div>
                         <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
@@ -8221,6 +8221,7 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
             });
 
             if (donut) {
+                donut.dataset.statusCounts = JSON.stringify(Array.from(counts));
                 let cursor = 0;
                 const slices = [];
                 counts.forEach((count, code) => {
@@ -8261,3 +8262,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
     })();
 
 </script>
+<script src="~/js/project-status-chart.js" asp-append-version="true"></script>
