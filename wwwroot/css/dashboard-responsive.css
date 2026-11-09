@@ -18,6 +18,8 @@
     width:min(290px,90%);
     aspect-ratio:320 / 340;
     background:none !important;
+    box-shadow:none !important;
+    border:0;
     filter:drop-shadow(0 12px 10px rgba(0,12,20,.6));
 }
 .dashboard-view .project-status-art .project-status-donut-3d::before,
