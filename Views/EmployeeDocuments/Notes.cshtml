@@ -333,6 +333,12 @@
     .employee-emoji-dialog::backdrop { background: rgba(0,0,0,.4); }
     .employee-emoji-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--notes-border); }
     .employee-emoji-dialog-head h2 { margin: 0; font-size: 1.1rem; }
+    .employee-note-help-button { padding: 8px 10px; border: 1px solid var(--notes-border); border-radius: 10px; color: var(--notes-text); background: var(--notes-soft); font-size: .9rem; }
+    .employee-note-help-body { padding: 16px 18px; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; }
+    .employee-note-help-body h3 { font-size: 1rem; margin: 16px 0 10px; }
+    .employee-note-shortcuts { margin: 0; }
+    .employee-note-shortcuts dt { margin-top: 12px; }
+    .employee-note-shortcuts dd { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--notes-muted); }
     .employee-emoji-categories {
         min-height: 0;
         overflow-y: auto;
@@ -595,6 +601,7 @@
                                 }
                             </div>
                         </details>
+                        <button type="button" id="employeeNoteHelpOpen" class="employee-note-help-button" aria-haspopup="dialog" aria-controls="employeeNoteHelpDialog">⌨ วิธีใช้</button>
                     </div>
                     <div class="employee-note-toolbar-right">
                         @if (canEdit)
@@ -646,6 +653,42 @@
             }
         </main>
     </section>
+    @if (Model.SelectedNote != null)
+    {
+        <dialog id="employeeNoteHelpDialog" class="employee-emoji-dialog" aria-labelledby="employeeNoteHelpHeading">
+            <div class="employee-emoji-dialog-head">
+                <h2 id="employeeNoteHelpHeading">วิธีใช้บันทึกและอีโมจิ</h2>
+                <button type="button" id="employeeNoteHelpClose" class="btn btn-outline-secondary" aria-label="ปิดวิธีใช้">ปิด</button>
+            </div>
+            <div class="employee-note-help-body">
+                <p>เลือกข้อความในพื้นที่บันทึกก่อนใช้คีย์ลัดจัดรูปแบบ บน Mac ปุ่ม <strong>⌥ Option คือ Alt</strong> และ <strong>⌘ คือ Command</strong></p>
+                <dl class="employee-note-shortcuts">
+                    @foreach (var shortcut in new[] {
+                        ("ตัวหนา", "Ctrl + B", "⌘ + B"),
+                        ("ตัวปกติ / เอาตัวหนาออก", "Ctrl + Alt + B", "⌘ + ⌥ + B"),
+                        ("ตัวเอียง", "Ctrl + I", "⌘ + I"),
+                        ("ขีดเส้นใต้", "Ctrl + U", "⌘ + U"),
+                        ("สีไฮไลท์", "Ctrl + Alt + H", "⌘ + ⌥ + H"),
+                        ("สีตัวอักษร", "Ctrl + Alt + C", "⌘ + ⌥ + C"),
+                        ("ขนาดตัวอักษร", "Ctrl + Alt + S", "⌘ + ⌥ + S"),
+                        ("บันทึก", "Ctrl + S", "⌘ + S") })
+                    {
+                        <dt>@shortcut.Item1</dt>
+                        <dd><span>Windows: @shortcut.Item2</span><span>Mac: @shortcut.Item3</span></dd>
+                    }
+                </dl>
+                <p class="mt-3">กรอกสีเป็นรหัส 6 หลัก เช่น #e53935 หรือ #fff59d หากต้องการลบไฮไลท์ให้พิมพ์ <strong>none</strong> ขนาดตัวอักษรเลือกได้ 12–48 px กดคีย์ลัดตัวหนา ตัวเอียง หรือขีดเส้นใต้ซ้ำเพื่อยกเลิก</p>
+                <h3>เพิ่มและลบอีโมจิ</h3>
+                <ul>
+                    <li>กด <strong>😀 Emoji</strong> เพื่อแสดงหรือซ่อนแถบอีโมจิ</li>
+                    <li>กด <strong>＋</strong> แล้วเลือกอีโมจิเพื่อเพิ่มในแถบใช้งานด่วน</li>
+                    <li>วางเคอร์เซอร์ในหัวข้อหรือข้อความ แล้วกดอีโมจิในแถบเพื่อแทรก</li>
+                    <li>กด <strong>×</strong> บนอีโมจิเพื่อลบออกจากแถบ ข้อความในโน้ตจะยังอยู่</li>
+                </ul>
+                <p class="mb-0">รายการอีโมจิจะแยกตามผู้ใช้ในเบราว์เซอร์นี้ และต้องกดบันทึกเพื่อเก็บข้อความกับรูปแบบของโน้ต</p>
+            </div>
+        </dialog>
+    }
     @if (canEdit && Model.SelectedNote != null)
     {
         <dialog id="employeeEmojiDialog" class="employee-emoji-dialog" aria-labelledby="employeeEmojiHeading">
@@ -727,6 +770,14 @@
             event.returnValue = '';
         });
         const emojiDialog = document.getElementById('employeeEmojiDialog');
+        const helpDialog = document.getElementById('employeeNoteHelpDialog');
+        document.getElementById('employeeNoteHelpOpen')?.addEventListener('click', () => helpDialog?.showModal());
+        document.getElementById('employeeNoteHelpClose')?.addEventListener('click', () => helpDialog?.close());
+        helpDialog?.addEventListener('click', event => {
+            if (event.target !== helpDialog) return;
+            const bounds = helpDialog.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) helpDialog.close();
+        });
         document.getElementById('employeeEmojiOpen')?.addEventListener('click', () => emojiDialog?.showModal());
         document.getElementById('employeeEmojiClose')?.addEventListener('click', () => emojiDialog?.close());
         emojiDialog?.addEventListener('click', event => {
