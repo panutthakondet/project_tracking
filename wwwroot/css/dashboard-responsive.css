@@ -4,15 +4,14 @@
     --pt-chart-primary:#2996F3;
     padding:22px 16px;
     gap:12px;
-    background-color:#073747 !important;
-    background-image:radial-gradient(ellipse at 48% 48%,rgba(26,143,159,.22),transparent 65%),linear-gradient(135deg,rgba(0,0,0,.08),transparent 55%,rgba(0,0,0,.15)) !important;
-    border-color:#075166;
+    background:radial-gradient(circle at 50% 40%,var(--pt-chart-panel-glow,rgba(26,143,159,.22)),transparent 42%),linear-gradient(180deg,var(--pt-chart-panel-soft,#073747),var(--pt-chart-panel-deep,#073747)) !important;
+    border-color:var(--pt-border-strong,#075166);
 }
 .dashboard-view .project-status-art .project-status-card-title {
-    color:#f5fcff !important;
-    -webkit-text-fill-color:#f5fcff !important;
+    color:var(--pt-chart-panel-contrast,#f5fcff) !important;
+    -webkit-text-fill-color:var(--pt-chart-panel-contrast,#f5fcff) !important;
     font-size:clamp(24px,3vw,34px);
-    text-shadow:0 2px 2px #001c28 !important;
+    text-shadow:0 2px 2px var(--pt-shadow,rgba(0,28,40,.25)) !important;
 }
 .dashboard-view .project-status-art .project-status-donut-3d {
     width:min(290px,90%);
@@ -33,7 +32,7 @@
 .project-status-sculpture { animation:projectStatusReveal .75s cubic-bezier(.2,.7,.25,1) both; transform-origin:50% 50%; }
 .project-status-sculpture-slice { transition:filter .18s ease; outline:none; }
 .project-status-sculpture-slice:is(:hover,:focus-visible) { filter:brightness(1.16) saturate(1.08); }
-.project-status-sculpture-label { fill:#f5fcff; paint-order:stroke fill; stroke:#aec5cf; stroke-width:.4px; filter:drop-shadow(0 3px 2px rgba(0,0,0,.6)); }
+.project-status-sculpture-label { fill:var(--pt-chart-panel-contrast,#f5fcff); paint-order:stroke fill; stroke:var(--pt-border-strong,#aec5cf); stroke-width:.4px; filter:drop-shadow(0 3px 2px var(--pt-shadow,rgba(0,0,0,.35))); }
 .dashboard-view .project-status-art .project-status-donut-3d > div { visibility:hidden; }
 @keyframes projectStatusReveal { from { opacity:0; transform:translateY(10px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .project-status-sculpture { animation:none; } .project-status-sculpture-slice { transition:none; } }
