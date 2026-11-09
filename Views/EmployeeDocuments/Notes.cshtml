@@ -17,8 +17,9 @@
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 
-    string NotePreview(string? content)
+    string NotePreview(string? content, bool rich)
     {
+        if (rich) content = ProjectTracking.Services.EmployeeNoteRichText.PlainText(content ?? "");
         var normalized = string.Join(" ", (content ?? string.Empty)
             .Split(new[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries))
             .Trim();
@@ -390,6 +391,8 @@
     }
 
     .employee-note-content {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
         width: 100%;
         min-height: 0;
         height: 0;
@@ -556,7 +559,7 @@
                            asp-route-noteId="@note.EmployeeNoteId"
                            class="employee-note-link @(isActive ? "is-active" : string.Empty)">
                             <span class="employee-note-list-title">@if (note.IsPinned) { <span class="employee-note-pinned-marker" title="ปักหมุดแล้ว" role="img" aria-label="ปักหมุดแล้ว"><svg class="employee-note-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 9l3 3v2H5v-2l3-3V3h8v6ZM12 14v7M7 3h10" /></svg></span> }@note.Title</span>
-                            <span class="employee-note-list-preview">@NotePreview(note.Content)</span>
+                            <span class="employee-note-list-preview">@NotePreview(note.Content, note.IsRichText)</span>
                             <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         </a>
                     }
@@ -632,12 +635,9 @@
                            placeholder="หัวข้อบันทึก"
                            aria-label="หัวข้อบันทึก"
                            disabled="@editorDisabled" />
-                    <textarea id="employeeNoteContent"
-                              name="content"
-                              class="employee-note-content"
-                              placeholder="เริ่มจดบันทึก... รองรับ Emoji 😀"
-                              aria-label="รายละเอียดบันทึก"
-                              disabled="@editorDisabled">@Model.SelectedNote.Content</textarea>
+                    <input type="hidden" name="isRichText" value="true" />
+                    <input type="hidden" id="employeeNoteContent" name="content" value="@(ProjectTracking.Services.EmployeeNoteRichText.Normalize(Model.SelectedNote.IsRichText ? Model.SelectedNote.Content : "") ?? ProjectTracking.Services.EmployeeNoteRichText.FromPlainText(Model.SelectedNote.IsRichText ? ProjectTracking.Services.EmployeeNoteRichText.PlainText(Model.SelectedNote.Content) : Model.SelectedNote.Content))" disabled="@editorDisabled" />
+                    <div id="employeeNoteRichEditor" class="employee-note-content" contenteditable="@(canEdit ? "true" : "false")" role="textbox" aria-multiline="true" aria-readonly="@(canEdit ? "false" : "true")" aria-label="รายละเอียดบันทึก" title="Ctrl/⌘ + B ตัวหนา · I เอียง · U ขีดเส้นใต้ · Alt+B ตัวปกติ · Alt+H ไฮไลท์ · Alt+C สีตัวอักษร · Alt+S ขนาด · S บันทึก">@Html.Raw(ProjectTracking.Services.EmployeeNoteRichText.ToHtml(Model.SelectedNote.Content, Model.SelectedNote.IsRichText))</div>
                     <div class="employee-note-meta">
                         <span>สร้างโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.CreatedBy) ? "-" : Model.SelectedNote.CreatedBy) · @Model.SelectedNote.CreatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         <span>แก้ไขล่าสุดโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.UpdatedBy) ? "-" : Model.SelectedNote.UpdatedBy) · @Model.SelectedNote.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
@@ -671,6 +671,7 @@
     }
 </div>
 
+<script src="~/js/employee-note-editor.js" asp-append-version="true"></script>
 <script>
     (() => {
         const successMessage = document.getElementById('employeeNoteSuccess');
@@ -740,6 +741,7 @@
             if (!input) return;
             input.addEventListener('focus', () => target = input);
         });
+        document.getElementById('employeeNoteRichEditor')?.addEventListener('focus', () => target = content);
 
         const quick = document.querySelector('.employee-emoji-quick');
         const addButton = document.getElementById('employeeEmojiOpen');
@@ -803,6 +805,10 @@
                 return;
             }
             if (!quick?.contains(button) || !target || target.disabled) return;
+            if (target === content) {
+                window.employeeNoteEditor?.insertEmoji(emoji);
+                return;
+            }
             const start = target.selectionStart ?? target.value.length;
             const end = target.selectionEnd ?? target.value.length;
             if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
