@@ -23,9 +23,13 @@
         const mid = (start + end) / 2;
         return `M ${point(139, start, offset)} A 139 133.44 0 0 1 ${point(139, mid, offset)} A 139 133.44 0 0 1 ${point(139, end, offset)} L ${point(89, end, offset)} A 89 85.44 0 0 0 ${point(89, mid, offset)} A 89 85.44 0 0 0 ${point(89, start, offset)} Z`;
     };
+    let lastCounts;
     const render = () => {
+        const signature = chart.dataset.statusCounts || '';
+        if (signature === lastCounts) return;
+        lastCounts = signature;
         const counts = new Map(chart.dataset.statusCounts ? JSON.parse(chart.dataset.statusCounts) : metrics.map(m => [m.dataset.projectStatusMetric, Number(m.dataset.projectStatusCount)]));
-        let rows = metrics.map(m => ({ count: Math.max(0, Number(counts.get(m.dataset.projectStatusMetric)) || 0), color: m.dataset.projectStatusColor || '#64748b' })).filter(m => m.count > 0);
+        let rows = metrics.map(m => ({ label: m.querySelector('.metric-name')?.textContent || m.dataset.projectStatusMetric, count: Math.max(0, Number(counts.get(m.dataset.projectStatusMetric)) || 0), color: m.dataset.projectStatusColor || '#64748b' })).filter(m => m.count > 0);
         if (!rows.length) rows = [{ count: 1, color: '#435e6b' }];
         const total = rows.reduce((sum, m) => sum + m.count, 0);
         svg.replaceChildren();
@@ -38,6 +42,9 @@
         element('feComposite', { in: 'SourceGraphic', in2: 'clippedShine', operator: 'arithmetic', k1: '0', k2: '1', k3: '1', k4: '0' }, bevel);
         const gloss = element('linearGradient', { id: 'projectStatusGloss', x1: '0', y1: '0', x2: '.8', y2: '1' }, defs);
         [['0', '#fff', '.72'], ['.2', '#fff', '.24'], ['.55', '#fff', '0'], ['1', '#001b2a', '.18']].forEach(([offset, color, opacity]) => element('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }, gloss));
+        const innerShade = element('radialGradient', { id: 'projectStatusInnerShade' }, defs);
+        [['0', '0'], ['.82', '0'], ['1', '.55']].forEach(([offset, opacity]) => element('stop', { offset, 'stop-color': '#00151f', 'stop-opacity': opacity }, innerShade));
+        element('ellipse', { cx: 160, cy: 150, rx: 89, ry: 85.44, fill: 'url(#projectStatusInnerShade)' }, svg);
         element('ellipse', { cx: 160, cy: 306, rx: 108, ry: 8, fill: '#00141d', opacity: '.25' }, svg);
         let angle = -90;
         const slices = rows.map(row => {
@@ -53,9 +60,14 @@
         }
         slices.forEach(s => {
             const d = path(s.start, s.end);
-            element('path', { d, fill: s.color, stroke: '#001a25', 'stroke-width': '1', 'stroke-linejoin': 'round', filter: 'url(#projectStatusBevel)' }, svg);
-            element('path', { d, fill: 'url(#projectStatusGloss)', stroke: '#d8ffff', 'stroke-opacity': '.5', 'stroke-width': '1.2', 'stroke-linejoin': 'round' }, svg);
+            const group = element('g', { class: 'project-status-sculpture-slice', tabindex: s.label ? '0' : '-1', role: 'img', 'aria-label': s.label ? `${s.label}: ${s.count} โครงการ` : 'ไม่มีข้อมูลโครงการ' }, svg);
+            element('title', {}, group).textContent = s.label ? `${s.label}: ${s.count} โครงการ` : 'ไม่มีข้อมูลโครงการ';
+            element('path', { d, fill: s.color, stroke: '#001a25', 'stroke-width': '1', 'stroke-linejoin': 'round', filter: 'url(#projectStatusBevel)' }, group);
+            element('path', { d, fill: 'url(#projectStatusGloss)', stroke: '#d8ffff', 'stroke-opacity': '.5', 'stroke-width': '1.2', 'stroke-linejoin': 'round' }, group);
         });
+        const countText = chart.querySelector('[data-project-status-total]')?.textContent?.trim() || String([...counts.values()].reduce((sum, count) => sum + Number(count), 0));
+        element('text', { x: 160, y: 163, 'text-anchor': 'middle', 'font-size': countText.length > 3 ? 50 : 76, 'font-weight': '800', class: 'project-status-sculpture-label' }, svg).textContent = countText;
+        element('text', { x: 160, y: 198, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': '700', class: 'project-status-sculpture-label' }, svg).textContent = 'โครงการ';
     };
     render();
     new MutationObserver(render).observe(chart, { attributes: true, attributeFilter: ['data-status-counts'] });

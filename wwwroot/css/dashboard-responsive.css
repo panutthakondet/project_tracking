@@ -1,10 +1,11 @@
 /* Size dashboard content against the space available beside the navigation. */
 .dashboard-view .project-status-inline .project-status-art {
-    --pt-chart-success:#64ee16;
-    --pt-chart-primary:#1599ff;
+    --pt-chart-success:#7BDC3C;
+    --pt-chart-primary:#2996F3;
     padding:22px 16px;
     gap:12px;
-    background:radial-gradient(ellipse at 48% 48%,#07556a 0%,#003c4c 45%,#002a37 100%) !important;
+    background-color:#073747 !important;
+    background-image:radial-gradient(ellipse at 48% 48%,rgba(26,143,159,.22),transparent 65%),linear-gradient(135deg,rgba(0,0,0,.08),transparent 55%,rgba(0,0,0,.15)) !important;
     border-color:#075166;
 }
 .dashboard-view .project-status-art .project-status-card-title {
@@ -22,6 +23,15 @@
 .dashboard-view .project-status-art .project-status-donut-3d::before,
 .dashboard-view .project-status-art .project-status-donut-3d::after { content:none; }
 .project-status-sculpture { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.dashboard-view .project-status-art,
+.dashboard-view .project-status-art * { font-family:"Sarabun",sans-serif !important; }
+.project-status-sculpture { animation:projectStatusReveal .75s cubic-bezier(.2,.7,.25,1) both; transform-origin:50% 50%; }
+.project-status-sculpture-slice { transition:filter .18s ease; outline:none; }
+.project-status-sculpture-slice:is(:hover,:focus-visible) { filter:brightness(1.16) saturate(1.08); }
+.project-status-sculpture-label { fill:#f5fcff; paint-order:stroke fill; stroke:#aec5cf; stroke-width:.4px; filter:drop-shadow(0 3px 2px rgba(0,0,0,.6)); }
+.dashboard-view .project-status-art .project-status-donut-3d > div { visibility:hidden; }
+@keyframes projectStatusReveal { from { opacity:0; transform:translateY(10px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+@media (prefers-reduced-motion:reduce) { .project-status-sculpture { animation:none; } .project-status-sculpture-slice { transition:none; } }
 .project-status-sculpture-depth { filter:brightness(.6) saturate(1.3); }
 .dashboard-view .project-status-inline .project-status-art .project-status-donut-3d > div {
     width:57%;
