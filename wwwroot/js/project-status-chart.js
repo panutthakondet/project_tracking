@@ -66,8 +66,8 @@
             element('path', { d, fill: 'url(#projectStatusGloss)', stroke: '#d8ffff', 'stroke-opacity': '.5', 'stroke-width': '1.2', 'stroke-linejoin': 'round' }, group);
         });
         const countText = chart.querySelector('[data-project-status-total]')?.textContent?.trim() || String([...counts.values()].reduce((sum, count) => sum + Number(count), 0));
-        element('text', { x: 160, y: 163, 'text-anchor': 'middle', 'font-size': countText.length > 3 ? 50 : 76, 'font-weight': '800', class: 'project-status-sculpture-label' }, svg).textContent = countText;
-        element('text', { x: 160, y: 198, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': '700', class: 'project-status-sculpture-label' }, svg).textContent = 'โครงการ';
+        element('text', { x: 160, y: 163, 'text-anchor': 'middle', 'font-size': countText.length > 3 ? 50 : 76, 'font-weight': '800', class: 'project-status-sculpture-label project-status-sculpture-total' }, svg).textContent = countText;
+        element('text', { x: 160, y: 198, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': '700', class: 'project-status-sculpture-label project-status-sculpture-caption' }, svg).textContent = 'โครงการ';
     };
     render();
     new MutationObserver(render).observe(chart, { attributes: true, attributeFilter: ['data-status-counts'] });
