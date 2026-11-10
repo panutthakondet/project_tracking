@@ -708,7 +708,7 @@
                 </span>
             </div>
             <div class="overview-pair">
-                <section class="overview-mini" aria-label="Issues Overview">
+                <section class="overview-mini issues-three-overview" aria-label="Issues Overview">
                     <div class="overview-mini-head">
                         <div class="overview-mini-title">
                             <span class="overview-mini-icon issues" aria-hidden="true">
@@ -725,7 +725,7 @@
                         </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
-                        <figure class="overview-pie3d issue-premium-chart" data-premium-issue-donut aria-label="กราฟ Issues แบบสามมิติ">
+                        <figure class="overview-pie3d issue-premium-chart" data-premium-issue-donut data-overview-three data-overview-kind="Issues" data-overview-total="@dashboard.IssueTotal" aria-label="Issues ทั้งหมด @dashboard.IssueTotal รายการ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="issueOverviewPieTitle">
                                 <title id="issueOverviewPieTitle">Issues ทั้งหมด @dashboard.IssueTotal รายการ</title>
                                 <defs>
@@ -774,11 +774,12 @@
                                 @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.IssueTotal}</text>")
                                 @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Issues</text>")
                             </svg>
+                            <div class="support-three-label" aria-hidden="true"><strong>@dashboard.IssueTotal</strong><span>Issues</span></div>
                         </figure>
                         <div class="metric-list slim">
                             @foreach (var metric in issueOverviewLegend)
                             {
-                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.Count</b></span>
+                                <span data-overview-metric data-status="@metric.Label" data-count="@metric.Count"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.Count</b></span>
                             }
                         </div>
                     </div>

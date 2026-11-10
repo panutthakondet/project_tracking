@@ -1,16 +1,19 @@
+// Shared Three.js renderer for Issues and Support; each chart reads only its own card.
 const charts=new Map(),pending=new WeakSet();let library;
 // Same base palette as the Issues Overview SVG.
+const chartSelector='[data-overview-three], [data-support-three]';
 const colors={OPEN:'#2996F3',WIP:'#FF9F1C',FIXED:'#13D6C9',FAIL:'#F55262',PASS:'#70E000',REJECT:'#9945FF'};
 // Match Issues: inner/outer radii 39/66 and extrusion/diameter 15/132.
 const geometrySettings=Object.freeze({outerRadius:2.5,innerRadius:2.5*39/66,depth:5*15/132,bevelThickness:.045,bevelSize:.045,bevelSegments:4,curveSegments:64});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const create=(THREE,root)=>{
     let dead=false,frame=0,animation=null,hover=null,renderCount=0;
-    const host=root.closest('.support-three-overview');const label=root.querySelector('.support-three-label');
+    const kind=root.dataset.overviewKind||'Support';
+    const host=root.closest('.support-three-overview, .issues-three-overview');const label=root.querySelector('.support-three-label');
     const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
     renderer.setClearColor(0,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=.95;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    const canvas=renderer.domElement;canvas.className='support-three-canvas';canvas.tabIndex=0;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','กราฟสถานะ Support ใช้ปุ่มลูกศรซ้ายขวาเพื่อดูแต่ละสถานะ');root.prepend(canvas);
+    const canvas=renderer.domElement;canvas.className='support-three-canvas';canvas.tabIndex=0;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`กราฟสถานะ ${kind} ใช้ปุ่มลูกศรซ้ายขวาเพื่อดูแต่ละสถานะ`);root.prepend(canvas);
     const tooltip=document.createElement('aside');tooltip.className='support-three-tooltip';tooltip.hidden=true;tooltip.setAttribute('role','tooltip');root.append(tooltip);
     const scene=new THREE.Scene(),group=new THREE.Group();scene.add(group);
     const camera=new THREE.PerspectiveCamera(35,1,.1,40);
@@ -24,7 +27,7 @@ const create=(THREE,root)=>{
     const studio=new THREE.Scene();studio.background=new THREE.Color(0x333333);
     const panels=[new THREE.Mesh(new THREE.BoxGeometry(8,4,.1),new THREE.MeshBasicMaterial({color:new THREE.Color(3,3,3)})),new THREE.Mesh(new THREE.BoxGeometry(.1,4,5),new THREE.MeshBasicMaterial({color:0xddddff}))];panels[0].position.set(0,-1,7);panels[1].position.set(-6,-3,3);panels.forEach(p=>studio.add(p));
     const pmrem=new THREE.PMREMGenerator(renderer),environment=pmrem.fromScene(studio,.06,.1,20);scene.environment=environment.texture;pmrem.dispose();panels.forEach(p=>{p.geometry.dispose();p.material.dispose();});
-    const meshes=[],pointer=new THREE.Vector2(),raycaster=new THREE.Raycaster();let statusSum=0,supportTotal=0;
+    const meshes=[],pointer=new THREE.Vector2(),raycaster=new THREE.Raycaster();let statusSum=0,overviewTotal=0;
     const draw=()=>{if(!dead){renderer.render(scene,camera);renderCount++;}};
     const stop=()=>{if(frame)cancelAnimationFrame(frame);frame=0;animation=null;group.scale.setScalar(1);};
     // Geometry lives in XY, with extrusion along Z. Radial separation is a Mesh translation.
@@ -39,16 +42,16 @@ const create=(THREE,root)=>{
     const select=mesh=>{
         if(mesh!==hover){stop();hover=mesh;if(reduced.matches){meshes.forEach(m=>m.position.copy(target(m)));draw();}else{animation={kind:'hover',start:performance.now(),duration:200,from:meshes.map(m=>m.position.clone())};frame=requestAnimationFrame(tick);}}
         tooltip.hidden=!mesh;
-        if(mesh){const d=mesh.userData;tooltip.textContent=`${d.status}: ${d.count.toLocaleString('th-TH')} รายการ (${d.percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%${statusSum!==supportTotal?' ของผลรวมสถานะ':''})${statusSum!==supportTotal?' · Support จริง '+supportTotal.toLocaleString('th-TH')+' รายการ สถานะอาจซ้อนกัน':''}`;}
+        if(mesh){const d=mesh.userData;tooltip.textContent=`${d.status}: ${d.count.toLocaleString('th-TH')} รายการ (${d.percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%${statusSum!==overviewTotal?' ของผลรวมสถานะ':''})${statusSum!==overviewTotal?' · '+kind+' จริง '+overviewTotal.toLocaleString('th-TH')+' รายการ สถานะอาจซ้อนกัน':''}`;}
     };
     const clear=()=>{meshes.forEach(mesh=>{group.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();});meshes.length=0;};
     const build=()=>{
         stop();clear();hover=null;tooltip.hidden=true;
-        supportTotal=Math.max(0,Number(root.dataset.supportTotal)||0);
-        const rows=[...host.querySelectorAll('[data-support-metric]')].map(node=>({status:node.dataset.status,count:Math.max(0,Number(node.dataset.count)||0)})).filter(row=>row.count>0);
+        overviewTotal=Math.max(0,Number((root.dataset.overviewTotal??root.dataset.supportTotal))||0);
+        const rows=[...host.querySelectorAll('[data-overview-metric], [data-support-metric]')].map(node=>({status:node.dataset.status,count:Math.max(0,Number(node.dataset.count)||0)})).filter(row=>row.count>0);
         statusSum=rows.reduce((sum,row)=>sum+row.count,0);let cursor=Math.PI/2;
-        root.setAttribute('aria-label',`Support ทั้งหมด ${supportTotal} รายการ${statusSum!==supportTotal?' ผลรวมสถานะ '+statusSum+' รายการ เนื่องจากสถานะอาจซ้อนกัน':''}`);
-        label.querySelector('strong').textContent=String(supportTotal);label.querySelector('strong').style.fontSize=supportTotal>=10000?'18px':'';
+        root.setAttribute('aria-label',`${kind} ทั้งหมด ${overviewTotal} รายการ${statusSum!==overviewTotal?' ผลรวมสถานะ '+statusSum+' รายการ เนื่องจากสถานะอาจซ้อนกัน':''}`);
+        label.querySelector('strong').textContent=String(overviewTotal);label.querySelector('strong').style.fontSize=overviewTotal>=10000?'18px':'';
         // Rotate the entire distribution so a readable, smaller slice faces the camera.
         // This highlights an actual separate piece instead of pulling almost the whole ring
         // when one status dominates. Rotation never changes counts or sweep angles.
@@ -76,15 +79,15 @@ const create=(THREE,root)=>{
     const keyboard=event=>{if(event.key==='Escape'){select(null);return;}if(!['ArrowLeft','ArrowRight'].includes(event.key)||!meshes.length)return;event.preventDefault();const index=meshes.indexOf(hover),next=index<0?(event.key==='ArrowRight'?0:meshes.length-1):(index+(event.key==='ArrowRight'?1:-1)+meshes.length)%meshes.length;select(meshes[next]);};
     canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerleave',leave);canvas.addEventListener('keydown',keyboard);canvas.addEventListener('blur',leave);
     const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(root);
-    const dataObserver=new MutationObserver(build);dataObserver.observe(host,{subtree:true,attributes:true,attributeFilter:['data-count','data-status','data-support-total']});
+    const dataObserver=new MutationObserver(build);dataObserver.observe(host,{subtree:true,attributes:true,attributeFilter:['data-count','data-status','data-support-total','data-overview-total']});
     const destroy=()=>{if(dead)return;dead=true;stop();resizeObserver.disconnect();dataObserver.disconnect();canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerleave',leave);canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('blur',leave);canvas.removeEventListener('webglcontextlost',lost);clear();floor.geometry.dispose();floor.material.dispose();environment.dispose();key.shadow.dispose();renderer.dispose();renderer.forceContextLoss();canvas.remove();tooltip.remove();root.classList.remove('support-three-ready');label.style.removeProperty('left');label.style.removeProperty('top');charts.delete(root);};
     const lost=event=>{event.preventDefault();destroy();};canvas.addEventListener('webglcontextlost',lost);
     try{build();resize();root.classList.add('support-three-ready');if(!reduced.matches){animation={kind:'intro',start:performance.now(),duration:700};frame=requestAnimationFrame(tick);}}catch(error){destroy();throw error;}
-    return {destroy,diagnostics:()=>({supportTotal,statusSum,pixelRatio:renderer.getPixelRatio(),renderCount,animating:!!frame,camera:camera.position.toArray(),fov:camera.fov,geometrySettings,segments:meshes.map(m=>({status:m.userData.status,count:m.userData.count,percent:m.userData.percent,color:m.material.color.getHexString(),roughness:m.material.roughness,metalness:m.material.metalness,clearcoat:m.material.clearcoat,clearcoatRoughness:m.material.clearcoatRoughness,geometry:m.geometry.type,material:m.material.type,options:m.geometry.parameters.options,start:m.userData.start,sweep:m.userData.span,mid:m.userData.mid,position:m.position.toArray(),highlighted:m.userData.highlighted,radial:Math.hypot(m.position.x,m.position.y)}))})};
+    return {destroy,diagnostics:()=>({kind,total:overviewTotal,statusSum,pixelRatio:renderer.getPixelRatio(),renderCount,animating:!!frame,camera:camera.position.toArray(),fov:camera.fov,geometrySettings,segments:meshes.map(m=>({status:m.userData.status,count:m.userData.count,percent:m.userData.percent,color:m.material.color.getHexString(),roughness:m.material.roughness,metalness:m.material.metalness,clearcoat:m.material.clearcoat,clearcoatRoughness:m.material.clearcoatRoughness,geometry:m.geometry.type,material:m.material.type,options:m.geometry.parameters.options,start:m.userData.start,sweep:m.userData.span,mid:m.userData.mid,position:m.position.toArray(),highlighted:m.userData.highlighted,radial:Math.hypot(m.position.x,m.position.y)}))})};
 };
-const init=async root=>{if(charts.has(root)||pending.has(root)||!root.isConnected)return;pending.add(root);try{const THREE=await(library ||= import('../lib/three/three.module.min.js'));if(root.isConnected&&!charts.has(root))charts.set(root,create(THREE,root));}catch(error){console.warn('Support 3D chart unavailable; keeping SVG fallback.',error);}finally{pending.delete(root);}};
+const init=async root=>{if(charts.has(root)||pending.has(root)||!root.isConnected)return;pending.add(root);try{const THREE=await(library ||= import('../lib/three/three.module.min.js'));if(root.isConnected&&!charts.has(root))charts.set(root,create(THREE,root));}catch(error){console.warn('Overview 3D chart unavailable; keeping SVG fallback.',error);}finally{pending.delete(root);}};
 const visible=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)init(e.target);} ),{rootMargin:'100px'});
-const scan=node=>{if(node instanceof Element&&node.matches('[data-support-three]'))visible.observe(node);node.querySelectorAll?.('[data-support-three]').forEach(root=>visible.observe(root));};scan(document);
+const scan=node=>{if(node instanceof Element&&node.matches(chartSelector))visible.observe(node);node.querySelectorAll?.(chartSelector).forEach(root=>visible.observe(root));};scan(document);
 new MutationObserver(records=>{records.forEach(r=>r.addedNodes.forEach(scan));for(const[root,instance]of charts)if(!root.isConnected){visible.unobserve(root);instance.destroy();}}).observe(document.querySelector('.dashboard-view')||document.body,{childList:true,subtree:true});
 addEventListener('pagehide',()=>[...charts.values()].forEach(chart=>chart.destroy()));
-addEventListener('pageshow',()=>document.querySelectorAll('[data-support-three]').forEach(root=>{visible.unobserve(root);visible.observe(root);}));
+addEventListener('pageshow',()=>document.querySelectorAll(chartSelector).forEach(root=>{visible.unobserve(root);visible.observe(root);}));
