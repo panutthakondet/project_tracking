@@ -46,7 +46,7 @@ const create=(THREE,root)=>{
         rows.forEach((row,index)=>{
             const span=row.count/statusSum*Math.PI*2,gap=rows.length>1?Math.min(.04,span*.2):0,start=cursor+gap/2,end=cursor+span-gap/2,mid=cursor+span/2;cursor+=span;
             const shape=new THREE.Shape();if(span>=Math.PI*2-1e-7){shape.absarc(0,0,1,0,Math.PI*2,false);const hole=new THREE.Path();hole.absarc(0,0,.56,0,Math.PI*2,true);shape.holes.push(hole);}else{shape.absarc(0,0,1,start,end,false);shape.lineTo(.56*Math.cos(end),.56*Math.sin(end));shape.absarc(0,0,.56,end,start,true);shape.closePath();}
-            const bevel=Math.min(.01,span*.01),geometry=new THREE.ExtrudeGeometry(shape,{depth:.32,steps:1,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:4,curveSegments:64});geometry.rotateX(-Math.PI/2);
+            const bevel=Math.min(.01,span*.01),geometry=new THREE.ExtrudeGeometry(shape,{depth:.24,steps:1,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:4,curveSegments:64});geometry.rotateX(-Math.PI/2);
             const material=new THREE.MeshPhysicalMaterial({color:colors[row.status]||[0x39b9ee,0xb17af3,0xe882b5][index%3],roughness:.3,metalness:.05,clearcoat:.7,clearcoatRoughness:.2,envMapIntensity:.7});
             const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData={...row,percent:row.count/statusSum*100,mid,explode:rows.length>1?.035:0};mesh.position.copy(target(mesh));group.add(mesh);meshes.push(mesh);
         });draw();
