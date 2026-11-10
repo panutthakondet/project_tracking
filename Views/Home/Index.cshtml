@@ -204,14 +204,12 @@
     var taskOverviewAxisTicks = Enumerable.Range(0, 6)
         .Select(i => taskOverviewAxisMax - (i * taskOverviewAxisStep))
         .ToList();
-    var taskOverviewFirstChartCount = (int)Math.Ceiling(dashboard.TaskOverview.Count / 2m);
-    var taskOverviewGroups = dashboard.TaskOverview
-        .Select((member, index) => new { Member = member, Index = index })
-        .GroupBy(x => x.Index < taskOverviewFirstChartCount ? 0 : 1)
-        .Select(group => group.Select(x => x.Member).ToList())
-        .Where(group => group.Count > 0)
+    var taskOverviewMembers = dashboard.TaskOverview
+        .OrderByDescending(member => member.CompletedProjectCount)
+        .ThenByDescending(member => member.TotalCount)
+        .ThenBy(member => member.Name)
         .ToList();
-    var taskOverviewColumnsPerRow = Math.Max(1, taskOverviewGroups.Select(group => group.Count).DefaultIfEmpty(1).Max());
+    var taskOverviewColumnsPerRow = Math.Max(1, taskOverviewMembers.Count);
 }
 
 <div class="dashboard-view is-loading">
@@ -567,80 +565,77 @@
             else
             {
                 <div class="owner-overview-plots">
-                    @foreach (var chartMembers in taskOverviewGroups)
-                    {
-                        <div class="owner-overview-chart-wrap">
-                            <div class="owner-overview-y-axis" aria-hidden="true">
-                                <span class="owner-overview-y-title">จำนวนรายการ</span>
-                                @foreach (var tick in taskOverviewAxisTicks)
+                    <div class="owner-overview-chart-wrap">
+                        <div class="owner-overview-y-axis" aria-hidden="true">
+                            <span class="owner-overview-y-title">จำนวนรายการ</span>
+                            @foreach (var tick in taskOverviewAxisTicks)
+                            {
+                                var tickPosition = Math.Round((taskOverviewAxisMax - tick) * 100m / taskOverviewAxisMax, 3);
+                                <span style="--tick:@tickPosition.ToString("0.###", CultureInfo.InvariantCulture);">@tick</span>
+                            }
+                        </div>
+                        <div class="owner-overview-scroll">
+                            <div class="owner-overview-chart" style="--owner-count:@taskOverviewColumnsPerRow; --owner-min-width:@(taskOverviewColumnsPerRow * 148)px;">
+                                @foreach (var member in taskOverviewMembers)
                                 {
-                                    var tickPosition = Math.Round((taskOverviewAxisMax - tick) * 100m / taskOverviewAxisMax, 3);
-                                    <span style="--tick:@tickPosition.ToString("0.###", CultureInfo.InvariantCulture);">@tick</span>
+                                    var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var fieldServiceHeight = Math.Round(Math.Min(member.FieldServiceCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                    var completedProjectHeight = Math.Round(Math.Min(member.CompletedProjectCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+
+                                    <div class="owner-overview-item" title="@member.Name">
+                                        <div class="owner-overview-bars" aria-label="@member.Name โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน Field Service @member.FieldServiceCount งาน">
+                                            <span class="owner-bar completed-project @(member.CompletedProjectCount == 0 ? "is-zero" : "")"
+                                                  title="โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ"
+                                                  style="--bar-height:@completedProjectHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.CompletedProjectCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
+                                                  title="เสร็จแล้ว @member.DoneCount งาน"
+                                                  style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.DoneCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
+                                                  title="กำลังทำ @member.InProgressCount งาน"
+                                                  style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.InProgressCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
+                                                  title="ล่าช้า @member.DelayCount งาน"
+                                                  style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.DelayCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar issue-open @(member.OpenIssueCount == 0 ? "is-zero" : "")"
+                                                  title="Issues OPEN @member.OpenIssueCount งาน"
+                                                  style="--bar-height:@openIssueHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.OpenIssueCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar support-open @(member.OpenSupportCount == 0 ? "is-zero" : "")"
+                                                  title="Support OPEN @member.OpenSupportCount งาน"
+                                                  style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.OpenSupportCount</em><i></i>
+                                            </span>
+                                            <span class="owner-bar field-service @(member.FieldServiceCount == 0 ? "is-zero" : "")"
+                                                  title="Field Service @member.FieldServiceCount งาน"
+                                                  style="--bar-height:@fieldServiceHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                <em>@member.FieldServiceCount</em><i></i>
+                                            </span>
+                                        </div>
+                                        <div class="owner-overview-member">
+                                            <small>รวม @member.TotalCount งาน · @member.CompletedProjectCount โครงการเสร็จ</small>
+                                            <img src="@member.AvatarPath" alt="@member.Name" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <b>@member.Name</b>
+                                            <span class="owner-overview-department">@member.DepartmentName</span>
+                                            <span class="owner-overview-position">@member.Position</span>
+                                        </div>
+                                    </div>
                                 }
                             </div>
-                            <div class="owner-overview-scroll">
-                                <div class="owner-overview-chart" style="--owner-count:@taskOverviewColumnsPerRow; --owner-min-width:@(taskOverviewColumnsPerRow * 148)px;">
-                                    @foreach (var member in chartMembers)
-                                    {
-                                        var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var fieldServiceHeight = Math.Round(Math.Min(member.FieldServiceCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                        var completedProjectHeight = Math.Round(Math.Min(member.CompletedProjectCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-
-                                        <div class="owner-overview-item" title="@member.Name">
-                                            <div class="owner-overview-bars" aria-label="@member.Name โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน Field Service @member.FieldServiceCount งาน">
-                                                <span class="owner-bar completed-project @(member.CompletedProjectCount == 0 ? "is-zero" : "")"
-                                                      title="โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ"
-                                                      style="--bar-height:@completedProjectHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.CompletedProjectCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
-                                                      title="เสร็จแล้ว @member.DoneCount งาน"
-                                                      style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.DoneCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
-                                                      title="กำลังทำ @member.InProgressCount งาน"
-                                                      style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.InProgressCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
-                                                      title="ล่าช้า @member.DelayCount งาน"
-                                                      style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.DelayCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar issue-open @(member.OpenIssueCount == 0 ? "is-zero" : "")"
-                                                      title="Issues OPEN @member.OpenIssueCount งาน"
-                                                      style="--bar-height:@openIssueHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.OpenIssueCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar support-open @(member.OpenSupportCount == 0 ? "is-zero" : "")"
-                                                      title="Support OPEN @member.OpenSupportCount งาน"
-                                                      style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.OpenSupportCount</em><i></i>
-                                                </span>
-                                                <span class="owner-bar field-service @(member.FieldServiceCount == 0 ? "is-zero" : "")"
-                                                      title="Field Service @member.FieldServiceCount งาน"
-                                                      style="--bar-height:@fieldServiceHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                    <em>@member.FieldServiceCount</em><i></i>
-                                                </span>
-                                            </div>
-                                            <div class="owner-overview-member">
-                                                <small>รวม @member.TotalCount งาน · @member.CompletedProjectCount โครงการเสร็จ</small>
-                                                <img src="@member.AvatarPath" alt="@member.Name" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                <b>@member.Name</b>
-                                                <span class="owner-overview-department">@member.DepartmentName</span>
-                                                <span class="owner-overview-position">@member.Position</span>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
                         </div>
-                    }
+                    </div>
                 </div>
 
                 <div class="owner-overview-footer">
