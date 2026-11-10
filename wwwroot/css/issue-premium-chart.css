@@ -1,31 +1,31 @@
-/* Only the Issues figure. Its existing width, viewBox and perspective stay intact. */
-html body main .dashboard-view .issue-premium-chart,
-html body main .dashboard-view .issue-premium-chart * { font-family:"Sarabun",sans-serif !important; }
-.issue-premium-chart { min-width:0; max-width:100%; }
-.issue-premium-chart svg { max-width:100%; }
-.issue-premium-chart .overview-pie3d-depth path { opacity:1; stroke:none; filter:none; }
-.issue-premium-chart .overview-pie3d-top path { filter:none; stroke-linejoin:round; }
-.issue-premium-chart .overview-pie3d-top .issue-premium-surface > path { filter:url(#issuePremiumBevel); stroke:none; }
-.issue-premium-chart .issue-premium-surface { transition:filter .2s ease; outline:none; }
-.issue-premium-chart .issue-premium-surface:is(:hover,:focus-visible) { filter:brightness(1.12); }
-.issue-premium-chart .overview-pie3d-gloss { pointer-events:none; }
-.issue-premium-chart .overview-pie3d-shadow { fill:rgba(0,8,16,.3); filter:blur(3px); }
-.issue-premium-chart .overview-pie3d-center-shadow { fill:rgba(0,6,14,.4); filter:blur(1.5px); }
-.issue-premium-chart .overview-pie3d-center-highlight { fill:rgba(160,212,255,.05); }
-.issue-premium-chart .overview-pie3d-center-core { fill:rgba(5,15,25,.18); }
-.issue-premium-chart .overview-pie3d-rim.outer-soft { stroke:#2996F3; stroke-opacity:.18; stroke-width:1.3px; filter:blur(.35px); }
-.issue-premium-chart .overview-pie3d-rim.outer { stroke:rgba(218,247,255,.55); stroke-width:.45px; filter:none; }
-.issue-premium-chart .overview-pie3d-rim.inner { stroke:#2996F3; stroke-width:.75px; filter:drop-shadow(0 1px 1px rgba(0,6,18,.45)); }
-html body main .dashboard-view .issue-premium-chart :is(.overview-pie3d-total,.overview-pie3d-caption) {
+/* Scoped to the Issues and Support figures; preserve their size and perspective. */
+html body main .dashboard-view :is(.issue-premium-chart,.support-premium-chart),
+html body main .dashboard-view :is(.issue-premium-chart,.support-premium-chart) * { font-family:"Sarabun",sans-serif !important; }
+:is(.issue-premium-chart,.support-premium-chart) { min-width:0; max-width:100%; }
+:is(.issue-premium-chart,.support-premium-chart) svg { max-width:100%; }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-depth path { opacity:1; stroke:none; filter:none; }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-top path { filter:none; stroke-linejoin:round; }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-top .issue-premium-surface > path { filter:var(--overview-bevel,url(#issuePremiumBevel)); stroke:none; }
+:is(.issue-premium-chart,.support-premium-chart) .issue-premium-surface { transition:filter .2s ease; outline:none; }
+:is(.issue-premium-chart,.support-premium-chart) .issue-premium-surface:is(:hover,:focus-visible) { filter:brightness(1.12); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-gloss { pointer-events:none; }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-shadow { fill:rgba(0,8,16,.3); filter:blur(3px); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-center-shadow { fill:rgba(0,6,14,.4); filter:blur(1.5px); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-center-highlight { fill:rgba(160,212,255,.05); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-center-core { fill:rgba(5,15,25,.18); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-rim.outer-soft { stroke:#2996F3; stroke-opacity:.18; stroke-width:1.3px; filter:blur(.35px); }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-rim.outer { stroke:rgba(218,247,255,.55); stroke-width:.45px; filter:none; }
+:is(.issue-premium-chart,.support-premium-chart) .overview-pie3d-rim.inner { stroke:#2996F3; stroke-width:.75px; filter:drop-shadow(0 1px 1px rgba(0,6,18,.45)); }
+html body main .dashboard-view :is(.issue-premium-chart,.support-premium-chart) :is(.overview-pie3d-total,.overview-pie3d-caption) {
     fill:#fff !important; stroke:none !important; font-weight:800 !important;
     filter:drop-shadow(0 .7px .6px rgba(0,0,0,.4));
 }
-.issue-premium-chart :is(.overview-pie3d-depth,.overview-pie3d-top,.overview-pie3d-gloss,.overview-pie3d-rim) {
+:is(.issue-premium-chart,.support-premium-chart) :is(.overview-pie3d-depth,.overview-pie3d-top,.overview-pie3d-gloss,.overview-pie3d-rim) {
     transform-origin:78px 66px;
     animation:issueDonutReveal 1000ms cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes issueDonutReveal { from { opacity:0; transform:scale(.05); } to { opacity:1; transform:scale(1); } }
 @media (prefers-reduced-motion:reduce) {
-    .issue-premium-chart :is(.overview-pie3d-depth,.overview-pie3d-top,.overview-pie3d-gloss,.overview-pie3d-rim) { animation:none; }
-    .issue-premium-chart .issue-premium-surface { transition:none; }
+    :is(.issue-premium-chart,.support-premium-chart) :is(.overview-pie3d-depth,.overview-pie3d-top,.overview-pie3d-gloss,.overview-pie3d-rim) { animation:none; }
+    :is(.issue-premium-chart,.support-premium-chart) .issue-premium-surface { transition:none; }
 }

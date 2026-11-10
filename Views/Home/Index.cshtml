@@ -182,7 +182,7 @@
     }
 
     var issueOverviewSegments = BuildOverviewPieSegments(dashboard.IssueMetrics, seamless: true);
-    var supportOverviewSegments = BuildOverviewPieSegments(dashboard.SupportMetrics);
+    var supportOverviewSegments = BuildOverviewPieSegments(dashboard.SupportMetrics, seamless: true);
     var projectOverviewSegments = BuildOverviewPieSegments(dashboard.ProjectStatusMetrics);
     var issueOverviewLegend = dashboard.IssueMetrics;
     var supportOverviewLegend = dashboard.SupportMetrics;
@@ -797,7 +797,7 @@
                         </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
-                        <figure class="overview-pie3d" aria-label="กราฟ Support แบบสามมิติ">
+                        <figure class="overview-pie3d support-premium-chart" data-premium-support-donut aria-label="กราฟ Support แบบสามมิติ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="supportOverviewPieTitle">
                                 <title id="supportOverviewPieTitle">Support ทั้งหมด @dashboard.SupportTotal รายการ</title>
                                 <defs>
@@ -827,7 +827,7 @@
                                 <g class="overview-pie3d-top">
                                     @foreach (var segment in supportOverviewSegments)
                                     {
-                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                        <path d="@segment.TopPath" fill="@segment.Fill" data-tone="@segment.Metric.Color" data-label="@segment.Metric.Label" data-count="@segment.Metric.Count"></path>
                                     }
                                 </g>
                                 <g class="overview-pie3d-gloss">
