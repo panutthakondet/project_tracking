@@ -12,6 +12,7 @@ const create=(THREE,root)=>{
     const tooltip=document.createElement('aside');tooltip.className='support-three-tooltip';tooltip.hidden=true;tooltip.setAttribute('role','tooltip');root.append(tooltip);
     const scene=new THREE.Scene(),group=new THREE.Group();scene.add(group);
     const camera=new THREE.PerspectiveCamera(35,1,.1,40);
+    camera.zoom=1.2; // Match the visible ring width of the neighbouring Issues SVG.
     camera.up.set(0,0,1);camera.position.set(0,-7,7);camera.lookAt(0,0,0);
     scene.add(new THREE.AmbientLight(0xffffff,.4));
     const hemisphere=new THREE.HemisphereLight(0xe6f4ff,0x18212c,.65);hemisphere.position.set(0,0,1);scene.add(hemisphere);
