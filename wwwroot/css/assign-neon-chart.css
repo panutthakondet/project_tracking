@@ -1,0 +1,25 @@
+/* Front-facing chart scoped to Assigns Overdue Overview. */
+.panel-line-overdue .assign-neon-chart { position:relative; width:min(260px,100%); min-width:0; margin:0 auto; }
+.assign-neon-chart svg { display:block; width:100%; height:auto; overflow:visible; }
+html body main .dashboard-view .assign-neon-chart,
+html body main .dashboard-view .assign-neon-chart * { font-family:"Sarabun",sans-serif !important; }
+.assign-neon-chart .assign-neon-appear { transform-origin:180px 178px; animation:assignNeonReveal 1s ease-out both; }
+.assign-neon-chart .assign-neon-hover { transform-box:fill-box; transform-origin:center; transition:transform .2s ease,filter .2s ease; }
+.assign-neon-chart a:is(:hover,:focus) .assign-neon-hover { transform:scale(1.025); filter:brightness(1.25); }
+.assign-neon-chart a { cursor:pointer; outline:none; }
+.assign-neon-chart a:focus-visible .assign-neon-edge { stroke-width:3px; }
+html body main .dashboard-view .assign-neon-chart :is(.assign-neon-total,.assign-neon-caption,.assign-neon-percent) {
+    fill:var(--pt-chart-panel-contrast,#f4fcff) !important; stroke:none !important;
+    text-anchor:middle; font-weight:700 !important; pointer-events:none;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.7));
+}
+.assign-neon-total { font-size:52px; }
+.assign-neon-caption { font-size:22px; }
+.assign-neon-percent { font-size:17px; }
+html body main .dashboard-view .assign-neon-chart .assign-neon-percent { fill:#f4fcff !important; }
+.assign-neon-tooltip { position:absolute; inset:auto 0 0; z-index:4; padding:8px 10px; border:1px solid var(--pt-border-strong,#735c22); border-radius:8px; background:var(--pt-chart-panel-deep,#07131f); color:var(--pt-chart-panel-contrast,#f4fcff); text-align:center; font-size:13px; line-height:1.5; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.3); }
+.panel-line-overdue .line-overdue-metric-list .metric-name { min-width:0; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.45; }
+.panel-line-overdue .line-overdue-metric-list b { white-space:nowrap; }
+@container dashboard (max-width:600px) { .dashboard-view .panel-line-overdue .line-overdue-metric-list { grid-template-columns:minmax(0,1fr); } }
+@keyframes assignNeonReveal { from { opacity:0; transform:scale(.88); } to { opacity:1; transform:scale(1); } }
+@media (prefers-reduced-motion:reduce) { .assign-neon-chart .assign-neon-appear { animation:none; } .assign-neon-chart .assign-neon-hover { transition:none; } }

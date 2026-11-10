@@ -1,0 +1,60 @@
+(() => {
+    const ns='http://www.w3.org/2000/svg';
+    const ready=new WeakSet(); let sequence=0;
+    const add=(parent,tag,attributes)=>{const node=document.createElementNS(ns,tag);Object.entries(attributes).forEach(([key,value])=>node.setAttribute(key,value));parent.append(node);return node;};
+    const point=(radius,angle,y=0)=>{const a=angle*Math.PI/180;return `${180+radius*Math.cos(a)} ${178+radius*Math.sin(a)+y}`;};
+    const ring=(start,end,outer=139,inner=91,y=0)=>{
+        const mid=(start+end)/2;
+        return `M ${point(outer,start,y)} A ${outer} ${outer} 0 0 1 ${point(outer,mid,y)} A ${outer} ${outer} 0 0 1 ${point(outer,end,y)} L ${point(inner,end,y)} A ${inner} ${inner} 0 0 0 ${point(inner,mid,y)} A ${inner} ${inner} 0 0 0 ${point(inner,start,y)} Z`;
+    };
+    const arc=(radius,start,end)=>{const mid=(start+end)/2;return `M ${point(radius,start)} A ${radius} ${radius} 0 0 1 ${point(radius,mid)} A ${radius} ${radius} 0 0 1 ${point(radius,end)}`;};
+    const shade=(hex,amount)=>'#'+hex.slice(1).match(/../g).map(v=>Math.round(parseInt(v,16)*amount).toString(16).padStart(2,'0')).join('');
+    const enhance=chart=>{
+        if(ready.has(chart))return;ready.add(chart);
+        const host=chart.closest('.line-overdue-donut-layout');const svg=chart.querySelector('svg');const layer=svg?.querySelector('.assign-neon-segments');
+        if(!host||!layer)return;
+        const id=`assignNeon${++sequence}`;
+        const tooltip=chart.querySelector('.assign-neon-tooltip');tooltip.id=id+'Tip';
+        const total=Math.max(0,Number(chart.dataset.assignTotal)||0);
+        const palette=['#2996F3','#A56AFF','#20D9D2','#E76DAA'];
+        const rows=[...host.querySelectorAll('[data-assign-neon-metric]')].map((node,index)=>({count:Math.max(0,Number(node.dataset.count)||0),label:node.querySelector('.metric-name').textContent.trim(),href:node.dataset.href,state:node.dataset.state,color:({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length]})).filter(row=>row.count>0);
+        const defs=add(svg,'defs',{});
+        const glow=add(defs,'filter',{id:id+'Glow',x:'-25%',y:'-25%',width:'150%',height:'150%'});
+        add(glow,'feGaussianBlur',{stdDeviation:'2',result:'blur'});const merge=add(glow,'feMerge',{});add(merge,'feMergeNode',{in:'blur'});add(merge,'feMergeNode',{in:'SourceGraphic'});
+        const bevel=add(defs,'filter',{id:id+'Bevel',x:'-10%',y:'-10%',width:'120%',height:'120%','color-interpolation-filters':'sRGB'});
+        add(bevel,'feGaussianBlur',{in:'SourceAlpha',stdDeviation:'.8',result:'edge'});
+        const light=add(bevel,'feSpecularLighting',{in:'edge',surfaceScale:'2.5',specularConstant:'.45',specularExponent:'20','lighting-color':'#e2fbff',result:'light'});
+        add(light,'fePointLight',{x:'-100',y:'-120',z:'200'});add(bevel,'feComposite',{in:'light',in2:'SourceAlpha',operator:'in',result:'clipped'});add(bevel,'feComposite',{in:'SourceGraphic',in2:'clipped',operator:'arithmetic',k1:0,k2:1,k3:1,k4:0});
+        const well=add(defs,'radialGradient',{id:id+'Well'});[[0,0],[.8,.04],[1,.65]].forEach(([offset,opacity])=>add(well,'stop',{offset,'stop-color':'#000810','stop-opacity':opacity}));
+        add(layer,'circle',{cx:180,cy:178,r:90,fill:`url(#${id}Well)`});
+        const shadow=add(defs,'filter',{id:id+'Shadow',x:'-30%',y:'-100%',width:'160%',height:'300%'});add(shadow,'feGaussianBlur',{stdDeviation:5});
+        add(layer,'ellipse',{cx:180,cy:335,rx:112,ry:10,fill:'#00070e',opacity:'.45',filter:`url(#${id}Shadow)`});
+        if(!total||!rows.length) add(layer,'circle',{cx:180,cy:178,r:115,fill:'none',stroke:'#344759','stroke-width':48,opacity:'.5'});
+        let cursor=-90;
+        rows.forEach((row,index)=>{
+            if(!total)return;
+            const percent=row.count/total*100;const span=row.count/total*360;const gap=rows.length===1?0:Math.min(1.8,span*.12);const start=cursor+gap/2,end=cursor+span-gap/2,mid=cursor+span/2;cursor+=span;
+            const color=row.color;const gradient=add(defs,'linearGradient',{id:id+'Fill'+index,x1:'0',y1:'0',x2:'1',y2:'1'});
+            [[0,.5],[.4,.26],[1,.1]].forEach(([offset,amount])=>add(gradient,'stop',{offset,'stop-color':shade(color,amount)}));
+            const angle=mid*Math.PI/180;const distance=rows.length===1?0:5;const placed=add(layer,'g',{transform:`translate(${Math.cos(angle)*distance} ${Math.sin(angle)*distance})`});
+            const appear=add(placed,'g',{class:'assign-neon-appear'});
+            const link=add(appear,'a',{href:row.href||'#',tabindex:0,'aria-label':`${row.label}: ${row.count} รายการ (${percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%)`,'aria-describedby':tooltip.id});
+            const body=add(link,'g',{class:'assign-neon-hover'});
+            for(let y=8;y>=1;y--)add(body,'path',{d:ring(start,end,139,91,y),fill:shade(color,.12),stroke:shade(color,.3),'stroke-width':'.6'});
+            const d=ring(start,end);
+            add(body,'path',{d,fill:`url(#${id}Fill${index})`,stroke:color,'stroke-width':1.5,filter:`url(#${id}Bevel)`});
+            add(body,'path',{d,fill:'none',stroke:color,'stroke-width':1.8,opacity:'.85',filter:`url(#${id}Glow)`,class:'assign-neon-edge'});
+            add(body,'path',{d:ring(start+.15,end-.15,137,93),fill:'none',stroke:'#ddffff','stroke-width':'.65',opacity:'.28'});
+            if(span>14) [99,105,131].forEach((radius,i)=>add(body,'path',{d:arc(radius,start+3+i,end-3-i),fill:'none',stroke:color,'stroke-width':'.55',opacity:'.18'}));
+            if(span>=32){const labelPoint=point(115,mid).split(' ');add(body,'text',{x:labelPoint[0],y:Number(labelPoint[1])+6,class:'assign-neon-percent'}).textContent=percent.toLocaleString('th-TH',{maximumFractionDigits:1})+'%';}
+            const text=`${row.label}: ${row.count.toLocaleString('th-TH')} รายการ (${percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%)`;
+            add(link,'title',{}).textContent=text;
+            const show=()=>{tooltip.textContent=text;tooltip.hidden=false;};const hide=()=>tooltip.hidden=true;
+            link.addEventListener('pointerenter',show);link.addEventListener('pointerleave',hide);link.addEventListener('focus',show);link.addEventListener('blur',hide);link.addEventListener('keydown',event=>{if(event.key==='Escape')hide();});
+        });
+        const value=svg.querySelector('.assign-neon-total');if(total>=10000)value.style.fontSize='38px';
+    };
+    document.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);
+    const dashboard=document.querySelector('.dashboard-view');
+    if(dashboard)new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(!(node instanceof Element))return;if(node.matches('[data-assign-neon-chart]'))enhance(node);node.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);}))).observe(dashboard,{childList:true,subtree:true});
+})();
