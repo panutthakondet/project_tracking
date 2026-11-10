@@ -521,7 +521,7 @@
                     <div class="donut-layout project-status-donut-layout project-status-art">
                         <h3 class="project-status-card-title">โครงการ</h3>
                         <div class="donut project-status-donut project-status-donut-3d" data-project-status-donut role="img" aria-label="กราฟโดนัทสามมิติแสดงสัดส่วนสถานะโครงการ รายละเอียดอยู่ในรายการด้านล่าง" style="--donut:@dashboard.ProjectStatusDonut">
-                            <div>
+                            <div class="support-three-label">
                                 <strong data-project-status-total>@dashboard.TotalProjectCount</strong>
                                 <span>โครงการ</span>
                             </div>
@@ -529,7 +529,7 @@
                         <div class="metric-list">
                             @foreach (var metric in dashboard.ProjectStatusMetrics)
                             {
-                                <span data-project-status-metric="@metric.StatusCode" data-project-status-count="@metric.Count" data-project-status-color="@metric.HexColor"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                                <span data-project-status-metric="@metric.StatusCode" data-project-status-count="@metric.Count" data-project-status-color="@metric.HexColor" data-project-status-tone="@metric.Color"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                             }
                         </div>
                         <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
