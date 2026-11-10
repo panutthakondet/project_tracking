@@ -691,7 +691,6 @@
                             var assignState = metric.Color switch { "green" => "DONE", "warning" => "WARNING", "danger" => "DANGER", _ => metric.StatusCode };
                             <span data-assign-neon-metric data-count="@metric.Count" data-state="@assignState" data-tone="@metric.Color" data-href="@Url.Action("LineOverdueOverview", "Home", new { status = assignState })"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                         }
-                        <span><i class="dot blue"></i><span class="metric-name">โครงการที่มีงานเสี่ยง/ล่าช้า</span><b>@dashboard.LineOverdueProjectCount</b></span>
                     </div>
                     <small class="project-status-updated">ⓘ นับ Assigns ในโครงการที่มีงานเสี่ยง/ล่าช้า โดย Done คือ Assigns ที่เสร็จแล้วในโครงการกลุ่มนั้น</small>
                 </div>
