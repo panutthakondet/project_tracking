@@ -118,7 +118,7 @@
         });
     }
 
-    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineBendX, double LineBendY, double LineEndX, double LineEndY, string LabelAnchor)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
+    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineBendX, double LineBendY, double LineEndX, double LineEndY, string LabelAnchor)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics, bool seamless = false)
     {
         var visibleMetrics = metrics.Where(metric => metric.Count > 0).ToList();
         var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineBendX, double LineBendY, double LineEndX, double LineEndY, string LabelAnchor)>();
@@ -135,7 +135,7 @@
         foreach (var metric in visibleMetrics)
         {
             var rawSpan = (double)metric.Count / total * totalAngle;
-            var span = visibleMetrics.Count == 1 ? totalAngle : Math.Max(8d, rawSpan - gapAngle);
+            var span = seamless ? rawSpan : visibleMetrics.Count == 1 ? totalAngle : Math.Max(8d, rawSpan - gapAngle);
             var start = startAngle;
             var end = startAngle + span;
             var mid = (start + end) / 2d;
@@ -181,7 +181,7 @@
         return result;
     }
 
-    var issueOverviewSegments = BuildOverviewPieSegments(dashboard.IssueMetrics);
+    var issueOverviewSegments = BuildOverviewPieSegments(dashboard.IssueMetrics, seamless: true);
     var supportOverviewSegments = BuildOverviewPieSegments(dashboard.SupportMetrics);
     var projectOverviewSegments = BuildOverviewPieSegments(dashboard.ProjectStatusMetrics);
     var issueOverviewLegend = dashboard.IssueMetrics;
@@ -722,7 +722,7 @@
                         </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
-                        <figure class="overview-pie3d" aria-label="กราฟ Issues แบบสามมิติ">
+                        <figure class="overview-pie3d issue-premium-chart" data-premium-issue-donut aria-label="กราฟ Issues แบบสามมิติ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="issueOverviewPieTitle">
                                 <title id="issueOverviewPieTitle">Issues ทั้งหมด @dashboard.IssueTotal รายการ</title>
                                 <defs>
@@ -752,7 +752,7 @@
                                 <g class="overview-pie3d-top">
                                     @foreach (var segment in issueOverviewSegments)
                                     {
-                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                        <path d="@segment.TopPath" fill="@segment.Fill" data-tone="@segment.Metric.Color" data-label="@segment.Metric.Label" data-count="@segment.Metric.Count"></path>
                                     }
                                 </g>
                                 <g class="overview-pie3d-gloss">
@@ -1201,6 +1201,8 @@
 </div>
 
 @section Styles {
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&amp;display=swap" />
+<link rel="stylesheet" href="~/css/issue-premium-chart.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
@@ -8276,3 +8278,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 
 </script>
 <script src="~/js/project-status-chart.js" asp-append-version="true"></script>
+<script src="~/js/issue-premium-chart.js" asp-append-version="true"></script>
