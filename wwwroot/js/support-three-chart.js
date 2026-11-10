@@ -72,11 +72,11 @@ const create=(THREE,root)=>{
         // Use the same front-facing arrangement even when a category has only one item.
         if(rows.length>1){
             const candidate=rows.filter((row,index)=>angles[index]<=Math.PI).sort((a,b)=>a.count-b.count)[0];
-            if(candidate){const index=rows.indexOf(candidate),before=angles.slice(0,index).reduce((sum,span)=>sum+span,0),facing=kind==='Issues'?-5*Math.PI/6:-Math.PI/2;cursor=facing-before-angles[index]/2;}
+            if(candidate){const index=rows.indexOf(candidate),before=angles.slice(0,index).reduce((sum,span)=>sum+span,0),facing=kind==='Issues'?-5*Math.PI/6:-Math.PI/6;cursor=facing-before-angles[index]/2;}
         }
         const slices=rows.map((row,index)=>{const span=angles[index],start=cursor,mid=start+span/2;cursor+=span;return {...row,start,end:start+span,span,mid};});
         // Camera faces the -Y side: pull the front-facing slice out as the emphasis.
-        const emphasisDirection=kind==='Issues'?-5*Math.PI/6:-Math.PI/2;
+        const emphasisDirection=kind==='Issues'?-5*Math.PI/6:-Math.PI/6;
         const front=rows.length>1?slices.reduce((best,slice)=>Math.cos(slice.mid-emphasisDirection)>Math.cos(best.mid-emphasisDirection)?slice:best,slices[0]):null;
         slices.forEach((row,index)=>{
             const {start,end,span,mid}=row,{outerRadius,innerRadius}=geometrySettings;
