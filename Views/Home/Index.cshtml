@@ -783,7 +783,7 @@
                         </div>
                     </div>
                 </section>
-                <section class="overview-mini" aria-label="Support Overview">
+                <section class="overview-mini support-three-overview" aria-label="Support Overview">
                     <div class="overview-mini-head">
                         <div class="overview-mini-title">
                             <span class="overview-mini-icon support" aria-hidden="true">
@@ -800,7 +800,7 @@
                         </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
-                        <figure class="overview-pie3d support-premium-chart" data-premium-support-donut aria-label="กราฟ Support แบบสามมิติ">
+                        <figure class="overview-pie3d support-premium-chart" data-premium-support-donut data-support-three data-support-total="@dashboard.SupportTotal" aria-label="Support ทั้งหมด @dashboard.SupportTotal รายการ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="supportOverviewPieTitle">
                                 <title id="supportOverviewPieTitle">Support ทั้งหมด @dashboard.SupportTotal รายการ</title>
                                 <defs>
@@ -849,11 +849,12 @@
                                 @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.SupportTotal}</text>")
                                 @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Support</text>")
                             </svg>
+                            <div class="support-three-label" aria-hidden="true"><strong>@dashboard.SupportTotal</strong><span>Support</span></div>
                         </figure>
                         <div class="metric-list slim">
                             @foreach (var metric in supportOverviewLegend)
                             {
-                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.Count</b></span>
+                                <span data-support-metric data-status="@metric.Label" data-count="@metric.Count"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.Count</b></span>
                             }
                         </div>
                     </div>
@@ -1208,6 +1209,7 @@
 <link rel="stylesheet" href="~/css/issue-premium-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/assign-neon-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/attendance-three-chart.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/support-three-chart.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
@@ -8286,3 +8288,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script src="~/js/issue-premium-chart.js" asp-append-version="true"></script>
 <script src="~/js/assign-neon-chart.js" asp-append-version="true"></script>
 <script type="module" src="~/js/attendance-three-chart.js" asp-append-version="true"></script>
+<script type="module" src="~/js/support-three-chart.js" asp-append-version="true"></script>
