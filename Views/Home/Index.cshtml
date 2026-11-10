@@ -1031,7 +1031,7 @@
             </div>
             <div class="time-layout">
                 <div class="time-hero">
-                    <div class="donut time-donut" style="--donut:@dashboard.AttendanceDonut" aria-label="กราฟอัตราเข้างานเดือนนี้">
+                    <div class="donut time-donut" data-attendance-three data-recorded="@dashboard.MonthRecordedEmployeeDays" data-expected="@dashboard.MonthExpectedEmployeeDays" style="--donut:@dashboard.AttendanceDonut" aria-label="กราฟอัตราเข้างานเดือนนี้">
                         <div>
                             <strong>@dashboard.MonthAttendanceRate.ToString("0.#")</strong>
                             <span>เปอร์เซ็นต์</span>
@@ -1207,6 +1207,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&amp;display=swap" />
 <link rel="stylesheet" href="~/css/issue-premium-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/assign-neon-chart.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/attendance-three-chart.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
@@ -8284,3 +8285,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script src="~/js/project-status-chart.js" asp-append-version="true"></script>
 <script src="~/js/issue-premium-chart.js" asp-append-version="true"></script>
 <script src="~/js/assign-neon-chart.js" asp-append-version="true"></script>
+<script type="module" src="~/js/attendance-three-chart.js" asp-append-version="true"></script>
