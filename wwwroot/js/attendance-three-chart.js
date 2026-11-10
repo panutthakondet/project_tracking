@@ -7,16 +7,16 @@ const createChart=(THREE,root)=>{
     const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
     renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+    renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=.95;
     renderer.domElement.className='attendance-three-canvas';renderer.domElement.setAttribute('aria-hidden','true');
     root.prepend(renderer.domElement);
     const tooltip=document.createElement('aside');tooltip.className='attendance-three-tooltip';tooltip.hidden=true;tooltip.setAttribute('role','tooltip');root.append(tooltip);
     const scene=new THREE.Scene();const group=new THREE.Group();scene.add(group);
     const camera=new THREE.PerspectiveCamera(34,1,.1,20);const elevation=40*Math.PI/180;
     camera.position.set(0,.12+Math.sin(elevation)*3.5,Math.cos(elevation)*3.5);camera.lookAt(0,.12,0);
-    scene.add(new THREE.AmbientLight(0xffffff,.6));
-    const key=new THREE.DirectionalLight(0xffffff,2.2);key.position.set(-3,5,3);key.castShadow=true;key.shadow.mapSize.set(512,512);key.shadow.camera.left=-2;key.shadow.camera.right=2;key.shadow.camera.top=2;key.shadow.camera.bottom=-2;key.shadow.camera.near=.5;key.shadow.camera.far=12;key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
-    const fill=new THREE.DirectionalLight(0x99caff,.5);fill.position.set(3,2,-3);scene.add(fill);
+    scene.add(new THREE.AmbientLight(0xffffff,.3));
+    const key=new THREE.DirectionalLight(0xffffff,1.6);key.position.set(-3,5,3);key.castShadow=true;key.shadow.mapSize.set(512,512);key.shadow.camera.left=-2;key.shadow.camera.right=2;key.shadow.camera.top=2;key.shadow.camera.bottom=-2;key.shadow.camera.near=.5;key.shadow.camera.far=12;key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
+    const fill=new THREE.DirectionalLight(0xffffff,.3);fill.position.set(3,2,-3);scene.add(fill);
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(5,5),new THREE.ShadowMaterial({opacity:.25}));floor.rotation.x=-Math.PI/2;floor.position.y=-.035;floor.receiveShadow=true;scene.add(floor);
     // Procedural studio reflections: no image textures or background grid.
     const studio=new THREE.Scene();studio.background=new THREE.Color(0x333333);
@@ -54,7 +54,7 @@ const createChart=(THREE,root)=>{
             else{shape.absarc(0,0,1,start,end,false);shape.lineTo(.62*Math.cos(end),.62*Math.sin(end));shape.absarc(0,0,.62,end,start,true);shape.closePath();}
             const bevel=Math.min(.014,span*.02);
             const geometry=new THREE.ExtrudeGeometry(shape,{depth:.24,steps:1,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:4,curveSegments:64});geometry.rotateX(-Math.PI/2);
-            const material=new THREE.MeshPhysicalMaterial({color:row.color,roughness:.25,metalness:.1,clearcoat:.9,clearcoatRoughness:.16,envMapIntensity:.7});
+            const material=new THREE.MeshPhysicalMaterial({color:row.color,roughness:.25,metalness:.1,clearcoat:.7,clearcoatRoughness:.18,envMapIntensity:.4});
             const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData={...row,percent:total?row.count/total*100:0};group.add(mesh);meshes.push(mesh);
         });
         draw();
