@@ -1160,6 +1160,8 @@
                 {
                     foreach (var activity in dashboard.RecentActivities)
                     {
+                        var activityIsDate = DateTime.TryParseExact(activity.TimeText, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var activityDate);
+                        var activityTimeParts = activity.TimeText.Split(' ', 2);
                         <a class="activity-row @activity.Color" href="@(string.IsNullOrWhiteSpace(activity.Url) ? Url.Action("Activities", "Home") : activity.Url)">
                             <img class="activity-avatar"
                                  src="@activity.AvatarPath"
@@ -1173,7 +1175,18 @@
                                     <em><i class="activity-owner-icon"></i>@activity.OwnerText</em>
                                 }
                             </span>
-                            <time><i aria-hidden="true">◷</i><strong>@activity.TimeText.Split(' ').FirstOrDefault()</strong><small>@string.Join(" ", activity.TimeText.Split(' ').Skip(1))</small></time>
+                            <time class="@(activityIsDate ? "activity-time-date" : null)">
+                                <i aria-hidden="true">◷</i>
+                                @if (activityIsDate)
+                                {
+                                    <strong>@activityDate.ToString("dd MMM yyyy", new CultureInfo("th-TH"))</strong>
+                                }
+                                else
+                                {
+                                    <strong>@activityTimeParts[0]</strong>
+                                    @if (activityTimeParts.Length > 1) { <small>@activityTimeParts[1]</small> }
+                                }
+                            </time>
                         </a>
                     }
                 }

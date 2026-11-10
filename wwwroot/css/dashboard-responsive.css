@@ -102,6 +102,11 @@
 }
 
 .dashboard-view { container:dashboard / inline-size; min-width:0; }
+.dashboard-view .panel-activity .activity-row { grid-template-columns:54px minmax(0,1fr) 140px; }
+.dashboard-view .panel-activity .activity-row > span { min-width:0; }
+.dashboard-view .panel-activity .activity-row time { min-width:0; white-space:normal; }
+.dashboard-view .panel-activity .activity-row time strong { min-width:0; overflow-wrap:anywhere; line-height:1.35; }
+.dashboard-view .panel-activity .activity-row .activity-time-date strong { font-size:13px; }
 .dashboard-view :is(.dashboard-grid, .kpi-grid, .panel-actions, .dashboard-card-title, .project-overview-title-copy) { min-width:0; }
 .dashboard-view :is(.panel-head, .dashboard-card-head, .task-progress-head, .line-overdue-overview-head) { flex-wrap:wrap; }
 .dashboard-view :is(.panel-actions, .task-progress-summary, .owner-overview-footer) { flex-wrap:wrap; }
@@ -193,6 +198,8 @@
     .time-pill { width:60px; height:60px; font-size:13px; }
     .activity-row { grid-template-columns:38px minmax(0,1fr); gap:10px; }
     .activity-row time { grid-column:2; justify-self:start; }
+    .dashboard-view .panel-activity .activity-row { grid-template-columns:38px minmax(0,1fr); }
+    .dashboard-view .panel-activity .activity-row time { border-left:0; padding-left:0; }
     .activity-row > img { width:36px; height:36px; }
     .field-service-dashboard-row { grid-template-columns:minmax(0,1fr); gap:8px; }
     .field-service-dashboard-row > * { min-width:0; overflow-wrap:anywhere; }
