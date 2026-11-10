@@ -35,7 +35,7 @@ const create=(THREE,root)=>{
     // A near-circular opening requires a view near the ring normal; a low elevation would collapse the opening.
     const camera=isProject?new THREE.OrthographicCamera(-3.25,3.25,3.25,-3.25,.1,40):new THREE.PerspectiveCamera(35,1,.1,40);
     camera.zoom=isProject ? 1 : 1.2;
-    camera.up.set(0,0,1);camera.position.set(0,isProject?-Math.sin(Math.PI/6)*10:-7,isProject?Math.cos(Math.PI/6)*10:7);camera.lookAt(0,0,0);
+    camera.up.set(0,0,1);camera.position.set(0,isProject?-Math.sin(Math.PI/12)*10:-7,isProject?Math.cos(Math.PI/12)*10:7);camera.lookAt(0,0,0);
     scene.add(new THREE.AmbientLight(0xffffff,.25));
     const hemisphere=new THREE.HemisphereLight(0xffffff,0x18212c,.35);hemisphere.position.set(0,0,1);scene.add(hemisphere);
     const key=new THREE.DirectionalLight(0xffffff,1.6);key.position.set(-5,-4,9);key.castShadow=true;key.shadow.mapSize.set(512,512);Object.assign(key.shadow.camera,{left:-4.5,right:4.5,top:4.5,bottom:-4.5,near:.5,far:25});key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
