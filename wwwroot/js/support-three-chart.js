@@ -1,7 +1,8 @@
 const charts=new Map(),pending=new WeakSet();let library;
 // Same base palette as the Issues Overview SVG.
 const colors={OPEN:'#2996F3',WIP:'#FF9F1C',FIXED:'#13D6C9',FAIL:'#F55262',PASS:'#70E000',REJECT:'#9945FF'};
-const geometrySettings=Object.freeze({outerRadius:2.5,innerRadius:1,depth:.65,bevelThickness:.045,bevelSize:.045,bevelSegments:4,curveSegments:64});
+// Match Issues: inner/outer radii 39/66 and extrusion/diameter 15/132.
+const geometrySettings=Object.freeze({outerRadius:2.5,innerRadius:2.5*39/66,depth:5*15/132,bevelThickness:.045,bevelSize:.045,bevelSegments:4,curveSegments:64});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const create=(THREE,root)=>{
     let dead=false,frame=0,animation=null,hover=null,renderCount=0;
