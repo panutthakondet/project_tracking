@@ -1,12 +1,13 @@
 const charts=new Map(),pending=new WeakSet();let library;
-const colors={OPEN:'#2996F3',WIP:'#FF9F1C',FIXED:'#14D6C0',FAIL:'#FF4560',PASS:'#80FF45',REJECT:'#9655FF'};
+// Same base palette as the Issues Overview SVG.
+const colors={OPEN:'#2996F3',WIP:'#FF9F1C',FIXED:'#13D6C9',FAIL:'#F55262',PASS:'#70E000',REJECT:'#9945FF'};
 const geometrySettings=Object.freeze({outerRadius:2.5,innerRadius:1,depth:.65,bevelThickness:.045,bevelSize:.045,bevelSegments:4,curveSegments:64});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const create=(THREE,root)=>{
     let dead=false,frame=0,animation=null,hover=null,renderCount=0;
     const host=root.closest('.support-three-overview');const label=root.querySelector('.support-three-label');
     const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
-    renderer.setClearColor(0,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+    renderer.setClearColor(0,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=.95;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     const canvas=renderer.domElement;canvas.className='support-three-canvas';canvas.tabIndex=0;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','กราฟสถานะ Support ใช้ปุ่มลูกศรซ้ายขวาเพื่อดูแต่ละสถานะ');root.prepend(canvas);
     const tooltip=document.createElement('aside');tooltip.className='support-three-tooltip';tooltip.hidden=true;tooltip.setAttribute('role','tooltip');root.append(tooltip);
@@ -14,10 +15,10 @@ const create=(THREE,root)=>{
     const camera=new THREE.PerspectiveCamera(35,1,.1,40);
     camera.zoom=1.2; // Match the visible ring width of the neighbouring Issues SVG.
     camera.up.set(0,0,1);camera.position.set(0,-7,7);camera.lookAt(0,0,0);
-    scene.add(new THREE.AmbientLight(0xffffff,.4));
-    const hemisphere=new THREE.HemisphereLight(0xe6f4ff,0x18212c,.65);hemisphere.position.set(0,0,1);scene.add(hemisphere);
-    const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(-5,-4,9);key.castShadow=true;key.shadow.mapSize.set(512,512);Object.assign(key.shadow.camera,{left:-4.5,right:4.5,top:4.5,bottom:-4.5,near:.5,far:25});key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
-    const fill=new THREE.DirectionalLight(0x99caff,.35);fill.position.set(4,3,4);scene.add(fill);
+    scene.add(new THREE.AmbientLight(0xffffff,.25));
+    const hemisphere=new THREE.HemisphereLight(0xffffff,0x18212c,.35);hemisphere.position.set(0,0,1);scene.add(hemisphere);
+    const key=new THREE.DirectionalLight(0xffffff,1.6);key.position.set(-5,-4,9);key.castShadow=true;key.shadow.mapSize.set(512,512);Object.assign(key.shadow.camera,{left:-4.5,right:4.5,top:4.5,bottom:-4.5,near:.5,far:25});key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
+    const fill=new THREE.DirectionalLight(0xffffff,.25);fill.position.set(4,3,4);scene.add(fill);
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:.25}));floor.position.z=-.06;floor.receiveShadow=true;scene.add(floor);
     const studio=new THREE.Scene();studio.background=new THREE.Color(0x333333);
     const panels=[new THREE.Mesh(new THREE.BoxGeometry(8,4,.1),new THREE.MeshBasicMaterial({color:new THREE.Color(3,3,3)})),new THREE.Mesh(new THREE.BoxGeometry(.1,4,5),new THREE.MeshBasicMaterial({color:0xddddff}))];panels[0].position.set(0,-1,7);panels[1].position.set(-6,-3,3);panels.forEach(p=>studio.add(p));
@@ -64,7 +65,7 @@ const create=(THREE,root)=>{
             // its horizontal width for extremely narrow data slices; never enlarge their angles.
             const bevelSize=Math.min(geometrySettings.bevelSize,Math.sin(Math.min(span,Math.PI)/2)*innerRadius*.35);
             const geometry=new THREE.ExtrudeGeometry(shape,{depth:geometrySettings.depth,steps:1,bevelEnabled:true,bevelThickness:geometrySettings.bevelThickness,bevelSize,bevelOffset:-bevelSize,bevelSegments:geometrySettings.bevelSegments,curveSegments:geometrySettings.curveSegments});
-            const material=new THREE.MeshPhysicalMaterial({color:colors[row.status]||[0x39b9ee,0xb17af3,0xe882b5][index%3],roughness:.35,metalness:.05,clearcoat:.25,clearcoatRoughness:.3,envMapIntensity:.6});
+            const material=new THREE.MeshPhysicalMaterial({color:colors[row.status]||[0x39b9ee,0xb17af3,0xe882b5][index%3],roughness:.35,metalness:.05,clearcoat:.25,clearcoatRoughness:.3,envMapIntensity:.4});
             const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData={...row,percent:row.count/statusSum*100,highlighted:row===front,explode:rows.length>1?(row===front ? .45 : .12):0};mesh.position.copy(target(mesh));group.add(mesh);meshes.push(mesh);
         });draw();
     };

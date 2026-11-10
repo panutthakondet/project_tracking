@@ -14,9 +14,10 @@ html body main .dashboard-view .support-three-label :is(strong,span) {
 .support-three-label span { font-size:clamp(11px,1.5vw,17px); }
 .support-three-tooltip { position:absolute; left:0; right:0; bottom:0; z-index:4; padding:7px 8px; border-radius:8px; border:1px solid var(--pt-border-strong,#806a2b); color:var(--pt-chart-panel-contrast,#fff); background:var(--pt-chart-panel-deep,#102335); font:12px/1.5 var(--pt-readable-thai-font); text-align:center; pointer-events:none; }
 .support-three-canvas:focus-visible { outline:2px solid #FF9F1C; outline-offset:2px; }
-.support-three-overview [data-status="OPEN"] .dot { background:#2996F3; }
-.support-three-overview [data-status="WIP"] .dot { background:#FF9F1C; }
-.support-three-overview [data-status="FIXED"] .dot { background:#14D6C0; }
-.support-three-overview [data-status="FAIL"] .dot { background:#FF4560; }
-.support-three-overview [data-status="PASS"] .dot { background:#80FF45; }
-.support-three-overview [data-status="REJECT"] .dot { background:#9655FF; }
+.support-three-overview [data-status="OPEN"] { --support-status-color:#2996F3; }
+.support-three-overview [data-status="WIP"] { --support-status-color:#FF9F1C; }
+.support-three-overview [data-status="FIXED"] { --support-status-color:#13D6C9; }
+.support-three-overview [data-status="FAIL"] { --support-status-color:#F55262; }
+.support-three-overview [data-status="PASS"] { --support-status-color:#70E000; }
+.support-three-overview [data-status="REJECT"] { --support-status-color:#9945FF; }
+.dashboard-view .support-three-overview [data-support-metric] .dot { color:var(--support-status-color) !important; background:currentColor !important; }
