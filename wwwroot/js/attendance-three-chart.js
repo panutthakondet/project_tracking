@@ -13,7 +13,7 @@ const createChart=(THREE,root)=>{
     const tooltip=document.createElement('aside');tooltip.className='attendance-three-tooltip';tooltip.hidden=true;tooltip.setAttribute('role','tooltip');root.append(tooltip);
     const scene=new THREE.Scene();const group=new THREE.Group();scene.add(group);
     const camera=new THREE.PerspectiveCamera(34,1,.1,20);const elevation=40*Math.PI/180;
-    camera.position.set(0,.22+Math.sin(elevation)*3.5,Math.cos(elevation)*3.5);camera.lookAt(0,.22,0);
+    camera.position.set(0,.12+Math.sin(elevation)*3.5,Math.cos(elevation)*3.5);camera.lookAt(0,.12,0);
     scene.add(new THREE.AmbientLight(0xffffff,.6));
     const key=new THREE.DirectionalLight(0xffffff,2.2);key.position.set(-3,5,3);key.castShadow=true;key.shadow.mapSize.set(512,512);key.shadow.camera.left=-2;key.shadow.camera.right=2;key.shadow.camera.top=2;key.shadow.camera.bottom=-2;key.shadow.camera.near=.5;key.shadow.camera.far=12;key.shadow.bias=-.0005;key.shadow.normalBias=.015;key.shadow.radius=3;scene.add(key);
     const fill=new THREE.DirectionalLight(0x99caff,.5);fill.position.set(3,2,-3);scene.add(fill);
@@ -50,10 +50,10 @@ const createChart=(THREE,root)=>{
             const span=total?row.count/total*Math.PI*2:Math.PI*2;const gap=rows.length>1?Math.min(.085,span*.25):0;
             const start=angle+gap/2,end=angle+span-gap/2;angle+=span;
             const shape=new THREE.Shape();
-            if(span>=Math.PI*2-1e-7){shape.absarc(0,0,1,0,Math.PI*2,false);const hole=new THREE.Path();hole.absarc(0,0,.45,0,Math.PI*2,true);shape.holes.push(hole);}
-            else{shape.absarc(0,0,1,start,end,false);shape.lineTo(.45*Math.cos(end),.45*Math.sin(end));shape.absarc(0,0,.45,end,start,true);shape.closePath();}
+            if(span>=Math.PI*2-1e-7){shape.absarc(0,0,1,0,Math.PI*2,false);const hole=new THREE.Path();hole.absarc(0,0,.62,0,Math.PI*2,true);shape.holes.push(hole);}
+            else{shape.absarc(0,0,1,start,end,false);shape.lineTo(.62*Math.cos(end),.62*Math.sin(end));shape.absarc(0,0,.62,end,start,true);shape.closePath();}
             const bevel=Math.min(.014,span*.02);
-            const geometry=new THREE.ExtrudeGeometry(shape,{depth:.42,steps:1,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:4,curveSegments:64});geometry.rotateX(-Math.PI/2);
+            const geometry=new THREE.ExtrudeGeometry(shape,{depth:.24,steps:1,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:4,curveSegments:64});geometry.rotateX(-Math.PI/2);
             const material=new THREE.MeshPhysicalMaterial({color:row.color,roughness:.25,metalness:.1,clearcoat:.9,clearcoatRoughness:.16,envMapIntensity:.7});
             const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData={...row,percent:total?row.count/total*100:0};group.add(mesh);meshes.push(mesh);
         });
@@ -62,7 +62,7 @@ const createChart=(THREE,root)=>{
     const resize=()=>{
         if(disposed)return;const {width,height}=root.getBoundingClientRect();if(!width||!height)return;
         renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
-        if(label){const center=new THREE.Vector3(0,.43,0).project(camera);label.style.left=`${(center.x+1)*50}%`;label.style.top=`${(1-center.y)*50}%`;}
+        if(label){const center=new THREE.Vector3(0,.25,0).project(camera);label.style.left=`${(center.x+1)*50}%`;label.style.top=`${(1-center.y)*50}%`;}
         draw();
     };
     const onMove=event=>{
