@@ -22,3 +22,14 @@
     html body .v2-sidebar > header .dropdown-menu .dropdown-item { min-height:44px; padding:10px !important; text-align:left; white-space:normal; font-size:14px; line-height:1.4; }
 }
 @media print { .mobile-menu-header { display:none !important; } }
+@media (max-width:720px) {
+    /* Keep the signed-in profile with the expanded menu, using the existing upload control. */
+    html body .v2-sidebar .v2-profile-card { display:block; padding:18px 16px 16px; }
+    html.mobile-menu-js body .v2-sidebar:not(.mobile-menu-open) .v2-profile-card { display:none; }
+    html body .v2-sidebar .v2-avatar { width:88px; height:88px; margin-left:auto; margin-right:auto; }
+    html body .v2-sidebar :is(.v2-avatar-upload,.v2-profile-name-row,.v2-profile-name) { display:inline-flex; }
+    html body .v2-sidebar .v2-profile-role-row { display:block; }
+    html body .v2-sidebar .v2-profile-name-row { justify-content:center; width:100%; }
+    html body .v2-sidebar .v2-profile-name { font-size:18px; overflow-wrap:anywhere; }
+    html body .v2-sidebar .v2-profile-role { font-size:13px; }
+}
