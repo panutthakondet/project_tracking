@@ -43,7 +43,7 @@
                     while(by>21&&placedBadges.some(b=>Math.abs(b.x-bx)<(b.w+badgeWidth)/2+2&&Math.abs(b.y-by)<21))by=Math.max(21,by-21);
                     placedBadges.push({x:bx,y:by,w:badgeWidth});
                     if(badgeY[i]-by>8)group.append(node('line',{x1:bx,y1:by+2,x2:bx,y2:y-3,stroke:palettes[i][0],'stroke-opacity':.3,'stroke-width':.7,'stroke-dasharray':'2 2'}));
-                    group.append(node('rect',{class:'yearly-glossy-badge',x:bx-badgeWidth/2,y:by-18,width:badgeWidth,height:19,rx:9.5,fill:'#080c0e',stroke:'#35403b','stroke-width':.8}),node('text',{x:bx,y:by-5,'text-anchor':'middle',fill:'#fff','font-size':font},count));
+                    group.append(node('rect',{class:'yearly-glossy-badge',x:bx-badgeWidth/2,y:by-18,width:badgeWidth,height:19,rx:9.5,fill:'#080c0e',stroke:'#35403b','stroke-width':.8}),node('text',{class:'yearly-glossy-value',x:bx,y:by-5,'text-anchor':'middle',fill:'#fff','font-size':font},count));
                     const show=()=>{tooltip.textContent=label;tooltip.hidden=false;};const hide=()=>{tooltip.hidden=true;};group.addEventListener('pointerenter',show);group.addEventListener('pointerleave',hide);group.addEventListener('focus',show);group.addEventListener('blur',hide);group.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});svg.append(group);
                 });
                 svg.append(node('text',{x:center,y:bottom+24,'text-anchor':'middle',fill:'#c5c9c8','font-size':compact?9:12,...(compact?{transform:`rotate(-40 ${center} ${bottom+24})`,'text-anchor':'end'}:{})},row.month));
