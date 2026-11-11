@@ -1,0 +1,62 @@
+/* Isolated owner overview presentation; heights and counts remain server-rendered. */
+html body main .dashboard-view #ownerOverview {
+    min-width:0; border:1px solid #b88b20 !important;
+    background:radial-gradient(ellipse at 52% 42%,rgba(175,127,10,.18),transparent 60%),linear-gradient(145deg,#1c1d1b,#0b0e0e) !important;
+}
+#ownerOverview .completed-project { --owner-base:#FFE135; --owner-light:#fff79a; --owner-shadow:#bb9705; }
+#ownerOverview .done { --owner-base:#42E51C; --owner-light:#a8ff80; --owner-shadow:#159b13; }
+#ownerOverview .working { --owner-base:#FF851B; --owner-light:#ffd190; --owner-shadow:#c24e06; }
+#ownerOverview .stuck { --owner-base:#FF4560; --owner-light:#ff9fab; --owner-shadow:#b71d40; }
+#ownerOverview .issue-open { --owner-base:#9655FF; --owner-light:#d4b2ff; --owner-shadow:#5725b4; }
+#ownerOverview .support-open { --owner-base:#2196F3; --owner-light:#8ad8ff; --owner-shadow:#0757a8; }
+#ownerOverview .field-service { --owner-base:#14D6C0; --owner-light:#96fff0; --owner-shadow:#078a7c; }
+html body main .dashboard-view #ownerOverview :is(.owner-overview-legend i,.owner-overview-footer span i) {
+    background:var(--owner-base) !important; box-shadow:0 0 8px color-mix(in srgb,var(--owner-base) 28%,transparent); flex-shrink:0;
+}
+html body main .dashboard-view #ownerOverview .owner-overview-chart-wrap {
+    --owner-bar-area:190px; --owner-member-area:238px;
+    padding:30px 10px 0; grid-template-columns:44px minmax(0,1fr); gap:8px;
+    border:0 !important; background:transparent !important;
+}
+html body main .dashboard-view #ownerOverview .owner-overview-chart::before {
+    background:repeating-linear-gradient(to bottom,rgba(179,140,36,.3) 0 1px,transparent 1px calc(var(--owner-bar-area) / 5)) !important;
+    border-color:rgba(232,219,164,.55) !important;
+}
+#ownerOverview .owner-overview-chart { gap:12px; padding:0 8px; grid-template-columns:repeat(var(--owner-count),minmax(184px,1fr)); }
+#ownerOverview .owner-overview-scroll { overscroll-behavior-x:contain; scrollbar-color:#9a7c2e #151711; }
+#ownerOverview .owner-overview-bars { width:164px; gap:4px; }
+#ownerOverview .owner-bar { width:20px; flex:0 0 20px; border-radius:8px 8px 3px 3px; }
+html body main .dashboard-view #ownerOverview .owner-bar i {
+    position:relative; transform-origin:center bottom;
+    background:linear-gradient(90deg,rgba(255,255,255,.3),transparent 30%,transparent 65%,rgba(0,0,0,.22)),linear-gradient(180deg,var(--owner-light),var(--owner-base) 34%,var(--owner-shadow)) !important;
+    box-shadow:inset 1px 0 1px rgba(255,255,255,.4),inset -2px 0 3px rgba(0,0,0,.12),3px 3px 5px rgba(0,0,0,.3),0 0 9px color-mix(in srgb,var(--owner-base) 23%,transparent);
+    transition:filter 160ms ease-out;
+}
+#ownerOverview .owner-bar i::before { content:""; position:absolute; top:1px; left:10%; width:80%; height:6px; border-radius:50%; background:linear-gradient(180deg,rgba(255,255,255,.7),transparent); }
+#ownerOverview .owner-bar i::after { content:""; position:absolute; top:100%; left:0; right:0; height:18px; background:linear-gradient(var(--owner-base),transparent); opacity:.15; filter:blur(2px); }
+#ownerOverview .owner-bar:is(:hover,:focus-visible) i { filter:brightness(1.16); }
+#ownerOverview.is-visible .owner-bar:not(.is-zero) i { animation:owner-glossy-grow 900ms cubic-bezier(.16,1,.3,1) both; }
+html body main .dashboard-view #ownerOverview .owner-bar em {
+    background:#080c0e !important; color:#fff !important; -webkit-text-fill-color:#fff !important;
+    border:1px solid color-mix(in srgb,var(--owner-base) 45%,#64592f) !important;
+    box-shadow:0 2px 5px rgba(0,0,0,.35) !important; font:600 11px/1.1 "Sarabun",sans-serif !important;
+    min-width:20px; box-sizing:border-box; text-align:center; padding:2px 3px; bottom:calc(100% + 4px);
+}
+#ownerOverview .owner-bar.is-zero em { display:none; }
+#ownerOverview .owner-bar.is-zero i { opacity:.2; box-shadow:none !important; }
+#ownerOverview .owner-bar.is-zero i::after { display:none; }
+html body main .dashboard-view #ownerOverview .owner-overview-member {
+    height:218px; margin-top:20px; padding:10px 8px; gap:4px; grid-template-rows:42px 34px 25px 30px auto;
+    align-content:start; text-align:center; border:1px solid #ae8729 !important; border-radius:14px;
+    background:radial-gradient(ellipse at 50% 0,rgba(174,130,24,.12),transparent 65%),linear-gradient(150deg,rgba(31,33,28,.9),rgba(9,12,13,.96)) !important;
+    box-shadow:inset 0 1px 3px rgba(255,221,99,.12),0 0 10px rgba(158,120,20,.08);
+}
+html body main .dashboard-view #ownerOverview .owner-overview-member :is(b,span,small) { font-family:"Sarabun",sans-serif !important; }
+#ownerOverview .owner-overview-member img { width:42px; height:42px; border:2px solid #49c9ff; box-shadow:0 0 9px rgba(28,178,255,.35); }
+html body main .dashboard-view #ownerOverview .owner-overview-member b { font-size:13px; line-height:1.25; color:#f7f9f6 !important; -webkit-text-fill-color:#f7f9f6 !important; }
+html body main .dashboard-view #ownerOverview :is(.owner-overview-department,.owner-overview-position) { font-size:12px; line-height:1.2; color:#a5c7e5 !important; -webkit-text-fill-color:#a5c7e5 !important; }
+html body main .dashboard-view #ownerOverview .owner-member-totals { color:#f4f5ed !important; -webkit-text-fill-color:#f4f5ed !important; font-size:13px; line-height:1.35; }
+html body main .dashboard-view #ownerOverview .owner-overview-footer { border:1px solid #9b7928 !important; background:rgba(13,16,16,.85) !important; }
+#ownerOverview .dashboard-card-icon img { width:100%; height:100%; object-fit:contain; }
+@keyframes owner-glossy-grow { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+@media(prefers-reduced-motion:reduce) { #ownerOverview.is-visible .owner-bar:not(.is-zero) i { animation:none; transition:none; } }

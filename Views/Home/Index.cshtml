@@ -539,7 +539,7 @@
         <article class="glass-panel panel-owner-overview" id="ownerOverview" data-dashboard-filter-panel>
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
-                    <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
+                    <span class="dashboard-card-icon team" aria-hidden="true"><img src="/images/dashboard/header-task-progress.svg" alt="" /></span>
                     <span>
                         <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
                         <em>สรุปงานและโครงการที่เสร็จแล้วตามผู้รับผิดชอบ</em>
@@ -575,7 +575,7 @@
                             }
                         </div>
                         <div class="owner-overview-scroll">
-                            <div class="owner-overview-chart" style="--owner-count:@taskOverviewColumnsPerRow; --owner-min-width:@(taskOverviewColumnsPerRow * 148)px;">
+                            <div class="owner-overview-chart" style="--owner-count:@taskOverviewColumnsPerRow; --owner-min-width:@(taskOverviewColumnsPerRow * 196)px;">
                                 @foreach (var member in taskOverviewMembers)
                                 {
                                     var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
@@ -625,11 +625,11 @@
                                             </span>
                                         </div>
                                         <div class="owner-overview-member">
-                                            <small>รวม @member.TotalCount งาน · @member.CompletedProjectCount โครงการเสร็จ</small>
                                             <img src="@member.AvatarPath" alt="@member.Name" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                             <b>@member.Name</b>
                                             <span class="owner-overview-department">@member.DepartmentName</span>
                                             <span class="owner-overview-position">@member.Position</span>
+                                            <small class="owner-member-totals">รวม @member.TotalCount งาน<br />งานที่เสร็จแล้ว @member.DoneCount งาน</small>
                                         </div>
                                     </div>
                                 }
@@ -1207,6 +1207,7 @@
 <link rel="stylesheet" href="~/css/attendance-three-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/support-three-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/yearly-glossy-chart.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/owner-glossy-chart.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
@@ -8301,3 +8302,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script type="module" src="~/js/attendance-three-chart.js" asp-append-version="true"></script>
 <script type="module" src="~/js/support-three-chart.js" asp-append-version="true"></script>
 <script src="~/js/yearly-glossy-chart.js" asp-append-version="true" defer></script>
+<script src="~/js/owner-glossy-chart.js" asp-append-version="true" defer></script>
