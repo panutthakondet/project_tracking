@@ -1771,6 +1771,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     </style>
     <link rel="stylesheet" href="~/css/typography-overrides.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/responsive-pages.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/mobile-navigation.css" asp-append-version="true" />
+    <script src="~/js/mobile-navigation.js" asp-append-version="true"></script>
     @{
         var layoutThemeCss = await LayoutThemeService.GetThemeCssAsync(Context.Session.GetInt32("UserId"));
     }
@@ -2075,6 +2077,15 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 }
 
 <aside class="v2-sidebar">
+    <div class="mobile-menu-header">
+        <a class="mobile-menu-brand" asp-controller="Home" asp-action="Index">
+            <img src="/images/menu-icons/dashboard.svg" alt="" />
+            <span>ProjectTracking</span>
+        </a>
+        <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-controls="navbarMain" aria-expanded="false" aria-label="เปิดเมนูหลัก">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+    </div>
     <div class="v2-profile-card">
         <form asp-controller="Auth"
               asp-action="UpdateProfileImage"
@@ -3252,6 +3263,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	</script>
 	@RenderSection("Scripts", required: false)
 	<script src="~/js/site.js" asp-append-version="true"></script>
+
 
  </div>
 </body>
