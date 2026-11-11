@@ -79,15 +79,15 @@ const createChart=(THREE,root)=>{
         renderer.domElement.removeEventListener('pointermove',onMove);renderer.domElement.removeEventListener('pointerleave',onLeave);renderer.domElement.removeEventListener('webglcontextlost',onLost);
         clearMeshes();floor.geometry.dispose();floor.material.dispose();environment.dispose();key.shadow.dispose();renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();tooltip.remove();root.classList.remove('attendance-three-ready');if(label){label.style.removeProperty('left');label.style.removeProperty('top');}instances.delete(root);
     };
-    const onLost=event=>{event.preventDefault();destroy();};renderer.domElement.addEventListener('webglcontextlost',onLost);
+    const onLost=event=>{event.preventDefault();root.setAttribute('data-donut-fallback','');destroy();};renderer.domElement.addEventListener('webglcontextlost',onLost);
     const refreshTheme=()=>{if(disposed)return;meshes.forEach(mesh=>mesh.material.color.set(cssColor(mesh.userData.label==='ลงเวลาแล้ว'?'--pt-chart-success':'--pt-chart-muted')));draw();};
     build();resize();root.classList.add('attendance-three-ready');
     if(!reduced.matches){animation={kind:'intro',start:performance.now(),duration:700};frame=requestAnimationFrame(tick);}
     return {destroy,refreshTheme,diagnostics:()=>({segments:meshes.map(m=>({count:m.userData.count,percent:m.userData.percent,type:m.geometry.type,material:m.material.type,depth:m.geometry.parameters.options.depth,roughness:m.material.roughness,metalness:m.material.metalness,lift:m.position.y})),pixelRatio:renderer.getPixelRatio(),renderCount,animating:!!frame})};
 };
 const init=async root=>{
-    if(instances.has(root)||loading.has(root)||!root.isConnected)return;loading.add(root);
-    try{const THREE=await loadThree();if(root.isConnected&&!instances.has(root))instances.set(root,createChart(THREE,root));}catch(error){console.warn('Attendance 3D chart unavailable; keeping original chart.',error);}finally{loading.delete(root);}
+    if(instances.has(root)||loading.has(root)||!root.isConnected||root.hasAttribute('data-donut-fallback'))return;loading.add(root);
+    try{const THREE=await loadThree();if(root.isConnected&&!root.hasAttribute('data-donut-fallback')&&!instances.has(root))instances.set(root,createChart(THREE,root));}catch(error){root.setAttribute('data-donut-fallback','');console.warn('Attendance 3D chart unavailable; keeping original chart.',error);}finally{loading.delete(root);}
 };
 const visible=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)init(e.target);}),{rootMargin:'100px'});
 const scan=node=>{if(node instanceof Element&&node.matches('[data-attendance-three]'))visible.observe(node);node.querySelectorAll?.('[data-attendance-three]').forEach(root=>visible.observe(root));};scan(document);

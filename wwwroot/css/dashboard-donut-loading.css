@@ -1,0 +1,6 @@
+/* Reserve the original dimensions while the real renderer prepares its first frame.
+   Without JavaScript this class is absent, so the original charts remain available. */
+html.dashboard-donut-enhance .dashboard-view :is([data-project-status-donut],[data-overview-three],[data-support-three],[data-attendance-three]):not(.support-three-ready):not(.attendance-three-ready):not([data-donut-fallback]) {
+    opacity:0 !important;
+    pointer-events:none;
+}
