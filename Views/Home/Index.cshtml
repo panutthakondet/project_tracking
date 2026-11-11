@@ -965,7 +965,7 @@
                     </div>
                 </div>
             </div>
-            <div class="yearly-chart">
+            <div class="yearly-chart" data-glossy-yearly-chart>
                 <span class="yearly-y-title">จำนวนงาน</span>
                 <div class="yearly-y-axis" aria-hidden="true">
                     @foreach (var tick in yearlyTaskAxisTicks)
@@ -978,7 +978,7 @@
                     <div class="bar-chart">
                         @foreach (var task in dashboard.YearlyTasks)
                         {
-                            <div class="bar-group">
+                            <div class="bar-group" data-month="@task.PeriodLabel" data-completed="@task.Completed" data-progress="@task.InProgress" data-completed-height="@task.CompletedHeight" data-progress-height="@task.InProgressHeight">
                                 <span class="@(task.CompletedHeight == 0 ? "is-zero" : "")"
                                       style="height:@task.CompletedHeight%"
                                       title="Completed: @task.Completed">
@@ -1206,6 +1206,7 @@
 <link rel="stylesheet" href="~/css/assign-neon-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/attendance-three-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/support-three-chart.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/yearly-glossy-chart.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
@@ -8299,3 +8300,4 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script src="~/js/assign-neon-chart.js" asp-append-version="true"></script>
 <script type="module" src="~/js/attendance-three-chart.js" asp-append-version="true"></script>
 <script type="module" src="~/js/support-three-chart.js" asp-append-version="true"></script>
+<script src="~/js/yearly-glossy-chart.js" asp-append-version="true" defer></script>
