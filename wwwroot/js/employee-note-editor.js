@@ -53,6 +53,12 @@
     editor.addEventListener('paste',event=>{event.preventDefault();command('insertText',event.clipboardData.getData('text/plain'));});
     editor.addEventListener('drop',event=>event.preventDefault());
     editor.addEventListener('keydown',event=>{
+        if (event.key === 'Tab' && !event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+            event.preventDefault();
+            remember();
+            command('insertText', '    ');
+            return;
+        }
         if (event.isComposing || !(event.ctrlKey || event.metaKey)) return;
         const key=/^Key[A-Z]$/.test(event.code) ? event.code.slice(3).toLowerCase() : event.key.toLowerCase();
         const simple={b:'bold',i:'italic',u:'underline'};
