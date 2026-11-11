@@ -550,9 +550,9 @@
 
             <div class="owner-overview-legend">
                 <span><i class="completed-project"></i>โครงการที่เสร็จแล้ว</span>
-                <span><i class="done"></i>เสร็จแล้ว</span>
-                <span><i class="working"></i>กำลังทำ</span>
-                <span><i class="stuck"></i>ล่าช้า</span>
+                <span><i class="done"></i>งานที่เสร็จแล้ว</span>
+                <span><i class="working"></i>งานกำลังดำเนินการ</span>
+                <span><i class="stuck"></i>งานล่าช้า</span>
                 <span><i class="issue-open"></i>Issues OPEN</span>
                 <span><i class="support-open"></i>Support OPEN</span>
                 <span><i class="field-service"></i>Field Service</span>
@@ -587,24 +587,24 @@
                                     var completedProjectHeight = Math.Round(Math.Min(member.CompletedProjectCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
 
                                     <div class="owner-overview-item" title="@member.Name">
-                                        <div class="owner-overview-bars" aria-label="@member.Name โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน Field Service @member.FieldServiceCount งาน">
+                                        <div class="owner-overview-bars" aria-label="@member.Name โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ งานที่เสร็จแล้ว @member.DoneCount งาน งานกำลังดำเนินการ @member.InProgressCount งาน งานล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน Field Service @member.FieldServiceCount งาน">
                                             <span class="owner-bar completed-project @(member.CompletedProjectCount == 0 ? "is-zero" : "")"
                                                   title="โครงการที่เสร็จแล้ว @member.CompletedProjectCount โครงการ"
                                                   style="--bar-height:@completedProjectHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                 <em>@member.CompletedProjectCount</em><i></i>
                                             </span>
                                             <span class="owner-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
-                                                  title="เสร็จแล้ว @member.DoneCount งาน"
+                                                  title="งานที่เสร็จแล้ว @member.DoneCount งาน"
                                                   style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                 <em>@member.DoneCount</em><i></i>
                                             </span>
                                             <span class="owner-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
-                                                  title="กำลังทำ @member.InProgressCount งาน"
+                                                  title="งานกำลังดำเนินการ @member.InProgressCount งาน"
                                                   style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                 <em>@member.InProgressCount</em><i></i>
                                             </span>
                                             <span class="owner-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
-                                                  title="ล่าช้า @member.DelayCount งาน"
+                                                  title="งานล่าช้า @member.DelayCount งาน"
                                                   style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                 <em>@member.DelayCount</em><i></i>
                                             </span>
@@ -642,9 +642,9 @@
                     <span>รวม <b>@taskOverviewTotalEmployees</b> คน</span>
                     <span>งานทั้งหมด <b>@taskOverviewTotalTasks</b> งาน</span>
                     <span class="completed-project"><i></i>โครงการที่เสร็จแล้ว <b>@taskOverviewCompletedProjects</b></span>
-                    <span class="done"><i></i>เสร็จแล้ว <b>@taskOverviewDoneTasks</b></span>
-                    <span class="working"><i></i>กำลังทำ <b>@taskOverviewWorkingTasks</b></span>
-                    <span class="stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b></span>
+                    <span class="done"><i></i>งานที่เสร็จแล้ว <b>@taskOverviewDoneTasks</b></span>
+                    <span class="working"><i></i>งานกำลังดำเนินการ <b>@taskOverviewWorkingTasks</b></span>
+                    <span class="stuck"><i></i>งานล่าช้า <b>@taskOverviewDelayTasks</b></span>
                     <span class="issue-open"><i></i>Issues OPEN <b>@taskOverviewOpenIssueTasks</b></span>
                     <span class="support-open"><i></i>Support OPEN <b>@taskOverviewOpenSupportTasks</b></span>
                     <span class="field-service"><i></i>Field Service <b>@taskOverviewFieldServiceTasks</b></span>
