@@ -1588,7 +1588,10 @@ html body main .dashboard-view .workload-rank {
     background: linear-gradient(180deg, var(--pt-chart-success-light), var(--pt-chart-success-dark)) !important;
 }
 
-.dashboard-view .owner-bar.working i,
+.dashboard-view .panel-owner-overview .owner-bar.working i {
+    background: linear-gradient(180deg, #ffa24c, #f06408) !important;
+}
+
 .dashboard-view .progress-track .orange,
 .dashboard-view .time-pill.orange {
     background: linear-gradient(180deg, var(--pt-chart-warning-light), var(--pt-chart-warning-dark)) !important;
