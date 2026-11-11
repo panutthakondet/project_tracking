@@ -1,7 +1,7 @@
 /* Isolated owner overview presentation; heights and counts remain server-rendered. */
 html body main .dashboard-view #ownerOverview {
     min-width:0; border:1px solid var(--pt-border-strong,#b88b20) !important;
-    background:radial-gradient(ellipse at 52% 42%,var(--pt-chart-panel-glow,rgba(175,127,10,.18)),transparent 60%),linear-gradient(145deg,var(--pt-chart-panel-soft,#1c1d1b),var(--pt-chart-panel-deep,#0b0e0e)) !important;
+    background:radial-gradient(ellipse at 82% 16%,var(--pt-accent-soft,rgba(175,127,10,.12)),transparent 40%),linear-gradient(180deg,var(--pt-sidebar-panel,#1c1d1b),var(--pt-sidebar-deep,#0b0e0e)) !important;
 }
 #ownerOverview .completed-project { --owner-base:#FFE135; --owner-light:#fff79a; --owner-shadow:#bb9705; }
 #ownerOverview .done { --owner-base:#42E51C; --owner-light:#a8ff80; --owner-shadow:#159b13; }
@@ -16,7 +16,9 @@ html body main .dashboard-view #ownerOverview :is(.owner-overview-legend i,.owne
 html body main .dashboard-view #ownerOverview .owner-overview-chart-wrap {
     --owner-bar-area:190px; --owner-member-area:238px;
     padding:30px 10px 0; grid-template-columns:44px minmax(0,1fr); gap:8px;
-    border:0 !important; background:transparent !important;
+    border:1px solid var(--pt-border-strong,#95742b) !important; border-radius:14px;
+    background:radial-gradient(ellipse at 50% 48%,var(--pt-chart-panel-glow,rgba(175,127,10,.12)),transparent 65%),linear-gradient(160deg,var(--pt-chart-panel-soft,#202521),var(--pt-chart-panel-deep,#111715)) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
 }
 html body main .dashboard-view #ownerOverview .owner-overview-chart::before {
     background:repeating-linear-gradient(to bottom,var(--pt-border,rgba(179,140,36,.3)) 0 1px,transparent 1px calc(var(--owner-bar-area) / 5)) !important;
@@ -48,7 +50,7 @@ html body main .dashboard-view #ownerOverview .owner-bar em {
 html body main .dashboard-view #ownerOverview .owner-overview-member {
     height:218px; margin-top:20px; padding:10px 8px; gap:4px; grid-template-rows:42px 34px 25px 30px auto;
     align-content:start; text-align:center; border:1px solid var(--pt-border-strong,#ae8729) !important; border-radius:14px;
-    background:radial-gradient(ellipse at 50% 0,var(--pt-chart-panel-glow,rgba(174,130,24,.12)),transparent 65%),linear-gradient(150deg,var(--pt-chart-panel-soft,rgba(31,33,28,.9)),var(--pt-chart-panel-deep,rgba(9,12,13,.96))) !important;
+    background:radial-gradient(ellipse at 50% 0,var(--pt-chart-panel-glow,rgba(174,130,24,.12)),transparent 65%),linear-gradient(150deg,var(--pt-chart-panel-field-bg,var(--pt-chart-panel-soft,rgba(31,33,28,.9))),var(--pt-chart-panel-center-bg,var(--pt-chart-panel-deep,rgba(9,12,13,.96)))) !important;
     box-shadow:inset 0 1px 3px rgba(255,221,99,.12),0 0 10px rgba(158,120,20,.08);
 }
 html body main .dashboard-view #ownerOverview .owner-overview-member :is(b,span,small) { font-family:"Sarabun",sans-serif !important; }
