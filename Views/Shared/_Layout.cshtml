@@ -2079,7 +2079,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 <aside class="v2-sidebar">
     <div class="mobile-menu-header">
         <a class="mobile-menu-brand" asp-controller="Home" asp-action="Index">
-            <img src="/images/menu-icons/dashboard.svg" alt="" />
+            <img class="mobile-menu-profile" src="@profileImagePath" alt="รูปโปรไฟล์" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
             <span>ProjectTracking</span>
         </a>
         <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-controls="navbarMain" aria-expanded="false" aria-label="เปิดเมนูหลัก">
