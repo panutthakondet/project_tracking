@@ -34,3 +34,13 @@
     html body .v2-sidebar .v2-profile-name { font-size:18px; overflow-wrap:anywhere; }
     html body .v2-sidebar .v2-profile-role { font-size:13px; }
 }
+@media (max-width:720px) {
+    html body .v2-sidebar .mobile-menu-header {
+        min-height:72px; padding:12px 16px;
+        background:linear-gradient(120deg,var(--pt-sidebar-panel,var(--pt-sidebar-bg,#102b50)),var(--pt-sidebar-deep,#071d39));
+        box-shadow:0 3px 12px var(--pt-shadow,rgba(0,0,0,.1));
+    }
+    .mobile-menu-brand { gap:12px; font-size:16px; }
+    .mobile-menu-brand img.mobile-menu-profile { width:44px; height:44px; padding:2px; background:var(--pt-sidebar-panel,#102b50); }
+    .mobile-menu-toggle { border-radius:13px; background:var(--pt-accent-soft,rgba(255,255,255,.05)); }
+}

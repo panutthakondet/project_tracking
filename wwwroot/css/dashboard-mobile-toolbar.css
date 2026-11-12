@@ -1,0 +1,37 @@
+@media (max-width:720px) {
+    html body main .dashboard-view .dashboard-global-searchbar {
+        justify-content:flex-start; align-items:center; gap:12px; padding:12px;
+        margin:4px 0 12px; border-radius:18px;
+        border:1px solid var(--pt-border,#dbe5ee);
+        background:linear-gradient(150deg,var(--pt-surface,#fff),var(--pt-surface-soft,#edf4fa)) !important;
+        box-shadow:0 5px 16px var(--pt-shadow,rgba(18,45,75,.07));
+    }
+    html body main .dashboard-view .dashboard-online-users {
+        order:0; min-height:30px; padding:0; gap:0; border:0; background:transparent !important; box-shadow:none;
+    }
+    html body main .dashboard-view .dashboard-online-users::before {
+        content:'ออนไลน์'; margin-right:10px; color:var(--pt-surface-contrast-muted,#64748b); font-size:11px; font-weight:500;
+    }
+    html body main .dashboard-view .dashboard-online-avatar { width:28px; height:28px; margin-left:-5px; }
+    html body main .dashboard-view .dashboard-online-avatar:first-child { margin-left:0; }
+    html body main .dashboard-view .dashboard-global-tools {
+        display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); width:100%; max-width:none;
+        flex:1 1 100%; order:4; gap:4px; padding:0; min-width:0;
+    }
+    html body main .dashboard-view .dashboard-global-tools::before { display:none; }
+    html body main .dashboard-view .dashboard-global-tool { width:100%; min-width:0; min-height:80px; padding:5px 0; gap:6px; border-radius:12px; }
+    html body main .dashboard-view .dashboard-global-tool:is(:hover,:focus-visible) { background:var(--pt-accent-soft,rgba(38,146,244,.08)); }
+    html body main .dashboard-view .dashboard-global-tool:focus-visible { outline:2px solid var(--pt-accent,#268ff4); outline-offset:1px; }
+    html body main .dashboard-view .dashboard-global-tool-icon { width:42px; height:42px; box-shadow:0 3px 8px var(--pt-shadow,rgba(18,45,75,.08)); }
+    html body main .dashboard-view .dashboard-global-tool-label { font-size:11px; font-weight:600 !important; line-height:1.65; min-height:22px; padding:1px 0 3px; }
+    html body main .dashboard-view .dashboard-global-tool-count { min-width:17px; height:17px; font-size:10px; top:-5px; right:-4px; border:2px solid var(--pt-surface,#fff); box-sizing:content-box; }
+    html body main .dashboard-view .dashboard-global-department-bar {
+        margin:0 0 12px; padding:5px; gap:6px; border-radius:14px;
+        border:1px solid var(--pt-border,#dbe5ee);
+        background:var(--pt-surface-soft,#edf4fa); scrollbar-width:thin;
+    }
+    html body main .dashboard-view .dashboard-global-department-bar .dashboard-department-option { min-height:38px; padding:8px 13px; border-radius:10px; font-size:12px; flex-shrink:0; }
+}
+@media (max-width:360px) {
+    html body main .dashboard-view .dashboard-global-tools { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+}
