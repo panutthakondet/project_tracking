@@ -53,3 +53,9 @@ Notification API exceptions are logged with the trace reference and returned as 
 The HTTP regression harness exercises actual MVC routing, JSON binding and antiforgery cookie/header validation, including a browser-shaped subscription payload and unreadable protected-key error response.
 
 Meeting recipient loading uses EF projections joined through `employee.position_id` → `employee_positions.position_id`, and no longer references the removed `employee.position` column. Email lookup still prefers the employee's linked login account and then falls back to the first account linked by employee ID. The regression harness includes actual recipient queries, a missing position definition, email priority, and the recipient-to-inbox/push-outbox path.
+
+## Other-screen audit
+
+Reviewed the notification call sites and recipient queries in PhaseAssigns, ProjectIssues (create/FIXED/BA result), SupportOrders and SupportOrdersDev, Followups, Employees/LineOverdue, FieldService and automatic overdue notifications. No remaining raw `employee.position` references were found in these paths. Their existing recipient selection, feature switches and destination links are retained.
+
+FieldService now resolves display positions from `employee_positions` by ID rather than relying on an unloaded navigation property. The lookup is separate from recipient loading, so a missing position record does not remove an assignee. Tests exercise the actual site-visit recipient query/email fallback, then the shared inbox/push-outbox path for assignment, issue, support, followup, site-visit and overdue payloads. These are isolated regression checks and source review, not live creates/sends on every production screen.

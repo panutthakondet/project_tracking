@@ -265,8 +265,16 @@ public sealed class FieldServiceNotificationService
             .OrderBy(x => x.UserId)
             .ToListAsync(cancellationToken);
 
+        var positionIds = employees.Where(employee => employee.PositionId.HasValue)
+            .Select(employee => employee.PositionId!.Value).Distinct().ToList();
+        var positions = await db.EmployeePositions.AsNoTracking()
+            .Where(position => positionIds.Contains(position.PositionId))
+            .ToDictionaryAsync(position => position.PositionId, position => position.PositionName, cancellationToken);
+
         var recipients = employees.Select(employee =>
         {
+            var positionName = employee.PositionId.HasValue && positions.TryGetValue(employee.PositionId.Value, out var name)
+                ? name : "";
             var email = employee.LoginUser?.Email;
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -275,9 +283,9 @@ public sealed class FieldServiceNotificationService
             }
             return new FieldServiceRecipient(
                 employee.EmpId,
-                string.IsNullOrWhiteSpace(employee.DisplayPosition)
+                string.IsNullOrWhiteSpace(positionName)
                     ? employee.EmpName
-                    : $"{employee.EmpName} ({employee.DisplayPosition})",
+                    : $"{employee.EmpName} ({positionName})",
                 email);
         }).ToList();
 
