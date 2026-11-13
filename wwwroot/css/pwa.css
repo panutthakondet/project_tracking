@@ -1,5 +1,6 @@
 .pwa-install-button[hidden] { display:none !important; }
-.pwa-install-button { display:block; margin:12px auto 0; padding:8px 16px; border:1px solid var(--pt-border-strong,#517ba2); border-radius:10px; color:var(--pt-sidebar-contrast,#fff); background:var(--pt-sidebar-panel,#102e51); font:inherit; font-size:13px; cursor:pointer; }
+.pwa-install-button { display:block; width:fit-content; margin:12px 0 0 auto; padding:4px 0; border:0; border-radius:0; color:var(--navy,var(--pt-surface-contrast,#10233f)); background:transparent; font:inherit; font-size:13px; line-height:1.5; text-align:right; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.pwa-install-button:hover { text-decoration-thickness:2px; }
 .pwa-install-button:focus-visible { outline:2px solid var(--pt-accent,#2ee8d6); outline-offset:3px; }
 @media (display-mode:fullscreen), (display-mode:standalone) {
     html { min-height:100%; background:var(--pt-body-bg,#081c42); }
