@@ -51,7 +51,7 @@ public class WebNotificationService(IDbContextFactory<AppDbContext> factory, IDa
         try
         {
             await using var db = await factory.CreateDbContextAsync(ct);
-            var users = await db.LoginUsers.AsNoTracking().Where(u => u.EmpId == empId && u.Status == "ACTIVE").Select(u => u.UserId).ToListAsync(ct);
+            var users = await db.LoginUsers.AsNoTracking().Where(u => u.Status == "ACTIVE" && (u.EmpId == empId || (u.EmpId == null && db.Employees.Any(e => e.EmpId == empId && e.LoginUserId == u.UserId)))).Select(u => u.UserId).ToListAsync(ct);
             if (users.Count == 0) return 0;
             var now = DateTime.UtcNow; var count = 0; var text = (message ?? ""); if (text.Length > 16000) text = text[..16000]; title = title.Length > 255 ? title[..255] : title;
             var url = LocalTarget(target);

@@ -27,9 +27,18 @@ static class MeetingChecks
         if(recipients.Length!=3||(int)Value(recipients[0],"EmpId")! !=10||!((string)Value(recipients[0],"DisplayName")!).Contains("ผู้จัดการโครงการ")||(string)Value(recipients[1],"DisplayName")! !="พนักงานสอง")throw new Exception("Meeting recipient position mapping failed");
         var email=await Load("LoadEmailRecipientsAsync");
         if(email.Length!=2||(string)Value(email[0],"Email")! !="preferred@example.test"||(string)Value(email[1],"Email")! !="two@example.test")throw new Exception("Meeting email lookup priority failed");
-        var before=await db.WebNotifications.CountAsync();var jobs=await db.WebPushDeliveries.CountAsync();
+        var before=await db.WebNotifications.CountAsync(n=>n.UserId==1);var jobs=await db.WebPushDeliveries.CountAsync();
         await telegram.SendNotificationToEmployeeAsync((int)Value(recipients[0],"EmpId")!,"เชิญประชุม: regression","ประชุมทดสอบหลังแก้โครงสร้างตำแหน่ง","/Meetings/Show/70");
-        if(await db.WebNotifications.CountAsync()!=before+1||await db.WebPushDeliveries.CountAsync()!=jobs+1)throw new Exception("Meeting recipient inbox/push queue failed");
+        if(await db.WebNotifications.CountAsync(n=>n.UserId==1)!=before+1||await db.WebPushDeliveries.CountAsync()!=jobs+1)throw new Exception("Meeting recipient inbox/push queue failed");
+        // Legacy accounts may link through employee.login_user_id only.
+        db.LoginUsers.Add(new LoginUser{UserId=5,Username="explicit-link-only",Password="test",Status="ACTIVE"});
+        await db.SaveChangesAsync();
+        await db.Employees.Where(e=>e.EmpId==30).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.LoginUserId,5));
+        await notifications.NotifyEmployeeSafelyAsync(30,"ประชุมบัญชีผูกทางพนักงาน","test","/Meetings/Show/70");
+        if(!await db.WebNotifications.AnyAsync(n=>n.UserId==5 && n.EmpId==30))throw new Exception("Employee-side login link did not receive inbox notification");
+        await db.LoginUsers.Where(u=>u.UserId==5).ExecuteUpdateAsync(s=>s.SetProperty(u=>u.EmpId,20));
+        await notifications.NotifyEmployeeSafelyAsync(30,"ต้องไม่ส่งข้ามพนักงาน","test","/Meetings/Show/70");
+        if(await db.WebNotifications.AnyAsync(n=>n.UserId==5 && n.Title=="ต้องไม่ส่งข้ามพนักงาน"))throw new Exception("Conflicting employee link received another employee notification");
         Console.WriteLine("PASS meeting recipients use position_id/employee_positions, tolerate absent position, preserve email priority and queue inbox/push");
     }
 }
