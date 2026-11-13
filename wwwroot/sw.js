@@ -1,5 +1,5 @@
 // Cache only public PWA resources. Authenticated pages, API responses and uploads stay network-only.
-const CACHE='projecttracking-pwa-v2';
+const CACHE='projecttracking-pwa-v3';
 const publicFiles=['offline.html','pwa/icon-192-v2.png','pwa/icon-512-v2.png','pwa/icon-maskable-512-v2.png','pwa/apple-touch-icon-v2.png'];
 const scoped=path=>new URL(path,self.registration.scope).href;
 self.addEventListener('install',event=>{
@@ -26,4 +26,28 @@ self.addEventListener('fetch',event=>{
     if(publicFiles.some(path=>scoped(path)===url.href)){
         event.respondWith(caches.open(CACHE).then(async cache=>await cache.match(request)||fetch(request)));
     }
+});
+
+self.addEventListener('push',event=>{
+    let data={};try{data=event.data?.json()||{};}catch{}
+    const base=new URL(self.registration.scope);let target=base.href;
+    try{const url=new URL(data.url,base);if(url.origin===base.origin&&url.pathname.startsWith(base.pathname+'WorkNotifications/Open/'))target=url.href;}catch{}
+    event.waitUntil((async()=>{
+        await self.registration.showNotification('ProjectTracking',{
+            body:'คุณมีแจ้งเตือนงานใหม่ เปิดแอปเพื่อดูรายละเอียด',
+            icon:new URL('pwa/icon-192-v2.png',base).href,
+            tag:typeof data.tag==='string'?data.tag.slice(0,100):'projecttracking-work',data:{url:target}
+        });
+        for(const client of await self.clients.matchAll({type:'window',includeUncontrolled:true}))client.postMessage({type:'notification:new'});
+    })());
+});
+self.addEventListener('notificationclick',event=>{
+    event.notification.close();
+    event.waitUntil((async()=>{
+        const base=new URL(self.registration.scope);let target=base.href;
+        try{const url=new URL(event.notification.data?.url,base);if(url.origin===base.origin&&url.pathname.startsWith(base.pathname))target=url.href;}catch{}
+        const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+        const existing=windows.find(client=>client.url===target);
+        if(existing)await existing.focus();else await self.clients.openWindow(target);
+    })());
 });

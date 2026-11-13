@@ -1219,7 +1219,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)
@@ -1280,7 +1280,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)
@@ -1329,7 +1329,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)

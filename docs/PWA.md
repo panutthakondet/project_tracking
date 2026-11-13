@@ -16,7 +16,7 @@ The service worker does not call `skipWaiting` or reload open pages. An update w
 
 `sw.js`, `offline.html` and the manifest have `Cache-Control: no-cache`; `.webmanifest` is served as `application/manifest+json` by ASP.NET static-file middleware.
 
-Offline editing, background sync and push notifications are not implemented. Work requires an internet connection. Verify actual installation on the deployed HTTPS domain and target devices after deployment.
+Offline editing and background sync are not implemented. In-app and Web Push notifications are described in [Notifications.md](Notifications.md). Work requires an internet connection. Verify actual installation on the deployed HTTPS domain and target devices after deployment.
 
 ## App icon
 

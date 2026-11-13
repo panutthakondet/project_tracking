@@ -1486,7 +1486,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)

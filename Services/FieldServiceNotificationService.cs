@@ -148,7 +148,7 @@ public sealed class FieldServiceNotificationService
             FieldServiceNotificationKind.Cancelled => TelegramNotificationFeatures.FieldServiceCancel,
             _ => TelegramNotificationFeatures.FieldServiceUpdate
         };
-        if (_telegramMessagingService.IsConfigured && await _telegramSettings.IsEnabledAsync(telegramFeature, cancellationToken))
+        if (_telegramMessagingService.CanNotify && await _telegramSettings.IsEnabledAsync(telegramFeature, cancellationToken))
         {
             foreach (var recipient in visit.Recipients)
             {
@@ -176,7 +176,7 @@ public sealed class FieldServiceNotificationService
         CancellationToken cancellationToken)
     {
         var isLine = channel == "LINE";
-        var configured = isLine ? _lineMessagingService.IsConfigured : _telegramMessagingService.IsConfigured;
+        var configured = isLine ? _lineMessagingService.IsConfigured : _telegramMessagingService.CanNotify;
         if (!configured)
             return new FieldServiceNotificationResult(0, 0, 0);
 

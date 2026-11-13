@@ -536,7 +536,7 @@ namespace ProjectTracking.Services
 
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.OverdueAuto, cancellationToken);
 
             if (!sendLine && !sendTelegram)
@@ -617,9 +617,15 @@ namespace ProjectTracking.Services
                 })
                 .ToListAsync(cancellationToken);
 
-            return logs
-                .Select(x => BuildSendLogKey(x.Channel, x.EmpId, x.Title, x.Message, x.TargetUrl))
-                .ToHashSet(StringComparer.Ordinal);
+            var result = logs.Select(x => BuildSendLogKey(x.Channel, x.EmpId, x.Title, x.Message, x.TargetUrl)).ToHashSet(StringComparer.Ordinal);
+            if (includeTelegram)
+            {
+                var utcStart = today.AddHours(-7);
+                var utcEnd = tomorrow.AddHours(-7);
+                var web = await db.WebNotifications.AsNoTracking().Where(n => n.CreatedAt >= utcStart && n.CreatedAt < utcEnd).ToListAsync(cancellationToken);
+                foreach (var item in web) result.Add(BuildSendLogKey("TELEGRAM",item.EmpId,item.Title,item.Message,item.TargetUrl));
+            }
+            return result;
         }
 
         private async Task<bool> SendLineNotificationSafelyAsync(

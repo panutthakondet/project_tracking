@@ -13,6 +13,10 @@ namespace ProjectTracking.Data
         // ======================
         // ===== TABLES =====
         // ======================
+        public DbSet<WebNotification> WebNotifications { get; set; }
+        public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
+        public DbSet<WebPushDelivery> WebPushDeliveries { get; set; }
+        public DbSet<WebPushKey> WebPushKeys { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<EmployeePosition> EmployeePositions { get; set; }
         public DbSet<CntMCoop> CntMCoops { get; set; }

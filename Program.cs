@@ -187,6 +187,10 @@ builder.Services.Configure<EmailSettings>(options =>
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddHttpClient<LineMessagingService>();
 builder.Services.AddScoped<LineNotificationSettingsService>();
+builder.Services.AddScoped<WebNotificationService>();
+builder.Services.AddHttpClient("WebPush", client => client.Timeout = TimeSpan.FromSeconds(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<WebPushDispatcher>();
 builder.Services.AddHttpClient<TelegramMessagingService>();
 builder.Services.AddScoped<TelegramNotificationSettingsService>();
 builder.Services.AddScoped<StatusApprovalService>();
@@ -238,6 +242,7 @@ await EnsureStatusApprovalRequestTableAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
+await WebNotificationSchema.EnsureAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureProjectDocumentsTableAsync(app.Services);
 await EnsureProjectDocumentTypeTableAsync(app.Services);

@@ -1,0 +1,4 @@
+@model long
+@{ Layout = null; }
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>เปิดการแจ้งเตือน · ProjectTracking</title><script src="~/js/notification-open.js" defer></script></head>
+<body><form method="post" asp-controller="WorkNotifications" asp-action="Open" id="notificationOpenForm">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model" /><p>กำลังเปิดรายละเอียดการแจ้งเตือน…</p><button type="submit">เปิดรายละเอียด</button></form></body></html>

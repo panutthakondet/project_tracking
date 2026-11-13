@@ -326,7 +326,7 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_telegramMessagingService.IsConfigured
+            if (!_telegramMessagingService.CanNotify
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsUpdate, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
@@ -343,21 +343,10 @@ namespace ProjectTracking.Services
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
-                if (chatIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
 
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (unsentChatIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
 
                 try
                 {
@@ -499,7 +488,7 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
-            if (!_telegramMessagingService.IsConfigured)
+            if (!_telegramMessagingService.CanNotify)
                 return new MeetingNotificationResult(0, 1, 0, "Telegram ยังไม่ได้ตั้งค่า bot");
 
             if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCreate, cancellationToken))
@@ -538,22 +527,10 @@ namespace ProjectTracking.Services
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
-                if (chatIds.Count == 0)
-                {
-                    skipped++;
-                    missingRecipientCount++;
-                    continue;
-                }
 
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (unsentChatIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
 
                 try
                 {
@@ -717,7 +694,7 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_telegramMessagingService.IsConfigured
+            if (!_telegramMessagingService.CanNotify
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCancel, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
@@ -734,21 +711,10 @@ namespace ProjectTracking.Services
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
-                if (chatIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
 
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (unsentChatIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
 
                 try
                 {
@@ -929,7 +895,7 @@ namespace ProjectTracking.Services
         public async Task<MeetingNotificationResult> SendTelegramRemindersAsync(
             CancellationToken cancellationToken = default)
         {
-            if (!_telegramMessagingService.IsConfigured)
+            if (!_telegramMessagingService.CanNotify)
             {
                 _logger.LogDebug("Meeting Telegram reminder skipped because Telegram is not configured.");
                 return new MeetingNotificationResult(0, 0, 0);
@@ -980,21 +946,10 @@ namespace ProjectTracking.Services
                         var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                             recipient.EmpId,
                             cancellationToken);
-                        if (chatIds.Count == 0)
-                        {
-                            skipped++;
-                            continue;
-                        }
 
                         var unsentChatIds = chatIds
                             .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                             .ToList();
-
-                        if (unsentChatIds.Count == 0)
-                        {
-                            skipped++;
-                            continue;
-                        }
 
                         var detailPath = $"/Meetings/Show/{meeting.Id}";
                         var calendarPath = $"/Meetings/Calendar/{meeting.Id}";

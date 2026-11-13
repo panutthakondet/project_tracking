@@ -640,7 +640,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.SupportOrdersCreate, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.SupportOrdersCreate, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)
@@ -701,7 +701,7 @@ namespace ProjectTracking.Controllers
         {
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.SupportOrdersBaResult, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.IsConfigured
+            var sendTelegram = _telegramMessagingService.CanNotify
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.SupportOrdersBaResult, HttpContext.RequestAborted);
 
             if (!sendLine && !sendTelegram)

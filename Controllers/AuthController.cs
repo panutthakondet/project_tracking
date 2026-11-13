@@ -13,13 +13,16 @@ namespace ProjectTracking.Controllers
 
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly WebNotificationService _webNotifications;
 
         public AuthController(
             AppDbContext context,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            WebNotificationService webNotifications)
         {
             _context = context;
             _env = env;
+            _webNotifications = webNotifications;
         }
 
         // =====================
@@ -171,6 +174,7 @@ namespace ProjectTracking.Controllers
                 }
             }
 
+            if(userId.HasValue)await _webNotifications.RevokeSessionAsync(userId.Value,HttpContext.Session.Id);
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
