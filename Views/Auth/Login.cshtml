@@ -37,6 +37,7 @@
     <meta charset="utf-8" />
     <title>Login - ระบบติดตามโครงการ </title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    @await Html.PartialAsync("_PwaHead")
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -382,6 +383,8 @@
                         </button>
                     </div>
                 </form>
+
+                <button type="button" class="pwa-install-button" data-pwa-install hidden>ติดตั้งแอป ProjectTracking</button>
 
                 <div class="foot">© 2026 <strong>#C</strong> By <strong>SO-AT SOLUTION</strong></div>
             </div>

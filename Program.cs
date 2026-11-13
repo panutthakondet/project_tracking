@@ -308,7 +308,17 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseStaticFiles();
+var pwaContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+pwaContentTypes.Mappings[".webmanifest"] = "application/manifest+json";
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = pwaContentTypes,
+    OnPrepareResponse = context =>
+    {
+        if (context.File.Name is "sw.js" or "manifest.webmanifest" or "offline.html")
+            context.Context.Response.Headers["Cache-Control"] = "no-cache";
+    }
+});
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsPath),

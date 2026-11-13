@@ -7,6 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>@ViewData["Title"] - ProjectTracking</title>
+    @await Html.PartialAsync("_PwaHead")
 
     <!-- ✅ Google Font (Thai): Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2123,6 +2124,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         <div class="v2-profile-role-row">
             <span class="v2-profile-role">@(isAdmin ? "Administrator" : "Developer")</span>
         </div>
+        <button type="button" class="pwa-install-button" data-pwa-install hidden>ติดตั้งแอป ProjectTracking</button>
         @if (TempData["ProfileSuccess"] != null)
         {
             <div class="v2-profile-flash">@TempData["ProfileSuccess"]</div>
