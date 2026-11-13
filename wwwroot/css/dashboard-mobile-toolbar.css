@@ -36,8 +36,8 @@
     html body main .dashboard-view .dashboard-global-tools { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
 }
 @media (max-width:720px) {
-    /* Remove the three nested outer gutters only on the mobile Dashboard. */
-    html body .v2-page:has(> .container > main.route-controller-home.route-action-index) { padding-left:0; padding-right:0; }
+    /* Keep one modest outer gutter; avoid stacking padding across Dashboard wrappers. */
+    html body .v2-page:has(> .container > main.route-controller-home.route-action-index) { padding-left:16px; padding-right:16px; }
     html body .v2-page > .container:has(> main.route-controller-home.route-action-index) { width:100%; max-width:none; padding-left:0; padding-right:0; }
     html body main.route-controller-home.route-action-index .dashboard-view { padding-left:0; padding-right:0; }
 }
