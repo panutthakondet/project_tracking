@@ -68,6 +68,7 @@ await MeetingChecks.Run(factory,service,telegram);
 await OtherEventChecks.Run(factory,service,telegram,config);
 await IndependentChannelChecks.Run(factory,service,telegram,config);
 await HttpChecks.Run(factory,service,request.Endpoint,request.Keys.P256dh,request.Keys.Auth);
+await PushDiagnosticChecks.Run(factory,service);
 Console.WriteLine("ALL BACKEND NOTIFICATION CHECKS PASSED (isolated SQLite, no external sends)");
 
 class TestDb(DbContextOptions<AppDbContext> options):AppDbContext(options){protected override void OnModelCreating(ModelBuilder m){var keep=new[]{typeof(LoginUser),typeof(WebNotification),typeof(WebPushSubscription),typeof(WebPushDelivery),typeof(WebPushKey),typeof(NotificationSendLog),typeof(Employee),typeof(EmployeePosition),typeof(MeetingAttendee),typeof(Meeting),typeof(FieldServiceVisit),typeof(FieldServiceAssignee),typeof(CntMCoop)};foreach(var e in m.Model.GetEntityTypes().ToArray())if(!keep.Contains(e.ClrType))m.Ignore(e.ClrType);m.Entity<Meeting>().Ignore(e=>e.Calendar);m.Entity<Meeting>().Ignore(e=>e.Project);m.Entity<Meeting>().HasMany(e=>e.Attendees).WithOne(a=>a.Meeting).HasForeignKey(e=>e.MeetingId);m.Entity<Employee>().Ignore(e=>e.PositionDefinition);m.Entity<EmployeePosition>().Ignore(p=>p.Employees);m.Entity<FieldServiceVisit>().HasOne(v=>v.Coop).WithMany().HasForeignKey(v=>v.CoopId);m.Entity<FieldServiceVisit>().HasMany(v=>v.Assignees).WithOne(a=>a.Visit).HasForeignKey(a=>a.VisitId);m.Entity<FieldServiceAssignee>().HasOne(a=>a.Employee).WithMany().HasForeignKey(a=>a.EmpId);}}

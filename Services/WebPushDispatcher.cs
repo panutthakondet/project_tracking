@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
@@ -35,6 +36,7 @@ public class WebPushDispatcher(IServiceScopeFactory scopes, IHttpClientFactory h
             var subscription = await db.WebPushSubscriptions.SingleOrDefaultAsync(s => s.Id == delivery.SubscriptionId && s.Active, ct);
             var notification = await db.WebNotifications.AsNoTracking().SingleOrDefaultAsync(n => n.Id == delivery.NotificationId, ct);
             if (subscription == null || notification == null || subscription.UserId != notification.UserId || !await db.LoginUsers.AnyAsync(u => u.UserId == notification.UserId && u.Status == "ACTIVE", ct)) { delivery.Done = true; await db.SaveChangesAsync(ct); continue; }
+            var stage = "DecryptSubscription";
             try
             {
                 using var json = JsonDocument.Parse(service.Protector.Unprotect(subscription.ProtectedSubscription));
@@ -42,11 +44,13 @@ public class WebPushDispatcher(IServiceScopeFactory scopes, IHttpClientFactory h
                 if (!WebNotificationService.AllowedEndpoint(endpoint)) throw new InvalidOperationException("Unsupported push provider");
                 var keys = root.GetProperty("keys");
                 var target = new PushSubscription(endpoint, keys.GetProperty("p256dh").GetString(), keys.GetProperty("auth").GetString());
+                stage = "ReadVapidKey";
                 var vapid = await service.KeysAsync(ct);
                 // Keep personal task details off shared lock screens; opening the link requires the owning account.
                 var payload = JsonSerializer.Serialize(new { title = "ProjectTracking", body = "คุณมีแจ้งเตือนงานใหม่ เปิดแอปเพื่อดูรายละเอียด", tag = $"work-{notification.Id}", url = $"/WorkNotifications/Open/{notification.Id}" });
                 using var httpClient = http.CreateClient("WebPush");
                 var client = new WebPushClient(httpClient);
+                stage = "EncryptAndSend";
                 await client.SendNotificationAsync(target, payload, new Dictionary<string, object> { { "vapidDetails", vapid }, { "TTL", 86400 } }, ct);
                 delivery.Done = true;
             }
@@ -57,7 +61,12 @@ public class WebPushDispatcher(IServiceScopeFactory scopes, IHttpClientFactory h
             {
                 delivery.Done = delivery.Attempts >= 4;
                 delivery.NextAttemptAt = DateTime.UtcNow.AddSeconds(30 * Math.Pow(4, Math.Min(delivery.Attempts - 1, 3)));
-                logger.LogWarning("Web push delivery {DeliveryId} failed on attempt {Attempt}; error type {ErrorType}", id, delivery.Attempts, ex.GetType().Name);
+                // Crypto messages expose key identifiers/algorithm errors, never subscription JSON,
+                // endpoint URLs, auth secrets or private keys. Other transport messages may contain endpoints.
+                var cryptoDetail = ex is CryptographicException ? ex.Message : "";
+                logger.LogWarning("Web push delivery {DeliveryId} failed on attempt {Attempt}; stage {Stage}; error type {ErrorType}; HTTP {StatusCode}; crypto detail {CryptoDetail}",
+                    id, delivery.Attempts, stage, ex.GetType().Name,
+                    ex is WebPushException pushError ? (int?)pushError.StatusCode : null, cryptoDetail);
             }
             await db.SaveChangesAsync(ct);
             db.ChangeTracker.Clear();

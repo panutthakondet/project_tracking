@@ -190,7 +190,9 @@ builder.Services.AddScoped<LineNotificationSettingsService>();
 builder.Services.AddScoped<WebNotificationService>();
 builder.Services.AddHttpClient("WebPush", client => client.Timeout = TimeSpan.FromSeconds(10))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-builder.Services.AddHostedService<WebPushDispatcher>();
+// Set false on development instances that point at production storage but do not share its key ring.
+if (!string.Equals(GetEnvOrNull("WEB_PUSH_DISPATCH_ENABLED") ?? builder.Configuration["WEB_PUSH_DISPATCH_ENABLED"], "false", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<WebPushDispatcher>();
 builder.Services.AddHttpClient<TelegramMessagingService>();
 builder.Services.AddScoped<TelegramNotificationSettingsService>();
 builder.Services.AddScoped<StatusApprovalService>();
