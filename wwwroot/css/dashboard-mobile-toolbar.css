@@ -41,3 +41,7 @@
     html body .v2-page > .container:has(> main.route-controller-home.route-action-index) { width:100%; max-width:none; padding-left:0; padding-right:0; }
     html body main.route-controller-home.route-action-index .dashboard-view { padding-left:0; padding-right:0; }
 }
+@media (max-width:720px) {
+    html body .v2-page:has(> .container > main.route-controller-home.route-action-index) { padding-top:0; }
+    html body main.route-controller-home.route-action-index .dashboard-view { padding-top:0; }
+}
