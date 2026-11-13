@@ -30,6 +30,7 @@ namespace ProjectTracking.Controllers
         private readonly OverdueNotificationService _notificationService;
         private readonly LineMessagingService _lineMessagingService;
         private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<ProjectIssuesController> _logger;
@@ -47,6 +48,7 @@ namespace ProjectTracking.Controllers
             OverdueNotificationService notificationService,
             LineMessagingService lineMessagingService,
             LineNotificationSettingsService lineNotificationSettings,
+            WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<ProjectIssuesController> logger)
@@ -56,6 +58,7 @@ namespace ProjectTracking.Controllers
             _notificationService = notificationService;
             _lineMessagingService = lineMessagingService;
             _lineNotificationSettings = lineNotificationSettings;
+            _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
@@ -1217,13 +1220,10 @@ namespace ProjectTracking.Controllers
 
         private async Task SendCreatedIssueTelegramSafelyAsync(int issueId)
         {
-            var sendLine = _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.CanNotify
-                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
-
-            if (!sendLine && !sendTelegram)
-                return;
+            var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted), _logger);
+            var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted), _logger);
 
             try
             {
@@ -1278,13 +1278,10 @@ namespace ProjectTracking.Controllers
 
         private async Task SendFixedIssueTelegramToBaSafelyAsync(int issueId)
         {
-            var sendLine = _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.CanNotify
-                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
-
-            if (!sendLine && !sendTelegram)
-                return;
+            var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted), _logger);
+            var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted), _logger);
 
             try
             {
@@ -1327,13 +1324,10 @@ namespace ProjectTracking.Controllers
 
         private async Task SendBaResultIssueTelegramToAssigneeSafelyAsync(int issueId)
         {
-            var sendLine = _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
-            var sendTelegram = _telegramMessagingService.CanNotify
-                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
-
-            if (!sendLine && !sendTelegram)
-                return;
+            var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted), _logger);
+            var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted), _logger);
 
             try
             {
@@ -1382,6 +1376,8 @@ namespace ProjectTracking.Controllers
             string context,
             int sourceId)
         {
+            await _webNotifications.NotifyEmployeeSafelyAsync(empId, title, message, targetUrl, HttpContext.RequestAborted);
+
             if (sendLine)
             {
                 try

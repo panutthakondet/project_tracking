@@ -20,7 +20,6 @@ namespace ProjectTracking.Services
         };
 
         private readonly HttpClient _httpClient;
-        private readonly WebNotificationService _webNotifications;
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly ILogger<TelegramMessagingService> _logger;
         private readonly string _botToken;
@@ -31,11 +30,9 @@ namespace ProjectTracking.Services
             HttpClient httpClient,
             IDbContextFactory<AppDbContext> dbFactory,
             IConfiguration configuration,
-            ILogger<TelegramMessagingService> logger,
-            WebNotificationService webNotifications)
+            ILogger<TelegramMessagingService> logger)
         {
             _httpClient = httpClient;
-            _webNotifications = webNotifications;
             _dbFactory = dbFactory;
             _logger = logger;
             _botToken = (Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
@@ -48,9 +45,6 @@ namespace ProjectTracking.Services
                 ?? configuration["APP_BASE_URL"]
                 ?? "").TrimEnd('/');
         }
-
-        // Existing notification feature switches now govern the additional inbox/push channel too.
-        public bool CanNotify => true;
 
         public bool IsConfigured
             => !string.IsNullOrWhiteSpace(_botToken);
@@ -88,12 +82,11 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken = default,
             TelegramAttachment? attachment = null)
         {
-            var webSent = await _webNotifications.NotifyEmployeeSafelyAsync(empId,title,message,targetUrl,cancellationToken);
-            if (!IsConfigured) return webSent;
+            if (!IsConfigured) return 0;
             var chatIds = await GetActiveTelegramChatIdsForEmployeeAsync(empId,cancellationToken);
-            if (chatIds.Count == 0) return webSent;
-            var telegramSent = await SendNotificationToChatIdsAsync(chatIds,title,message,targetUrl,cancellationToken,attachment,empId,mirrorWeb:false);
-            return Math.Max(webSent,telegramSent);
+            if (chatIds.Count == 0) return 0;
+            var telegramSent = await SendNotificationToChatIdsAsync(chatIds,title,message,targetUrl,cancellationToken,attachment,empId);
+            return telegramSent;
         }
 
         public async Task<List<string>> GetActiveTelegramChatIdsForEmployeeAsync(
@@ -119,13 +112,10 @@ namespace ProjectTracking.Services
             string? targetUrl,
             CancellationToken cancellationToken = default,
             TelegramAttachment? attachment = null,
-            int? empIdForLog = null,
-            bool mirrorWeb = true)
+            int? empIdForLog = null)
         {
-            var webSent = mirrorWeb && empIdForLog.HasValue
-                ? await _webNotifications.NotifyEmployeeSafelyAsync(empIdForLog.Value,title,message,targetUrl,cancellationToken) : 0;
             if (!IsConfigured)
-                return webSent;
+                return 0;
 
             var targets = chatIds
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -133,7 +123,7 @@ namespace ProjectTracking.Services
                 .ToList();
 
             if (targets.Count == 0)
-                return webSent;
+                return 0;
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
             if (!string.IsNullOrWhiteSpace(targetUrl) && string.IsNullOrWhiteSpace(absoluteUrl))
@@ -192,7 +182,7 @@ namespace ProjectTracking.Services
             if (sent == 0 && failed > 0)
                 throw new InvalidOperationException($"Telegram notification failed for all linked chats. EmpId={empIdForLog}, Failed={failed}");
 
-            return Math.Max(sent,webSent);
+            return sent;
         }
 
         public async Task SendTextToChatAsync(

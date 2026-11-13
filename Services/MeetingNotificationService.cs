@@ -22,6 +22,7 @@ namespace ProjectTracking.Services
         private const string UpdatedTelegramKindPrefix = "updated_telegram";
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
+        private readonly WebNotificationService _webNotifications;
         private readonly EmailService _emailService;
         private readonly LineMessagingService _lineMessagingService;
         private readonly LineNotificationSettingsService _lineNotificationSettings;
@@ -38,9 +39,11 @@ namespace ProjectTracking.Services
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
-            ILogger<MeetingNotificationService> logger)
+            ILogger<MeetingNotificationService> logger,
+            WebNotificationService webNotifications)
         {
             _dbFactory = dbFactory;
+            _webNotifications = webNotifications;
             _emailService = emailService;
             _lineMessagingService = lineMessagingService;
             _lineNotificationSettings = lineNotificationSettings;
@@ -106,6 +109,9 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
+            // Inbox/push is independent of Telegram switches, bindings, attachments and logs.
+            var webResult = await SendChannelSafelyAsync("Web", meetingId,
+                () => SendWebEventAsync(meetingId, "เชิญประชุม", cancellationToken));
             var emailTask = SendChannelSafelyAsync(
                 "Email",
                 meetingId,
@@ -126,10 +132,44 @@ namespace ProjectTracking.Services
             var telegramResult = await telegramTask;
 
             return new MeetingNotificationResult(
-                emailResult.SentCount + lineResult.SentCount + telegramResult.SentCount,
-                emailResult.SkippedCount + lineResult.SkippedCount + telegramResult.SkippedCount,
-                emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount,
-                BuildNotificationBreakdown(emailResult, lineResult, telegramResult));
+                webResult.SentCount + emailResult.SentCount + lineResult.SentCount + telegramResult.SentCount,
+                webResult.SkippedCount + emailResult.SkippedCount + lineResult.SkippedCount + telegramResult.SkippedCount,
+                webResult.FailedCount + emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount,
+                FormatNotificationBreakdown("Web", webResult) + " | " + BuildNotificationBreakdown(emailResult, lineResult, telegramResult));
+        }
+
+        private async Task<MeetingNotificationResult> SendWebEventAsync(int meetingId, string eventTitle, CancellationToken ct, bool reminder = false)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(ct);
+            var meeting = await db.Meetings.AsNoTracking().SingleOrDefaultAsync(m => m.Id == meetingId, ct);
+            if (meeting == null) return new MeetingNotificationResult(0, 0, 1, "ไม่พบ Meeting");
+            var employees = await db.MeetingAttendees.AsNoTracking().Where(a => a.MeetingId == meetingId)
+                .Select(a => a.UserId).Distinct().ToListAsync(ct);
+            if (employees.Count == 0) return new MeetingNotificationResult(0, 1, 0, "ไม่มีผู้เข้าร่วมประชุม");
+            var sent = 0;
+            foreach (var empId in employees)
+                sent += await _webNotifications.NotifyEmployeeSafelyAsync(empId, $"{eventTitle}: {meeting.Title}",
+                    $"{meeting.Title}\n{meeting.MeetingDate:dd/MM/yyyy} {meeting.StartTime:hh\\:mm}–{meeting.EndTime:hh\\:mm}\n{meeting.Location}\n{meeting.Description}",
+                    $"/Meetings/Show/{meeting.Id}", ct, deduplicateDaily: reminder);
+            return new MeetingNotificationResult(sent, sent == 0 ? employees.Count : 0, 0,
+                sent == 0 ? "ไม่มีบัญชี ACTIVE ที่รับได้ หรือรายการซ้ำ/บันทึกไม่สำเร็จ (ตรวจ Server Log)" : "");
+        }
+
+        public async Task<MeetingNotificationResult> SendWebRemindersAsync(CancellationToken ct = default)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(ct);
+            var today = DateTime.UtcNow.AddHours(7).Date;
+            var sent = 0;
+            foreach (var days in TelegramReminderDays)
+            {
+                var date = today.AddDays(days);
+                var ids = await db.Meetings.AsNoTracking().Where(m => m.MeetingDate == date && m.Status != "CANCELLED")
+                    .Select(m => m.Id).ToListAsync(ct);
+                foreach (var id in ids)
+                    sent += (await SendChannelSafelyAsync("Web", id, () => SendWebEventAsync(id,
+                        days == 0 ? "แจ้งเตือนประชุมวันนี้" : $"แจ้งเตือนประชุมล่วงหน้า {days} วัน", ct, reminder: true))).SentCount;
+            }
+            return new MeetingNotificationResult(sent, 0, 0);
         }
 
         public async Task<MeetingNotificationResult> SendCreatedEmailAsync(
@@ -204,6 +244,7 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
+            var webResult = await SendChannelSafelyAsync("Web", meetingId, () => SendWebEventAsync(meetingId, "อัปเดตประชุม", cancellationToken));
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
@@ -218,7 +259,7 @@ namespace ProjectTracking.Services
             var emailKind = UpdatedNotificationKind(UpdatedEmailKindPrefix, meeting);
             var lineKind = UpdatedNotificationKind(UpdatedLineKindPrefix, meeting);
             var telegramKind = UpdatedNotificationKind(UpdatedTelegramKindPrefix, meeting);
-            var sent = 0;
+            var sent = webResult.SentCount;
             var skipped = 0;
             var failed = 0;
 
@@ -326,7 +367,7 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_telegramMessagingService.CanNotify
+            if (!_telegramMessagingService.IsConfigured
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsUpdate, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
@@ -488,7 +529,7 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
-            if (!_telegramMessagingService.CanNotify)
+            if (!_telegramMessagingService.IsConfigured)
                 return new MeetingNotificationResult(0, 1, 0, "Telegram ยังไม่ได้ตั้งค่า bot");
 
             if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCreate, cancellationToken))
@@ -579,6 +620,7 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
+            var webResult = await SendChannelSafelyAsync("Web", meetingId, () => SendWebEventAsync(meetingId, "ยกเลิกประชุม", cancellationToken));
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
@@ -587,7 +629,7 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(0, 0, 0);
 
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
-            var sent = 0;
+            var sent = webResult.SentCount;
             var skipped = 0;
             var failed = 0;
 
@@ -694,7 +736,7 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_telegramMessagingService.CanNotify
+            if (!_telegramMessagingService.IsConfigured
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCancel, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
@@ -895,7 +937,7 @@ namespace ProjectTracking.Services
         public async Task<MeetingNotificationResult> SendTelegramRemindersAsync(
             CancellationToken cancellationToken = default)
         {
-            if (!_telegramMessagingService.CanNotify)
+            if (!_telegramMessagingService.IsConfigured)
             {
                 _logger.LogDebug("Meeting Telegram reminder skipped because Telegram is not configured.");
                 return new MeetingNotificationResult(0, 0, 0);

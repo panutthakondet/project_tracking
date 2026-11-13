@@ -16,7 +16,7 @@ static class OtherEventChecks
         db.FieldServiceVisits.Add(new FieldServiceVisit{VisitId=50,CoopId=100,Title="งานเข้าไซต์ทดสอบ",VisitDate=DateTime.Today,
             Assignees=[new FieldServiceAssignee{EmpId=10},new FieldServiceAssignee{EmpId=20}]});
         await db.SaveChangesAsync();
-        var field=new FieldServiceNotificationService(factory,null!,null!,null!,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
+        var field=new FieldServiceNotificationService(factory,null!,null!,null!,notifications,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
         var task=(Task)typeof(FieldServiceNotificationService).GetMethod("LoadVisitAsync",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(field,[50,CancellationToken.None])!;await task;
         var details=task.GetType().GetProperty("Result")!.GetValue(task)!;
         var recipients=((IEnumerable)details.GetType().GetProperty("Recipients")!.GetValue(details)!).Cast<object>().ToArray();
@@ -37,7 +37,7 @@ static class OtherEventChecks
             ("Followup ACK: audit","/Followups/Details/4"),
             ("แจ้งเตือนงานเข้าไซต์: audit","/FieldService/Show/50"),
             ("งานเสี่ยง/ล่าช้า: audit","/PhaseAssigns/Index?projectId=4")};
-        foreach(var item in events)await telegram.SendNotificationToEmployeeAsync(10,item.Title,"ผู้รับผิดชอบทดสอบ 📝",item.Url);
+        foreach(var item in events)await notifications.NotifyEmployeeSafelyAsync(10,item.Title,"ผู้รับผิดชอบทดสอบ 📝",item.Url);
         if(await db.WebNotifications.CountAsync(n=>n.UserId==1)!=before+events.Length||await db.WebPushDeliveries.CountAsync()!=jobs+events.Length)throw new Exception("Other event shared notification delivery failed");
         if(await db.WebNotifications.CountAsync(n=>n.UserId==4)!=linkedBefore+events.Length)throw new Exception("Other events did not reach employee-side linked login account");
         if(await db.WebNotifications.AnyAsync(n=>n.UserId==3))throw new Exception("Inactive login received other-screen notification");

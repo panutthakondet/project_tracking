@@ -138,9 +138,13 @@ namespace ProjectTracking.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<MeetingNotificationService>();
+                try { await service.SendWebRemindersAsync(cancellationToken); }
+                catch (Exception ex) { _logger.LogError(ex, "Meeting Web reminder failed"); }
+                var fieldService = scope.ServiceProvider.GetRequiredService<FieldServiceNotificationService>();
+                try { await fieldService.SendWebRemindersAsync(cancellationToken); }
+                catch (Exception ex) { _logger.LogError(ex, "Field Service Web reminder failed"); }
                 var lineResult = await SendLineRemindersSafelyAsync(service, cancellationToken);
                 var telegramResult = await SendTelegramRemindersSafelyAsync(service, cancellationToken);
-                var fieldService = scope.ServiceProvider.GetRequiredService<FieldServiceNotificationService>();
                 var fieldLineResult = await SendFieldServiceLineRemindersSafelyAsync(fieldService, cancellationToken);
                 var fieldTelegramResult = await SendFieldServiceTelegramRemindersSafelyAsync(fieldService, cancellationToken);
                 var result = new MeetingNotificationResult(

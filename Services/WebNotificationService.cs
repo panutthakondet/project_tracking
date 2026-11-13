@@ -46,7 +46,7 @@ public class WebNotificationService(IDbContextFactory<AppDbContext> factory, IDa
         return host == "fcm.googleapis.com" || host == "web.push.apple.com" || host == "push.services.mozilla.com" || host.EndsWith(".push.services.mozilla.com", StringComparison.Ordinal) || host.EndsWith(".notify.windows.com", StringComparison.Ordinal) || host.EndsWith(".notify.live.net", StringComparison.Ordinal);
     }
     // Isolated from business transactions: failure in this additional channel cannot cancel the original work.
-    public async Task<int> NotifyEmployeeSafelyAsync(int empId, string title, string? message, string? target, CancellationToken ct = default)
+    public async Task<int> NotifyEmployeeSafelyAsync(int empId, string title, string? message, string? target, CancellationToken ct = default, bool deduplicateDaily = false)
     {
         try
         {
@@ -57,7 +57,8 @@ public class WebNotificationService(IDbContextFactory<AppDbContext> factory, IDa
             var url = LocalTarget(target);
             foreach (var userId in users)
             {
-                var dedup = Hash($"{userId}\n{title}\n{text}\n{url}\n{now.Ticks / TimeSpan.FromMinutes(5).Ticks}");
+                var bucket = deduplicateDaily ? "day:" + now.AddHours(7).ToString("yyyy-MM-dd") : (now.Ticks / TimeSpan.FromMinutes(5).Ticks).ToString();
+                var dedup = Hash($"{userId}\n{title}\n{text}\n{url}\n{bucket}");
                 if (await db.WebNotifications.AnyAsync(n => n.DedupKey == dedup, ct)) continue;
                 var notification = new WebNotification { UserId = userId, EmpId = empId, Title = title, Message = text, TargetUrl = url, DedupKey = dedup, CreatedAt = now };
                 await using var transaction = await db.Database.BeginTransactionAsync(ct);

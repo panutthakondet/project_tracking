@@ -4,7 +4,7 @@ The bell in the mobile header and desktop profile shows the signed-in account's 
 
 ## Event coverage
 
-The existing Telegram notification feature switches also govern the additional web channel. Recipient employee IDs are resolved to ACTIVE `login_user` accounts through `emp_id`; users do not need a Telegram chat or bot token to receive inbox notifications. Telegram bot diagnostics, raw chat messages/webhook replies, and existing legacy `Notifications`/OpenWork routes remain unchanged.
+Web inbox/push is an independent channel. Telegram and LINE switches, bot tokens, chat bindings, send logs and transport failures do not gate web events. TelegramMessagingService only sends Telegram and never writes the web inbox. Recipient employee IDs are resolved to ACTIVE `login_user` accounts through `emp_id`; users do not need a Telegram chat or bot token to receive inbox notifications. Telegram bot diagnostics, raw chat messages/webhook replies, and existing legacy `Notifications`/OpenWork routes remain unchanged.
 
 | Existing source | Events mirrored to inbox and opted-in devices |
 | --- | --- |
@@ -17,7 +17,7 @@ The existing Telegram notification feature switches also govern the additional w
 | Employees/LineOverdue | Selected manual overdue notifications |
 | Overdue notification background service | Automatic risk/overdue notifications |
 
-Only notifications generated after deployment are included; historical Telegram messages are not imported. Delivery counts in the existing notification paths now represent recipients reached through either Telegram or the added web channel. Actual Telegram audit logs still record only successful Telegram sends. Meeting reminder logs and automatic daily overdue deduplication also account for web deliveries.
+Only notifications generated after deployment are included; historical Telegram messages are not imported. Business event dispatchers explicitly send web notifications separately from external channels. Actual Telegram audit logs record only Telegram sends. Web reminders and overdue messages deduplicate by Bangkok day independently of chat logs; legacy meeting Telegram logs do not mark web delivery.
 
 ## Deployment and devices
 
@@ -61,3 +61,5 @@ Reviewed the notification call sites and recipient queries in PhaseAssigns, Proj
 FieldService now resolves display positions from `employee_positions` by ID rather than relying on an unloaded navigation property. The lookup is separate from recipient loading, so a missing position record does not remove an assignee. Tests exercise the actual site-visit recipient query/email fallback, then the shared inbox/push-outbox path for assignment, issue, support, followup, site-visit and overdue payloads. These are isolated regression checks and source review, not live creates/sends on every production screen.
 
 Recipient account lookup supports both `login_users.EmpId` and the employee-side `Employee.LoginUserId` link when the login account has no EmpId. An explicitly different login EmpId takes precedence to prevent cross-employee delivery. This shared lookup applies to Meetings, Assigns, Issues/BA results, Support/SupportDev, Followups, FieldService and overdue events. Regression checks cover the representative payloads for each family with employee-side links and inactive-account exclusion; this is not a live production send test.
+
+Independent channel regression checks invoke all six controller dispatch helpers with LINE/Telegram disabled, the actual meeting-created coordinator with unavailable external channels, FieldService change events, and separate meeting/site web reminder methods. The scheduled reminder worker runs both web jobs separately before external reminder jobs. Manual overdue selection includes ACTIVE web recipients without chat bindings. No production messages are sent by these tests.

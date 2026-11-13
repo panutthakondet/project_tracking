@@ -18,6 +18,7 @@ namespace ProjectTracking.Services
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly LineMessagingService _lineMessagingService;
         private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<OverdueNotificationService> _logger;
@@ -27,6 +28,7 @@ namespace ProjectTracking.Services
             IDbContextFactory<AppDbContext> dbFactory,
             LineMessagingService lineMessagingService,
             LineNotificationSettingsService lineNotificationSettings,
+            WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
@@ -35,6 +37,7 @@ namespace ProjectTracking.Services
             _dbFactory = dbFactory;
             _lineMessagingService = lineMessagingService;
             _lineNotificationSettings = lineNotificationSettings;
+            _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
@@ -534,9 +537,14 @@ namespace ProjectTracking.Services
             if (notifications.Count == 0)
                 return;
 
+            // Web has its own delivery/deduplication and never depends on chat switches or logs.
+            foreach (var notification in notifications)
+                await _webNotifications.NotifyEmployeeSafelyAsync(notification.EmpId, notification.Title,
+                    notification.Message, notification.TargetUrl, cancellationToken, deduplicateDaily: true);
+
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
-            var sendTelegram = _telegramMessagingService.CanNotify
+            var sendTelegram = _telegramMessagingService.IsConfigured
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.OverdueAuto, cancellationToken);
 
             if (!sendLine && !sendTelegram)
@@ -618,13 +626,6 @@ namespace ProjectTracking.Services
                 .ToListAsync(cancellationToken);
 
             var result = logs.Select(x => BuildSendLogKey(x.Channel, x.EmpId, x.Title, x.Message, x.TargetUrl)).ToHashSet(StringComparer.Ordinal);
-            if (includeTelegram)
-            {
-                var utcStart = today.AddHours(-7);
-                var utcEnd = tomorrow.AddHours(-7);
-                var web = await db.WebNotifications.AsNoTracking().Where(n => n.CreatedAt >= utcStart && n.CreatedAt < utcEnd).ToListAsync(cancellationToken);
-                foreach (var item in web) result.Add(BuildSendLogKey("TELEGRAM",item.EmpId,item.Title,item.Message,item.TargetUrl));
-            }
             return result;
         }
 

@@ -14,6 +14,7 @@ public sealed class FieldServiceNotificationService
     private readonly EmailService _emailService;
     private readonly LineMessagingService _lineMessagingService;
     private readonly LineNotificationSettingsService _lineSettings;
+    private readonly WebNotificationService _webNotifications;
     private readonly TelegramMessagingService _telegramMessagingService;
     private readonly TelegramNotificationSettingsService _telegramSettings;
     private readonly ILogger<FieldServiceNotificationService> _logger;
@@ -24,6 +25,7 @@ public sealed class FieldServiceNotificationService
         EmailService emailService,
         LineMessagingService lineMessagingService,
         LineNotificationSettingsService lineSettings,
+        WebNotificationService webNotifications,
         TelegramMessagingService telegramMessagingService,
         TelegramNotificationSettingsService telegramSettings,
         IConfiguration configuration,
@@ -33,6 +35,7 @@ public sealed class FieldServiceNotificationService
         _emailService = emailService;
         _lineMessagingService = lineMessagingService;
         _lineSettings = lineSettings;
+        _webNotifications = webNotifications;
         _telegramMessagingService = telegramMessagingService;
         _telegramSettings = telegramSettings;
         _logger = logger;
@@ -88,6 +91,9 @@ public sealed class FieldServiceNotificationService
         var sent = 0;
         var skipped = 0;
         var failed = 0;
+
+        foreach (var recipient in visit.Recipients)
+            sent += await _webNotifications.NotifyEmployeeSafelyAsync(recipient.EmpId, title, message, targetUrl, cancellationToken);
 
         var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var recipient in visit.Recipients)
@@ -148,7 +154,7 @@ public sealed class FieldServiceNotificationService
             FieldServiceNotificationKind.Cancelled => TelegramNotificationFeatures.FieldServiceCancel,
             _ => TelegramNotificationFeatures.FieldServiceUpdate
         };
-        if (_telegramMessagingService.CanNotify && await _telegramSettings.IsEnabledAsync(telegramFeature, cancellationToken))
+        if (_telegramMessagingService.IsConfigured && await _telegramSettings.IsEnabledAsync(telegramFeature, cancellationToken))
         {
             foreach (var recipient in visit.Recipients)
             {
@@ -171,20 +177,24 @@ public sealed class FieldServiceNotificationService
         return new FieldServiceNotificationResult(sent, skipped, failed);
     }
 
+    public Task<FieldServiceNotificationResult> SendWebRemindersAsync(CancellationToken cancellationToken = default)
+        => SendRemindersAsync("WEB", cancellationToken);
+
     private async Task<FieldServiceNotificationResult> SendRemindersAsync(
         string channel,
         CancellationToken cancellationToken)
     {
         var isLine = channel == "LINE";
-        var configured = isLine ? _lineMessagingService.IsConfigured : _telegramMessagingService.CanNotify;
+        var isWeb = channel == "WEB";
+        var configured = isWeb || (isLine ? _lineMessagingService.IsConfigured : _telegramMessagingService.IsConfigured);
         if (!configured)
             return new FieldServiceNotificationResult(0, 0, 0);
 
-        var featureEnabled = isLine
+        var featureEnabled = isWeb || (isLine
             ? await _lineSettings.IsEnabledAsync(LineNotificationFeatures.FieldServiceReminder, cancellationToken)
               && await _lineSettings.IsEnabledAsync(LineNotificationFeatures.FieldServiceAuto, cancellationToken)
             : await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceReminder, cancellationToken)
-              && await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceAuto, cancellationToken);
+              && await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceAuto, cancellationToken));
         if (!featureEnabled)
             return new FieldServiceNotificationResult(0, 0, 0);
 
@@ -217,7 +227,9 @@ public sealed class FieldServiceNotificationService
                 {
                     try
                     {
-                        var count = isLine
+                        var count = isWeb
+                            ? await _webNotifications.NotifyEmployeeSafelyAsync(recipient.EmpId, title, message, targetUrl, cancellationToken, deduplicateDaily: true)
+                            : isLine
                             ? await _lineMessagingService.SendNotificationToEmployeeAsync(
                                 recipient.EmpId, title, message, targetUrl, cancellationToken)
                             : await _telegramMessagingService.SendNotificationToEmployeeAsync(

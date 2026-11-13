@@ -15,6 +15,7 @@ static class MeetingChecks
         db.LoginUsers.Add(new LoginUser{UserId=4,Username="linked-mail",Password="test",Email="preferred@example.test",Status="ACTIVE"});
         await db.LoginUsers.Where(u=>u.UserId==1).ExecuteUpdateAsync(s=>s.SetProperty(u=>u.Email,"fallback@example.test"));
         await db.LoginUsers.Where(u=>u.UserId==2).ExecuteUpdateAsync(s=>s.SetProperty(u=>u.Email,"two@example.test"));
+        db.Meetings.Add(new Meeting{Id=70,Title="ทดสอบสร้างประชุมจริง",MeetingDate=DateTime.Today,StartTime=TimeSpan.FromHours(9),EndTime=TimeSpan.FromHours(10)});
         db.MeetingAttendees.AddRange(new MeetingAttendee{Id=1,MeetingId=70,UserId=10},new MeetingAttendee{Id=2,MeetingId=70,UserId=20},new MeetingAttendee{Id=3,MeetingId=70,UserId=30});
         await db.SaveChangesAsync();
         async Task<object[]> Load(string method)
@@ -28,7 +29,7 @@ static class MeetingChecks
         var email=await Load("LoadEmailRecipientsAsync");
         if(email.Length!=2||(string)Value(email[0],"Email")! !="preferred@example.test"||(string)Value(email[1],"Email")! !="two@example.test")throw new Exception("Meeting email lookup priority failed");
         var before=await db.WebNotifications.CountAsync(n=>n.UserId==1);var jobs=await db.WebPushDeliveries.CountAsync();
-        await telegram.SendNotificationToEmployeeAsync((int)Value(recipients[0],"EmpId")!,"เชิญประชุม: regression","ประชุมทดสอบหลังแก้โครงสร้างตำแหน่ง","/Meetings/Show/70");
+        await notifications.NotifyEmployeeSafelyAsync((int)Value(recipients[0],"EmpId")!,"เชิญประชุม: regression","ประชุมทดสอบหลังแก้โครงสร้างตำแหน่ง","/Meetings/Show/70");
         if(await db.WebNotifications.CountAsync(n=>n.UserId==1)!=before+1||await db.WebPushDeliveries.CountAsync()!=jobs+1)throw new Exception("Meeting recipient inbox/push queue failed");
         // Legacy accounts may link through employee.login_user_id only.
         db.LoginUsers.Add(new LoginUser{UserId=5,Username="explicit-link-only",Password="test",Status="ACTIVE"});
@@ -39,6 +40,16 @@ static class MeetingChecks
         await db.LoginUsers.Where(u=>u.UserId==5).ExecuteUpdateAsync(s=>s.SetProperty(u=>u.EmpId,20));
         await notifications.NotifyEmployeeSafelyAsync(30,"ต้องไม่ส่งข้ามพนักงาน","test","/Meetings/Show/70");
         if(await db.WebNotifications.AnyAsync(n=>n.UserId==5 && n.Title=="ต้องไม่ส่งข้ามพนักงาน"))throw new Exception("Conflicting employee link received another employee notification");
+        var creator = new MeetingNotificationService(factory,null!,null!,null!,telegram,null!,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<MeetingNotificationService>.Instance,notifications);
+        var created = await creator.SendCreatedNotificationsAsync(70);
+        if(!await db.WebNotifications.AnyAsync(n=>n.UserId==1 && n.Title=="เชิญประชุม: ทดสอบสร้างประชุมจริง") || created.SentCount==0)
+            throw new Exception("Actual meeting creation notification pipeline did not insert inbox independently of unavailable external channels");
+        var createdCount=await db.WebNotifications.CountAsync(n=>n.Title=="เชิญประชุม: ทดสอบสร้างประชุมจริง");
+        await creator.SendCreatedNotificationsAsync(70);
+        if(await db.WebNotifications.CountAsync(n=>n.Title=="เชิญประชุม: ทดสอบสร้างประชุมจริง")!=createdCount)throw new Exception("Meeting create retry duplicated inbox");
+        Console.WriteLine("PASS actual meeting-created pipeline inserts inbox despite unavailable external channels and deduplicates retry");
         Console.WriteLine("PASS meeting recipients use position_id/employee_positions, tolerate absent position, preserve email priority and queue inbox/push");
     }
 }
