@@ -10,6 +10,17 @@ static class MeetingChecks
     public static async Task Run(IDbContextFactory<AppDbContext> factory,WebNotificationService notifications,TelegramMessagingService telegram)
     {
         await using var db=await factory.CreateDbContextAsync();
+        var controller=new ProjectTracking.Controllers.MeetingsController(db,null!,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<ProjectTracking.Controllers.MeetingsController>.Instance);
+        var http=new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.Request.ContentType="application/x-www-form-urlencoded";
+        http.Request.Form=new Microsoft.AspNetCore.Http.FormCollection(new Dictionary<string,Microsoft.Extensions.Primitives.StringValues>{
+            ["users"]=new[]{"10","10","-1","invalid"},["pendingAttendee"]="20"});
+        controller.ControllerContext=new Microsoft.AspNetCore.Mvc.ControllerContext{HttpContext=http};
+        var parse=typeof(ProjectTracking.Controllers.MeetingsController).GetMethod("ReadSelectedMeetingUsers",BindingFlags.NonPublic|BindingFlags.Instance)!;
+        var parsed=(List<int>)parse.Invoke(controller,[new List<int>{10}])!;
+        if(!parsed.SequenceEqual(new[]{10,20}))throw new Exception("Meeting pending attendee form fallback failed");
+        Console.WriteLine("PASS meeting form merges pending choice with selected attendees without duplicates or invalid IDs");
         db.EmployeePositions.Add(new EmployeePosition{PositionId=7,PositionName="ผู้จัดการโครงการ"});
         db.Employees.AddRange(new Employee{EmpId=10,EmpName="พนักงานหนึ่ง",PositionId=7,DepartmentId=1,LoginUserId=4},new Employee{EmpId=20,EmpName="พนักงานสอง",PositionId=999,DepartmentId=1},new Employee{EmpId=30,EmpName="ไม่มีอีเมล",PositionId=7,DepartmentId=1});
         db.LoginUsers.Add(new LoginUser{UserId=4,Username="linked-mail",Password="test",Email="preferred@example.test",Status="ACTIVE"});

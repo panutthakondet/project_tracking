@@ -212,7 +212,7 @@
                                 </p>
                             </div>
                             <div class="meeting-attendee-picker__controls">
-                                <select class="form-select" data-attendee-select>
+                                <select class="form-select" name="pendingAttendee" data-attendee-select>
                                     <option value="">-- เลือกผู้เข้าร่วม --</option>
                                     @foreach (var e in employees)
                                     {
@@ -233,7 +233,7 @@
                             <div class="meeting-selected-attendees" data-attendee-list></div>
                             <div data-attendee-inputs></div>
                         </div>
-                        <div class="form-hint">เลือกเพิ่มทีละคน หรือเลือกฝ่ายเพื่อเพิ่มพนักงานทั้งฝ่าย แล้วสามารถลบรายชื่อออกเพื่อเลือกใหม่ได้</div>
+                        <div class="form-hint">เลือกชื่อเพื่อเพิ่มผู้เข้าร่วมทันที หรือเลือกฝ่ายแล้วกดเพิ่มทั้งฝ่าย สามารถลบรายชื่อที่เลือกออกได้</div>
                     </div>
                 </div>
 
@@ -382,6 +382,16 @@
                 ? `เพิ่มพนักงานจากฝ่าย ${departmentName} แล้ว ${addedCount} คน`
                 : `เพิ่มพนักงานจากฝ่าย ${departmentName} ครบแล้ว`);
         }
+
+        select?.addEventListener('change', function () {
+            addAttendee(select.value);
+            refreshDepartmentAction();
+        });
+
+        formElement.addEventListener('submit', function () {
+            addAttendee(select.value);
+            syncInputs();
+        });
 
         addButton?.addEventListener('click', function () {
             addAttendee(select.value);

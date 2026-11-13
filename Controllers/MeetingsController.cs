@@ -589,7 +589,7 @@ namespace ProjectTracking.Controllers
                 }
                 else if (notifyResult.SkippedCount > 0)
                 {
-                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ไม่มีรายการแจ้งเตือนที่ส่งออก ({notifyResult.SkippedCount} รายการถูกข้าม: อาจเคยส่งแล้วหรือยังไม่ได้ผูก Email/LINE/Telegram)";
+                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ไม่มีรายการแจ้งเตือนที่ส่งออก ({notifyResult.Detail})";
                 }
             }
             catch (Exception ex)
@@ -610,7 +610,7 @@ namespace ProjectTracking.Controllers
 
             if (Request.HasFormContentType)
             {
-                foreach (var raw in Request.Form["users"])
+                foreach (var raw in Request.Form["users"].Concat(Request.Form["pendingAttendee"]))
                 {
                     if (int.TryParse(raw, out var userId))
                         userIds.Add(userId);
