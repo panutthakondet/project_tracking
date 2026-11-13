@@ -1,3 +1,17 @@
 .pwa-install-button[hidden] { display:none !important; }
 .pwa-install-button { display:block; margin:12px auto 0; padding:8px 16px; border:1px solid var(--pt-border-strong,#517ba2); border-radius:10px; color:var(--pt-sidebar-contrast,#fff); background:var(--pt-sidebar-panel,#102e51); font:inherit; font-size:13px; cursor:pointer; }
 .pwa-install-button:focus-visible { outline:2px solid var(--pt-accent,#2ee8d6); outline-offset:3px; }
+@media (display-mode:fullscreen), (display-mode:standalone) {
+    html { min-height:100%; background:var(--pt-body-bg,#081c42); }
+    body {
+        box-sizing:border-box; min-height:100dvh;
+        padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+    }
+    html body .v2-shell, html body .login-shell { min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); }
+}
+@media (min-width:721px) and (display-mode:fullscreen), (min-width:721px) and (display-mode:standalone) {
+    html body .v2-sidebar {
+        top:env(safe-area-inset-top,0px); left:env(safe-area-inset-left,0px);
+        height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    }
+}

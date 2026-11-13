@@ -1,13 +1,13 @@
 (()=>{
     const workerUrl=document.currentScript?.dataset.serviceWorkerUrl;
     let installEvent;
-    const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+    const standalone=()=>matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
     const buttons=()=>document.querySelectorAll('[data-pwa-install]');
     const update=()=>buttons().forEach(button=>button.hidden=standalone()||!installEvent&&!isIos);
     const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
     window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;update();});
     window.addEventListener('appinstalled',()=>{installEvent=null;update();});
-    matchMedia('(display-mode: standalone)').addEventListener('change',update);
+    ['standalone','fullscreen'].forEach(mode=>matchMedia(`(display-mode: ${mode})`).addEventListener('change',update));
     const init=()=>{
         buttons().forEach(button=>button.addEventListener('click',async()=>{
             if(standalone())return;

@@ -4,7 +4,9 @@
 - The shared layout and Login include the manifest, Apple touch icon and service-worker registration.
 - Chrome/Edge/Android: use the browser installation action, or “ติดตั้งแอป ProjectTracking” when the browser makes installation available (in the profile/menu or Login).
 - iPhone/iPad: open in Safari, Share → Add to Home Screen. The install button provides these instructions.
-- Installation launches the existing app in a standalone window; session, permissions and login rules remain unchanged.
+- Installation requests fullscreen, with standalone fallback when fullscreen is unsupported; session, permissions and login rules remain unchanged.
+
+Existing installations may require closing/reopening or reinstalling after deployment before the browser adopts a new manifest display mode. System bars on iOS/iPadOS remain controlled by the OS. Safe-area insets protect content around notches and home indicators.
 
 ## Offline and updates
 
