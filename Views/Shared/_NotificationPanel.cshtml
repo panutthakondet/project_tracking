@@ -1,5 +1,5 @@
 <section id="notificationPanel" class="notification-panel" role="dialog" aria-modal="false" aria-labelledby="notificationPanelTitle" hidden
-         data-list-url="@Url.Action("List","WorkNotifications")" data-read-url="@Url.Action("Read","WorkNotifications")"
+         data-token-url="@Url.Action("RequestToken","WorkNotifications")" data-list-url="@Url.Action("List","WorkNotifications")" data-read-url="@Url.Action("Read","WorkNotifications")"
          data-push-key-url="@Url.Action("PushKey","WorkNotifications")" data-subscribe-url="@Url.Action("Subscribe","WorkNotifications")" data-unsubscribe-url="@Url.Action("Unsubscribe","WorkNotifications")">
     <div class="notification-panel-head"><h2 id="notificationPanelTitle">การแจ้งเตือน</h2><button type="button" data-notification-close aria-label="ปิดการแจ้งเตือน">×</button></div>
     <div class="notification-actions"><button type="button" data-notification-read-all>อ่านทั้งหมด</button><button type="button" data-push-enable>เปิดแจ้งเตือนบนอุปกรณ์</button><button type="button" data-push-disable hidden>ปิดแจ้งเตือนอุปกรณ์นี้</button></div>

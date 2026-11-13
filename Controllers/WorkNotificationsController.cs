@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
@@ -8,6 +9,7 @@ using ProjectTracking.Services;
 namespace ProjectTracking.Controllers;
 
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+[TypeFilter(typeof(WorkNotificationExceptionFilter))]
 public class WorkNotificationsController(AppDbContext db, WebNotificationService notifications) : Controller
 {
     private async Task<int?> CurrentUser(CancellationToken ct)
@@ -49,6 +51,12 @@ public class WorkNotificationsController(AppDbContext db, WebNotificationService
         if (item == null) return NotFound();
         await db.WebNotifications.Where(n => n.Id == id && n.UserId == user && n.ReadAt == null).ExecuteUpdateAsync(s => s.SetProperty(n => n.ReadAt, DateTime.UtcNow), ct);
         return LocalRedirect(notifications.LocalTarget(item.TargetUrl));
+    }
+    [HttpGet]
+    public async Task<IActionResult> RequestToken([FromServices] IAntiforgery antiforgery, CancellationToken ct)
+    {
+        if (await CurrentUser(ct) == null) return Unauthorized();
+        return Json(new { requestToken = antiforgery.GetAndStoreTokens(HttpContext).RequestToken });
     }
     [HttpGet]
     public async Task<IActionResult> PushKey(CancellationToken ct)

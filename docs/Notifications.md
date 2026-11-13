@@ -43,3 +43,11 @@ Run `dotnet run --project tests/Notifications/NotificationTests.csproj`. This us
 Browser verification covers bell counts/read-all, plain-text rendering of untrusted content, explicit permission/subscribe/disable, keyboard dismissal and widths 320–1440px. Real end-to-end reception on the deployed HTTPS domain and physical Android/iOS devices still needs to be verified after deployment and user consent.
 
 Logout always clears the session even if last-seen or push-subscription cleanup fails; both share a three-second cleanup budget and failures are logged. Push previews remain generic and notification details still require the owning account to authenticate.
+
+## Push activation failures
+
+Push mutations fetch a fresh antiforgery token from the authenticated `RequestToken` endpoint before posting, so an old open tab does not reuse a stale hidden-form token after deployment. The UI distinguishes permission, public-key retrieval, service-worker preparation, browser subscription and server registration failures, with HTTP status and a safe server trace reference. It never considers a browser-only subscription enabled until server registration succeeds.
+
+Notification API exceptions are logged with the trace reference and returned as sanitized Problem Details. A missing one of the four dedicated web notification tables triggers idempotent schema preparation and one retry; no existing tables or VAPID keys are deleted. `PUSH_KEY_UNAVAILABLE` means the existing protected private key could not be read: restore/check the persistent Data Protection key directory and its IIS permissions/shared configuration. Do not delete VAPID keys or subscriptions as a diagnostic shortcut.
+
+The HTTP regression harness exercises actual MVC routing, JSON binding and antiforgery cookie/header validation, including a browser-shaped subscription payload and unreadable protected-key error response.

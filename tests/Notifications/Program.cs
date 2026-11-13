@@ -62,6 +62,7 @@ var logout=await auth.Logout();Check(logout is RedirectToActionResult action&&ac
 var unavailableDb=await factory.CreateDbContextAsync();await unavailableDb.DisposeAsync();logoutSession.SetInt32("UserId",1);
 var unavailableAuth=new AuthController(unavailableDb,null!,failedCleanup,NullLogger<AuthController>.Instance){ControllerContext=new ControllerContext{HttpContext=logoutContext}};
 Check(await unavailableAuth.Logout() is RedirectToActionResult&&logoutSession.GetInt32("UserId")==null,"Logout still clears session when both account and push housekeeping databases fail");
+await HttpChecks.Run(factory,service,request.Endpoint,request.Keys.P256dh,request.Keys.Auth);
 Console.WriteLine("ALL BACKEND NOTIFICATION CHECKS PASSED (isolated SQLite, no external sends)");
 
 class TestDb(DbContextOptions<AppDbContext> options):AppDbContext(options){protected override void OnModelCreating(ModelBuilder m){var keep=new[]{typeof(LoginUser),typeof(WebNotification),typeof(WebPushSubscription),typeof(WebPushDelivery),typeof(WebPushKey),typeof(NotificationSendLog)};foreach(var e in m.Model.GetEntityTypes().ToArray())if(!keep.Contains(e.ClrType))m.Ignore(e.ClrType);}}
