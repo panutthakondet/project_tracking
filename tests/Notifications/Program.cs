@@ -68,6 +68,7 @@ await MeetingChecks.Run(factory,service,telegram);
 await OtherEventChecks.Run(factory,service,telegram,config);
 await IndependentChannelChecks.Run(factory,service,telegram,config);
 await HttpChecks.Run(factory,service,request.Endpoint,request.Keys.P256dh,request.Keys.Auth);
+await MeetingMultiRecipientChecks.Run(factory,service,telegram);
 await PushDiagnosticChecks.Run(factory,service);
 Console.WriteLine("ALL BACKEND NOTIFICATION CHECKS PASSED (isolated SQLite, no external sends)");
 
