@@ -55,6 +55,13 @@ var retry=await db.WebPushDeliveries.AsNoTracking().OrderByDescending(d=>d.Id).F
 var calls=handler.Calls;await(Task)dispatch.Invoke(worker,[CancellationToken.None])!;Check(handler.Calls==calls,"retry is not sent again before its due time");
 await db.WebPushDeliveries.Where(d=>d.Id==retry.Id).ExecuteUpdateAsync(s=>s.SetProperty(d=>d.NextAttemptAt,DateTime.UtcNow.AddSeconds(-1)));handler.Status=HttpStatusCode.Created;await(Task)dispatch.Invoke(worker,[CancellationToken.None])!;Check(await db.WebPushDeliveries.AnyAsync(d=>d.Id==retry.Id&&d.Done&&d.Attempts==2),"due retry succeeds and completes the same delivery");
 await service.NotifyEmployeeSafelyAsync(10,"Queued before account switch","test","/");await two.Subscribe(request,default);calls=handler.Calls;await(Task)dispatch.Invoke(worker,[CancellationToken.None])!;Check(handler.Calls==calls,"pending old-account push cannot reach a rebound browser subscription");
+var failedCleanup=new WebNotificationService(new FailingFactory(),new EphemeralDataProtectionProvider(),config,NullLogger<WebNotificationService>.Instance);
+var logoutContext=new DefaultHttpContext();var logoutSession=new FakeSession();logoutSession.SetInt32("UserId",1);logoutContext.Features.Set<ISessionFeature>(new FakeSessionFeature{Session=logoutSession});
+var auth=new AuthController(db,null!,failedCleanup,NullLogger<AuthController>.Instance){ControllerContext=new ControllerContext{HttpContext=logoutContext}};
+var logout=await auth.Logout();Check(logout is RedirectToActionResult action&&action.ActionName=="Login"&&logoutSession.GetInt32("UserId")==null,"Logout clears session and redirects to Login even when push cleanup fails");
+var unavailableDb=await factory.CreateDbContextAsync();await unavailableDb.DisposeAsync();logoutSession.SetInt32("UserId",1);
+var unavailableAuth=new AuthController(unavailableDb,null!,failedCleanup,NullLogger<AuthController>.Instance){ControllerContext=new ControllerContext{HttpContext=logoutContext}};
+Check(await unavailableAuth.Logout() is RedirectToActionResult&&logoutSession.GetInt32("UserId")==null,"Logout still clears session when both account and push housekeeping databases fail");
 Console.WriteLine("ALL BACKEND NOTIFICATION CHECKS PASSED (isolated SQLite, no external sends)");
 
 class TestDb(DbContextOptions<AppDbContext> options):AppDbContext(options){protected override void OnModelCreating(ModelBuilder m){var keep=new[]{typeof(LoginUser),typeof(WebNotification),typeof(WebPushSubscription),typeof(WebPushDelivery),typeof(WebPushKey),typeof(NotificationSendLog)};foreach(var e in m.Model.GetEntityTypes().ToArray())if(!keep.Contains(e.ClrType))m.Ignore(e.ClrType);}}
@@ -66,3 +73,5 @@ class FakeHttp:HttpMessageHandler{public int Calls;public bool Encrypted;public 
 class FakeHttpFactory(FakeHttp handler):IHttpClientFactory{public HttpClient CreateClient(string name)=>new(handler,false);}
 
 class FakeSessionFeature:ISessionFeature{public ISession Session {get;set;}=new FakeSession();}
+
+class FailingFactory:IDbContextFactory<AppDbContext>{public AppDbContext CreateDbContext()=>throw new InvalidOperationException("simulated push DB outage");public Task<AppDbContext>CreateDbContextAsync(CancellationToken ct=default)=>Task.FromException<AppDbContext>(new InvalidOperationException("simulated push DB outage"));}

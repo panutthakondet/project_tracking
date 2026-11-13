@@ -10,7 +10,7 @@ Existing installations may require closing/reopening or reinstalling after deplo
 
 ## Offline and updates
 
-Only `offline.html` and the four public PWA icons are stored in the service-worker cache. HTML navigations are network-only, with a generic Thai offline page on network failure. API calls, uploads, notes, authentication responses and POST requests are never added to Cache Storage.
+Only `offline.html` and the four public PWA icons are stored in the service-worker cache. Authentication routes bypass the service worker entirely, leaving login/logout redirects and cookies to the browser. Other HTML navigations are network-only, with a generic Thai connection-error page on network failure (which does not assume the user’s internet is down). API calls, uploads, notes, authentication responses and POST requests are never added to Cache Storage.
 
 The service worker does not call `skipWaiting` or reload open pages. An update waits for the previous worker's app windows/tabs to close, protecting unsaved forms. When editing cached public resources, change the `CACHE` version in `wwwroot/sw.js`; activation removes only older caches with the `projecttracking-pwa-` prefix. It never clears other applications' caches.
 

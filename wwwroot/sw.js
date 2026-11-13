@@ -1,5 +1,5 @@
 // Cache only public PWA resources. Authenticated pages, API responses and uploads stay network-only.
-const CACHE='projecttracking-pwa-v3';
+const CACHE='projecttracking-pwa-v4';
 const publicFiles=['offline.html','pwa/icon-192-v2.png','pwa/icon-512-v2.png','pwa/icon-maskable-512-v2.png','pwa/apple-touch-icon-v2.png'];
 const scoped=path=>new URL(path,self.registration.scope).href;
 self.addEventListener('install',event=>{
@@ -16,6 +16,10 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
     const request=event.request,url=new URL(request.url);
     if(request.method!=='GET'||url.origin!==self.location.origin)return;
+    // Let the browser own authentication redirects, cookies and session transitions.
+    const scopePath=new URL(self.registration.scope).pathname.replace(/\/$/,'');
+    const appPath=url.pathname.slice(scopePath.length);
+    if(/^\/Auth(?:\/|$)/i.test(appPath))return;
     if(request.mode==='navigate'){
         event.respondWith(fetch(request,{cache:'no-store'}).catch(async()=>{
             const cache=await caches.open(CACHE);

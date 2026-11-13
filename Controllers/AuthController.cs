@@ -14,15 +14,18 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly WebNotificationService _webNotifications;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             AppDbContext context,
             IWebHostEnvironment env,
-            WebNotificationService webNotifications)
+            WebNotificationService webNotifications,
+            ILogger<AuthController> logger)
         {
             _context = context;
             _env = env;
             _webNotifications = webNotifications;
+            _logger = logger;
         }
 
         // =====================
@@ -161,21 +164,41 @@ namespace ProjectTracking.Controllers
         // LOGOUT
         // =====================
         [HttpGet]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> Logout()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId.HasValue)
+            using var cleanupTimeout = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+            cleanupTimeout.CancelAfter(TimeSpan.FromSeconds(3));
+            try
             {
-                var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.UserId == userId.Value);
-                if (user != null)
+                if (userId.HasValue)
                 {
-                    user.LastSeenAt = null;
-                    await _context.SaveChangesAsync();
+                    var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.UserId == userId.Value, cleanupTimeout.Token);
+                    if (user != null)
+                    {
+                        user.LastSeenAt = null;
+                        await _context.SaveChangesAsync(cleanupTimeout.Token);
+                    }
                 }
             }
-
-            if(userId.HasValue)await _webNotifications.RevokeSessionAsync(userId.Value,HttpContext.Session.Id);
-            HttpContext.Session.Clear();
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Last-seen cleanup failed during Logout for UserId={UserId}.", userId);
+            }
+            try
+            {
+                if (userId.HasValue)
+                    await _webNotifications.RevokeSessionAsync(userId.Value, HttpContext.Session.Id, cleanupTimeout.Token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Push subscription cleanup failed during Logout for UserId={UserId}; session will still be cleared.", userId);
+            }
+            finally
+            {
+                HttpContext.Session.Clear();
+            }
             return RedirectToAction("Login");
         }
 

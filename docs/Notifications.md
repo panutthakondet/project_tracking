@@ -26,7 +26,7 @@ Only notifications generated after deployment are included; historical Telegram 
 - VAPID keys are generated on first use and persist in the database. Private keys and subscription details are encrypted with the app's existing ASP.NET Data Protection configuration. Preserve the database and persistent `DATAPROTECTION_KEYS_PATH` across deployments/instances; never delete keys on each release.
 - Optional `WEB_PUSH_SUBJECT` can be a valid `mailto:` administrator contact or an HTTPS application URL. It defaults to `APP_BASE_URL` (or the existing ProjectTracking deployment domain). No private VAPID keys need to be copied into the repository/client.
 - The server must reach browser push providers over outbound HTTPS. Accepted subscription hosts are FCM, Mozilla Push, Apple Web Push and Microsoft WNS; redirect following is disabled. No real external push or Telegram send is needed for the automated test harness.
-- Existing installed PWAs may need to close all tabs/app windows and reopen to activate service worker v3. No forced reload or `skipWaiting` is used, to preserve unsaved notes/forms.
+- Existing installed PWAs may need to close all tabs/app windows and reopen to activate service worker v4. No forced reload or `skipWaiting` is used, to preserve unsaved notes/forms.
 
 ## Privacy and reliability
 
@@ -41,3 +41,5 @@ No inbox/API data is stored in the PWA offline cache. Data remains in the applic
 Run `dotnet run --project tests/Notifications/NotificationTests.csproj`. This uses isolated SQLite storage with a narrowly scoped MySQL upsert adapter and a mocked HTTP push transport; it never reads the production database or sends external notifications. It checks recipient ownership, ACTIVE accounts, CSRF attributes, encrypted storage, VAPID round-trip, no-Telegram delivery, deduplication, outbox encryption/completion, expired subscriptions, account switching and logout revocation.
 
 Browser verification covers bell counts/read-all, plain-text rendering of untrusted content, explicit permission/subscribe/disable, keyboard dismissal and widths 320–1440px. Real end-to-end reception on the deployed HTTPS domain and physical Android/iOS devices still needs to be verified after deployment and user consent.
+
+Logout always clears the session even if last-seen or push-subscription cleanup fails; both share a three-second cleanup budget and failures are logged. Push previews remain generic and notification details still require the owning account to authenticate.
