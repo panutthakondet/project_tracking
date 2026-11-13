@@ -1328,49 +1328,25 @@ WHERE DATE(m.meeting_date) = @meetingDate
             int meetingId,
             CancellationToken cancellationToken)
         {
-            const string sql = @"
-SELECT
-  q.attendee_id,
-  q.emp_name,
-  q.position,
-  q.email
-FROM (
-  SELECT
-    ma.id AS attendee_id,
-    e.emp_name,
-    e.position,
-    COALESCE(
-      (
-        SELECT u.email
-        FROM login_user u
-        WHERE u.user_id = e.login_user_id
-          AND u.email IS NOT NULL
-          AND u.email <> ''
-        LIMIT 1
-      ),
-      (
-        SELECT u.email
-        FROM login_user u
-        WHERE u.emp_id = e.emp_id
-          AND u.email IS NOT NULL
-          AND u.email <> ''
-        ORDER BY u.user_id
-        LIMIT 1
-      )
-    ) AS email
-  FROM meeting_attendees ma
-  JOIN employee e ON e.emp_id = ma.user_id
-  WHERE ma.meeting_id = @mid
-) q
-WHERE q.email IS NOT NULL
-  AND q.email <> ''
-ORDER BY q.attendee_id;";
-
-            var rows = await db.Database
-                .SqlQueryRaw<EmailRecipientRow>(
-                    sql,
-                    new MySqlConnector.MySqlParameter("@mid", meetingId))
-                .ToListAsync(cancellationToken);
+            var rows = await (
+                from attendee in db.MeetingAttendees.AsNoTracking()
+                where attendee.MeetingId == meetingId
+                join employee in db.Employees.AsNoTracking() on attendee.UserId equals employee.EmpId
+                join position in db.EmployeePositions.AsNoTracking() on employee.PositionId equals (int?)position.PositionId into positions
+                from position in positions.DefaultIfEmpty()
+                let email = db.LoginUsers.Where(user => user.UserId == employee.LoginUserId && user.Email != null && user.Email != "")
+                    .Select(user => user.Email).FirstOrDefault()
+                    ?? db.LoginUsers.Where(user => user.EmpId == employee.EmpId && user.Email != null && user.Email != "")
+                        .OrderBy(user => user.UserId).Select(user => user.Email).FirstOrDefault()
+                where email != null && email != ""
+                orderby attendee.Id
+                select new EmailRecipientRow
+                {
+                    attendee_id = attendee.Id,
+                    emp_name = employee.EmpName,
+                    position = position == null ? null : position.PositionName,
+                    email = email!
+                }).ToListAsync(cancellationToken);
 
             return rows
                 .Select(x => new EmailRecipient(
@@ -1385,22 +1361,20 @@ ORDER BY q.attendee_id;";
             int meetingId,
             CancellationToken cancellationToken)
         {
-            const string sql = @"
-SELECT
-  ma.id AS attendee_id,
-  e.emp_id,
-  e.emp_name,
-  e.position
-FROM meeting_attendees ma
-JOIN employee e ON e.emp_id = ma.user_id
-WHERE ma.meeting_id = @mid
-ORDER BY ma.id;";
-
-            var rows = await db.Database
-                .SqlQueryRaw<MeetingRecipientRow>(
-                    sql,
-                    new MySqlConnector.MySqlParameter("@mid", meetingId))
-                .ToListAsync(cancellationToken);
+            var rows = await (
+                from attendee in db.MeetingAttendees.AsNoTracking()
+                where attendee.MeetingId == meetingId
+                join employee in db.Employees.AsNoTracking() on attendee.UserId equals employee.EmpId
+                join position in db.EmployeePositions.AsNoTracking() on employee.PositionId equals (int?)position.PositionId into positions
+                from position in positions.DefaultIfEmpty()
+                orderby attendee.Id
+                select new MeetingRecipientRow
+                {
+                    attendee_id = attendee.Id,
+                    emp_id = employee.EmpId,
+                    emp_name = employee.EmpName,
+                    position = position == null ? null : position.PositionName
+                }).ToListAsync(cancellationToken);
 
             return rows
                 .Select(x => new MeetingRecipientInfo(
