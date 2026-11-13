@@ -17,3 +17,7 @@ The service worker does not call `skipWaiting` or reload open pages. An update w
 `sw.js`, `offline.html` and the manifest have `Cache-Control: no-cache`; `.webmanifest` is served as `application/manifest+json` by ASP.NET static-file middleware.
 
 Offline editing, background sync and push notifications are not implemented. Work requires an internet connection. Verify actual installation on the deployed HTTPS domain and target devices after deployment.
+
+## App icon
+
+The current icon is derived from `wwwroot/pwa/app-icon-source.png` supplied by the user. Versioned `*-v2.png` URLs prevent reuse of the previous installed icon. The maskable variant adds safe padding and an opaque background; the standard variants preserve the original artwork. Older icon files remain available for existing installations during updates.

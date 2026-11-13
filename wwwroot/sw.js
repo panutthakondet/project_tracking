@@ -1,6 +1,6 @@
 // Cache only public PWA resources. Authenticated pages, API responses and uploads stay network-only.
-const CACHE='projecttracking-pwa-v1';
-const publicFiles=['offline.html','pwa/icon-192.png','pwa/icon-512.png','pwa/icon-maskable-512.png','pwa/apple-touch-icon.png'];
+const CACHE='projecttracking-pwa-v2';
+const publicFiles=['offline.html','pwa/icon-192-v2.png','pwa/icon-512-v2.png','pwa/icon-maskable-512-v2.png','pwa/apple-touch-icon-v2.png'];
 const scoped=path=>new URL(path,self.registration.scope).href;
 self.addEventListener('install',event=>{
     event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(publicFiles.map(scoped))));
