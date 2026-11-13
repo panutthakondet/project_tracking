@@ -503,12 +503,30 @@ static async Task EnsureMeetingGroupTablesAsync(IServiceProvider services)
             await command.ExecuteNonQueryAsync();
         }
 
+        // A normal startup must not take a meetings metadata/write lock when the
+        // migration is already complete (another app or SQL client may be using it).
         command.CommandText = @"
-            UPDATE `meetings`
-            SET `calendar_id` = (SELECT `calendar_id` FROM `meeting_calendars` ORDER BY `calendar_id` LIMIT 1)
-            WHERE `calendar_id` IS NULL OR `calendar_id` = 0;
-            ALTER TABLE `meetings` MODIFY COLUMN `calendar_id` int NOT NULL;";
-        await command.ExecuteNonQueryAsync();
+            SELECT EXISTS(SELECT 1 FROM `meetings`
+              WHERE `calendar_id` IS NULL OR `calendar_id` = 0);";
+        var needsBackfill = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (needsBackfill)
+        {
+            command.CommandText = @"
+                UPDATE `meetings`
+                SET `calendar_id` = (SELECT `calendar_id` FROM `meeting_calendars` ORDER BY `calendar_id` LIMIT 1)
+                WHERE `calendar_id` IS NULL OR `calendar_id` = 0;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'meetings' AND COLUMN_NAME = 'calendar_id';";
+        var isNullable = string.Equals(Convert.ToString(await command.ExecuteScalarAsync()), "YES", StringComparison.OrdinalIgnoreCase);
+        if (isNullable)
+        {
+            command.CommandText = "ALTER TABLE `meetings` MODIFY COLUMN `calendar_id` int NOT NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         command.CommandText = @"
             SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
