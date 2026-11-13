@@ -332,6 +332,16 @@
                     </span>
                     <span class="dashboard-global-tool-label" aria-hidden="true">งานค้าง</span>
             </a>
+            @if (Context.Session.GetInt32("UserId").HasValue)
+            {
+                <button type="button" class="dashboard-global-tool notification-shortcut" data-notification-bell aria-label="เปิดการแจ้งเตือน" aria-controls="notificationPanel" aria-expanded="false">
+                    <span class="dashboard-global-tool-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+                        <span class="dashboard-global-tool-count notification-unread" data-notification-count hidden></span>
+                    </span>
+                    <span class="dashboard-global-tool-label" aria-hidden="true">แจ้งเตือน</span>
+                </button>
+            }
         </div>
     </section>
 

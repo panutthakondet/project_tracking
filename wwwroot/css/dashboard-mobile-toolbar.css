@@ -15,7 +15,7 @@
     html body main .dashboard-view .dashboard-online-avatar { width:28px; height:28px; margin-left:-5px; }
     html body main .dashboard-view .dashboard-online-avatar:first-child { margin-left:0; }
     html body main .dashboard-view .dashboard-global-tools {
-        display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); width:100%; max-width:none;
+        display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); width:100%; max-width:none;
         flex:1 1 100%; order:4; gap:4px; padding:0; min-width:0;
     }
     html body main .dashboard-view .dashboard-global-tools::before { display:none; }
@@ -33,7 +33,7 @@
     html body main .dashboard-view .dashboard-global-department-bar .dashboard-department-option { min-height:38px; padding:8px 13px; border-radius:10px; font-size:12px; flex-shrink:0; }
 }
 @media (max-width:360px) {
-    html body main .dashboard-view .dashboard-global-tools { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    html body main .dashboard-view .dashboard-global-tools { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
 }
 @media (max-width:720px) {
     /* Remove the three nested outer gutters only on the mobile Dashboard. */

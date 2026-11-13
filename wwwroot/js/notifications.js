@@ -6,7 +6,7 @@
     const csrf=()=>document.querySelector('#notificationsAntiforgery input[name="__RequestVerificationToken"]').value;
     const api=async(url,body)=>{const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...(body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','RequestVerificationToken':csrf()},body:JSON.stringify(body)})});if(response.status===401){counts(0);list.replaceChildren();throw new Error('กรุณาเข้าสู่ระบบใหม่');}if(!response.ok)throw new Error('ดำเนินการไม่สำเร็จ กรุณาลองอีกครั้ง');return response;};
     const close=()=>{panel.hidden=true;bells.forEach(b=>b.setAttribute('aria-expanded','false'));};
-    const counts=n=>document.querySelectorAll('[data-notification-count]').forEach(e=>{e.hidden=n===0;e.textContent=n>99?'99+':String(n);e.parentElement.setAttribute('aria-label',n?`การแจ้งเตือนที่ยังไม่อ่าน ${n} รายการ`:'เปิดการแจ้งเตือน');});
+    const counts=n=>document.querySelectorAll('[data-notification-count]').forEach(e=>{e.hidden=n===0;e.textContent=n>99?'99+':String(n);e.closest('[data-notification-bell]').setAttribute('aria-label',n?`การแจ้งเตือนที่ยังไม่อ่าน ${n} รายการ`:'เปิดการแจ้งเตือน');});
     const load=async append=>{
         if(busy){if(!append)queuedReload=true;return;}busy=true;more.disabled=true;
         try{

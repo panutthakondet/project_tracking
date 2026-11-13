@@ -23,3 +23,8 @@
 @media(max-width:720px) { .notification-profile-entry { display:none; } .mobile-menu-brand { flex:1 1 auto; } }
 
 @media(max-width:360px) { html body .v2-sidebar .mobile-menu-header { gap:8px; } html body .v2-sidebar .mobile-menu-brand { font-size:14px; } }
+html body main .dashboard-view .notification-shortcut { border:0; background:transparent; padding:0; color:inherit; font:inherit; }
+html body main .dashboard-view .notification-shortcut .dashboard-global-tool-icon { color:#dc3b92; border-color:#e790be; background:linear-gradient(145deg,#fff4fb,#f9dfee); box-shadow:0 3px 9px rgba(196,44,121,.12); }
+html body main .dashboard-view .notification-shortcut svg { fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+html body main .dashboard-view .notification-shortcut:focus-visible { outline:2px solid var(--pt-accent,#1686e4); outline-offset:2px; border-radius:12px; }
+@media (min-width:361px) and (max-width:640px) { html body main .dashboard-view .dashboard-global-tools { max-width:none; grid-template-columns:repeat(7,minmax(0,1fr)); } }

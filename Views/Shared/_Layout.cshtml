@@ -1863,6 +1863,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
 @{
     var userId = Context.Session.GetInt32("UserId");
+        var isHomeDashboardPage = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Home", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
     var username = Context.Session.GetString("Username");
     var profileImagePath = ProjectTracking.Services.ProfileImagePathResolver.Normalize(
         Context.Session.GetString("ProfileImagePath"));
@@ -2085,7 +2087,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
             <img class="mobile-menu-profile" src="@profileImagePath" alt="รูปโปรไฟล์" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
             <span>ProjectTracking</span>
         </a>
-        @if (userId != null) { @await Html.PartialAsync("_NotificationBell") }
+        @if (userId != null && !isHomeDashboardPage) { @await Html.PartialAsync("_NotificationBell") }
         <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-controls="navbarMain" aria-expanded="false" aria-label="เปิดเมนูหลัก">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
@@ -2127,7 +2129,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         <div class="v2-profile-role-row">
             <span class="v2-profile-role">@(isAdmin ? "Administrator" : "Developer")</span>
         </div>
-        @if (userId != null) { <div class="notification-profile-entry">@await Html.PartialAsync("_NotificationBell")</div> }
+        @if (userId != null && !isHomeDashboardPage) { <div class="notification-profile-entry">@await Html.PartialAsync("_NotificationBell")</div> }
         <button type="button" class="pwa-install-button" data-pwa-install hidden>ติดตั้งแอป ProjectTracking</button>
         @if (TempData["ProfileSuccess"] != null)
         {
