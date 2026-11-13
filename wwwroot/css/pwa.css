@@ -20,8 +20,6 @@
     /* Extend the mobile header background into the top inset, keeping its controls below the notch. */
     html body:has(.v2-shell) { padding-top:0; }
     html body .v2-shell { min-height:calc(100dvh - env(safe-area-inset-bottom,0px)); }
-    html body .v2-sidebar .mobile-menu-header {
-        padding-top:calc(12px + env(safe-area-inset-top,0px));
-        min-height:calc(72px + env(safe-area-inset-top,0px));
-    }
+    /* Consumed by mobile-navigation.css, which loads later in the layout. */
+    html { --pt-mobile-top-inset:env(safe-area-inset-top,0px); }
 }
