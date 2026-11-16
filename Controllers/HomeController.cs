@@ -176,6 +176,12 @@ namespace ProjectTracking.Controllers
                 currentEmpId = await ResolveCurrentEmployeeIdAsync(currentUserId.Value);
             }
 
+            ViewBag.DashboardAliases = await _context.Employees.AsNoTracking()
+                .Where(employee => employee.Status == "ACTIVE" && employee.Alias != null && employee.Alias.Trim() != "")
+                .OrderBy(employee => employee.EmpName)
+                .Select(employee => employee.EmpName + " — " + employee.Alias)
+                .ToListAsync();
+
             if (string.IsNullOrWhiteSpace(department) && currentEmpId.HasValue)
             {
                 department = await ResolveDefaultDashboardDepartmentAsync(currentEmpId.Value);

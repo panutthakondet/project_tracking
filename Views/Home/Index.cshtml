@@ -7,6 +7,8 @@
     ViewData["Title"] = "Dashboard";
 
     var dashboard = Model ?? new HomeDashboardViewModel();
+    var dashboardAliases = ViewBag.DashboardAliases as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var aliasTickerText = string.Join("   •   ", dashboardAliases);
     var attendanceProgressWidth = Math.Clamp(dashboard.MonthAttendanceRate, 0m, 100m).ToString("0.#", CultureInfo.InvariantCulture);
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
     var yearlyCompletedTotal = dashboard.YearlyTasks.Sum(task => task.Completed);
@@ -214,6 +216,12 @@
 
 <div class="dashboard-view is-loading">
     <section class="dashboard-global-searchbar" aria-label="เครื่องมือ Dashboard">
+        @if (!string.IsNullOrWhiteSpace(aliasTickerText))
+        {
+            <div class="dashboard-alias-ticker" title="@aliasTickerText" aria-label="ฉายาพนักงาน">
+                <span class="dashboard-alias-ticker__text">@aliasTickerText</span>
+            </div>
+        }
         @if (visibleOnlineUsers.Count > 0)
         {
             <div class="dashboard-online-users" aria-label="ผู้ใช้งานออนไลน์">
@@ -1221,6 +1229,7 @@
 <link rel="stylesheet" href="~/css/yearly-glossy-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/owner-glossy-chart.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/dashboard-mobile-toolbar.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/dashboard-alias-ticker.css" asp-append-version="true" />
 <style>
 .dashboard-view {
     --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
