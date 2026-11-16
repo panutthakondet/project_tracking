@@ -1866,6 +1866,14 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         var isHomeDashboardPage = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Home", StringComparison.OrdinalIgnoreCase)
             && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
     var username = Context.Session.GetString("Username");
+    var profileAlias = userId.HasValue
+        ? await LayoutDb.Employees.AsNoTracking()
+            .Where(emp => LayoutDb.LoginUsers.Any(login => login.UserId == userId.Value
+                && (login.EmpId == emp.EmpId || (login.EmpId == null && emp.LoginUserId == login.UserId))))
+            .OrderBy(emp => emp.EmpId)
+            .Select(emp => emp.Alias)
+            .FirstOrDefaultAsync()
+        : null;
     var profileImagePath = ProjectTracking.Services.ProfileImagePathResolver.Normalize(
         Context.Session.GetString("ProfileImagePath"));
     var currentReturnUrl = Context.Request.Path + Context.Request.QueryString;
@@ -2085,7 +2093,13 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     <div class="mobile-menu-header">
         <a class="mobile-menu-brand" asp-controller="Home" asp-action="Index">
             <img class="mobile-menu-profile" src="@profileImagePath" alt="รูปโปรไฟล์" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-            <span>ProjectTracking</span>
+            <span class="mobile-menu-identity">
+                <span>ProjectTracking</span>
+                @if (!string.IsNullOrWhiteSpace(profileAlias))
+                {
+                    <small class="mobile-menu-alias" title="@profileAlias">@profileAlias</small>
+                }
+            </span>
         </a>
         @if (userId != null && !isHomeDashboardPage) { @await Html.PartialAsync("_NotificationBell") }
         <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-controls="navbarMain" aria-expanded="false" aria-label="เปิดเมนูหลัก">
@@ -2124,7 +2138,13 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
             </div>
         </form>
         <div class="v2-profile-name-row">
-            <span class="v2-profile-name">@(string.IsNullOrWhiteSpace(username) ? "ผู้ใช้งาน" : username)</span>
+            <div class="v2-profile-identity">
+                <span class="v2-profile-name">@(string.IsNullOrWhiteSpace(username) ? "ผู้ใช้งาน" : username)</span>
+                @if (!string.IsNullOrWhiteSpace(profileAlias))
+                {
+                    <span class="v2-profile-alias">@profileAlias</span>
+                }
+            </div>
         </div>
         <div class="v2-profile-role-row">
             <span class="v2-profile-role">@(isAdmin ? "Administrator" : "Developer")</span>

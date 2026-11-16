@@ -52,3 +52,10 @@
         padding-right:16px;
     }
 }
+
+.v2-profile-identity { min-width:0; max-width:100%; text-align:center; }
+.v2-profile-alias { display:block; margin-top:4px; color:var(--pt-sidebar-contrast,#fff); font-size:13px; font-weight:500; line-height:1.5; overflow-wrap:anywhere; }
+@media (max-width:720px) {
+    .mobile-menu-identity { display:flex; flex-direction:column; min-width:0; }
+    .mobile-menu-alias { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:500; line-height:1.5; color:var(--pt-sidebar-contrast,#fff); }
+}
