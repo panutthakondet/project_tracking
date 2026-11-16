@@ -14,6 +14,10 @@ namespace ProjectTracking.Models
         [Column("emp_name")]
         public required string EmpName { get; set; }   // ⭐ เดิม
 
+        [Column("alias")]
+        [StringLength(80, ErrorMessage = "ฉายาต้องไม่เกิน 80 ตัวอักษร")]
+        public string? Alias { get; set; }
+
         [Required(ErrorMessage = "กรุณาเลือกตำแหน่ง")]
         [Column("position_id")]
         public int? PositionId { get; set; }

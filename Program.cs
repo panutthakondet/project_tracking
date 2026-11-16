@@ -227,6 +227,7 @@ var uploadsPath = Path.Combine(webRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
+await EmployeeAliasSchema.EnsureAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureEmployeePositionTableAsync(app.Services);

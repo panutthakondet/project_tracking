@@ -241,6 +241,7 @@ namespace ProjectTracking.Controllers
             await ValidatePositionAsync(employee.PositionId);
             if (ModelState.IsValid)
             {
+                employee.Alias = string.IsNullOrWhiteSpace(employee.Alias) ? null : employee.Alias.Trim();
                 _context.Add(employee);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -287,6 +288,7 @@ namespace ProjectTracking.Controllers
                     return NotFound();
 
                 existingEmployee.EmpName = employee.EmpName;
+                existingEmployee.Alias = string.IsNullOrWhiteSpace(employee.Alias) ? null : employee.Alias.Trim();
                 existingEmployee.PositionId = employee.PositionId;
                 existingEmployee.DepartmentId = employee.DepartmentId;
                 existingEmployee.Status = employee.Status;
