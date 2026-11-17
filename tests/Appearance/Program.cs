@@ -44,6 +44,14 @@ Check(!disabled.Contains("--pt-colorblind-enabled:1"),"mode can be disabled");
 Check(disabled.Contains("--pt-body-bg: #EEF3F9;"),"disabling restores original background palette");
 await service.SaveAppearanceAsync(1,Post(true));await service.ResetAppearanceAsync(1);
 Check(!(await service.GetAppearanceAsync(1)).ColorBlindModeEnabled,"reset clears accessibility preference too");
+await service.SaveAppearanceAsync(1,Post(true));
+await service.SetColorVisionModeAsync(1,"blue-yellow");
+var shortcut=await service.GetAppearanceAsync(1);
+Check(shortcut.ColorVisionMode=="blue-yellow" && shortcut.FontScale==1.05m,"dashboard shortcut changes only colour vision preferences");
+await service.SetColorVisionModeAsync(1,"standard");
+Check(!(await service.GetAppearanceAsync(1)).ColorBlindModeEnabled,"dashboard shortcut restores standard mode");
+await service.SetColorVisionModeAsync(2,"monochrome");
+Check((await service.GetAppearanceAsync(2)).ColorVisionMode=="monochrome","dashboard shortcut supports accounts without preferences");
 Console.WriteLine("ALL APPEARANCE CHECKS PASSED (isolated SQLite, no production database)");
 class ThemeTestDb(DbContextOptions<AppDbContext> options):AppDbContext(options)
 {

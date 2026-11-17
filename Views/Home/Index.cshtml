@@ -1,10 +1,14 @@
 @model ProjectTracking.ViewModels.HomeDashboardViewModel
 @using Microsoft.AspNetCore.Http
+@inject ProjectTracking.Services.UserThemeService DashboardThemeService
 @using System.Globalization
 @using ProjectTracking.ViewModels
 
 @{
     ViewData["Title"] = "Dashboard";
+    var colorVisionUserId = Context.Session.GetInt32("UserId");
+    var colorVisionPreference = colorVisionUserId.HasValue ? await DashboardThemeService.GetAppearanceAsync(colorVisionUserId.Value) : null;
+    var selectedColorVision = colorVisionPreference?.ColorBlindModeEnabled == true ? colorVisionPreference.ColorVisionMode : "standard";
 
     var dashboard = Model ?? new HomeDashboardViewModel();
     var dashboardAliases = ViewBag.DashboardAliases as IEnumerable<string> ?? Enumerable.Empty<string>();
@@ -215,6 +219,12 @@
 }
 
 <div class="dashboard-view is-loading">
+    <form asp-controller="Settings" asp-action="ColorVision" method="post" class="dashboard-color-strip" aria-label="เลือกโหมดสีทั้งเว็บ">
+        @foreach (var choice in new[] { (Key: "standard", Label: "สีปกติ", Color: "#FFFFFF"), (Key: "red-green", Label: "ช่วยแยกสีแดง–เขียว", Color: "#0072B2"), (Key: "blue-yellow", Label: "ช่วยแยกสีน้ำเงิน–เหลือง", Color: "#CC79A7"), (Key: "monochrome", Label: "ขาวดำ", Color: "#000000") })
+        {
+            <button type="submit" name="mode" value="@choice.Key" title="@choice.Label" aria-label="@choice.Label" aria-pressed="@(selectedColorVision == choice.Key ? "true" : "false")" style="--swatch:@choice.Color"><span aria-hidden="true">@(selectedColorVision == choice.Key ? "✓" : "")</span></button>
+        }
+    </form>
     <section class="dashboard-global-searchbar" aria-label="เครื่องมือ Dashboard">
         @if (!string.IsNullOrWhiteSpace(aliasTickerText))
         {
@@ -8325,3 +8335,12 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script type="module" src="~/js/support-three-chart.js" asp-append-version="true"></script>
 <script src="~/js/yearly-glossy-chart.js" asp-append-version="true" defer></script>
 <script src="~/js/owner-glossy-chart.js" asp-append-version="true" defer></script>
+
+<style>
+    .dashboard-color-strip { display:flex; align-items:center; gap:10px; width:max-content; max-width:100%; margin:0 0 10px; padding:8px 14px; background:#111; border-radius:999px; }
+    .dashboard-color-strip button { display:grid; place-items:center; width:26px; height:26px; padding:0; background:var(--swatch); color:#fff; border:1px solid #fff; border-radius:0; cursor:pointer; font-size:18px; font-weight:800; line-height:1; }
+    .dashboard-color-strip button[value="standard"] { color:#111; }
+    .dashboard-color-strip button[aria-pressed="true"] { outline:2px solid #fff; outline-offset:3px; }
+    .dashboard-color-strip button:focus-visible { outline:3px solid #FFD800; outline-offset:3px; }
+    @@media (pointer:coarse) { .dashboard-color-strip { gap:12px; } .dashboard-color-strip button { width:32px; height:32px; } }
+</style>

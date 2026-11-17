@@ -21,6 +21,22 @@ namespace ProjectTracking.Services
             _context = context;
         }
 
+        // Only update colour-vision preferences; keep every stored theme/custom value intact.
+        public async Task SetColorVisionModeAsync(int userId, string mode, CancellationToken ct = default)
+        {
+            var preference = await _context.UserThemePreferences.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+            if (preference == null)
+            {
+                var appearance = await GetAppearanceAsync(userId, ct);
+                preference = new UserThemePreference { UserId = userId, ThemeId = appearance.ThemeId };
+                _context.UserThemePreferences.Add(preference);
+            }
+            preference.ColorBlindModeEnabled = mode != "standard";
+            if (mode != "standard") preference.ColorVisionMode = ColorVisionTheme.NormalizeMode(mode);
+            preference.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(ct);
+        }
+
         public async Task<string> GetThemeCssAsync(int? userId, CancellationToken cancellationToken = default)
         {
             var theme = await GetResolvedThemeAsync(userId, cancellationToken);
