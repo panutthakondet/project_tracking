@@ -20,8 +20,8 @@ The chart helper returns concrete hex colours for both SVG gradient code and Thr
 
 - Semantic foregrounds are selected by WCAG relative luminance (black/white), rather than assuming white text is readable on every status colour. All 21 palette/foreground pairs meet 4.5:1 in normal rendering.
 - Monochrome uses achromatic chart colours with increased brightness on dark chart panels. It is a display aid, not a simulation of an eye condition.
-- Every palette retains status labels and adds status symbols. Owner bars use seven different hatch orientations/spacings. Annual series use diagonal hatching versus dots and distinct borders. Three.js status segments use cached, generated symbol textures (O/W/F/!/✓/×); adjacent labelled totals and keyboard tooltips remain available.
-- Switching palettes only updates existing material colours/maps; it does not rebuild extrusion geometry. Cached textures are disposed with their chart.
+- Every palette retains status labels and adds status symbols. Owner bars use seven different hatch orientations/spacings. Annual series use diagonal hatching versus dots and distinct borders. Three.js donut surfaces remain smooth; adjacent labelled totals, status symbols and keyboard tooltips provide the non-colour cues. Symbol textures are deliberately excluded because extrusion UVs distort them.
+- Switching palettes only updates existing material colours and lighting uniforms; it does not rebuild extrusion geometry or add textures.
 - Generic first-page headings and contextual action buttons explicitly retain readable text; validation errors have dashed borders and an exclamation mark. Focus uses a white/black dual indicator.
 
 Reproduce numerical checks:

@@ -3,7 +3,7 @@ const source=fs.readFileSync('wwwroot/js/support-three-chart.js','utf8');
 const refresh=source.slice(source.indexOf('    const refreshTheme=()=>'),source.indexOf("    window.addEventListener('pt:color-vision-change',refreshTheme)"));
 let draws=0,sets=[];
 const geometry={identity:'retained'},mesh={geometry,userData:{status:'PASS'},material:{color:{set:c=>sets.push(c)},userData:{}}};
-const context={dead:false,meshes:[mesh],isProject:false,patternFor:()=>null,colors:{PASS:'#80FF45'},window:{ptChartColor:()=> '#0072B2'},draw:()=>draws++,build:()=>{throw Error('must not rebuild geometry');}};
+const context={dead:false,meshes:[mesh],isProject:false,colors:{PASS:'#80FF45'},window:{ptChartColor:()=> '#0072B2'},draw:()=>draws++,build:()=>{throw Error('must not rebuild geometry');}};
 vm.runInNewContext(refresh+'refreshTheme();refreshTheme();',context);
 assert.equal(mesh.geometry,geometry);assert.equal(draws,2);assert.deepEqual(sets,['#0072B2','#0072B2']);
 let listener,probes=0,canvases=0;
@@ -13,9 +13,5 @@ for(let i=0;i<100;i++)assert.equal(colorContext.window.ptChartColor('PASS','#fff
 assert.equal(probes,1);assert.equal(canvases,1);listener();colorContext.window.ptChartColor('PASS','#fff');assert.equal(canvases,2);
 console.log('PASS: palette switches retain 3D geometry; repeated colours resolve once and invalidate on theme changes');
 
-let enabled=true,tiles=0;
-const patternSource=source.slice(source.indexOf('    const patternTextures=new Map();'),source.indexOf('    const clear=()=>'));
-const patternContext={window:{ptColorVisionEnabled:()=>enabled},document:{createElement:()=>{tiles++;return{getContext:()=>({fillRect(){},fillText(){}})};}},THREE:{RepeatWrapping:1,SRGBColorSpace:2,CanvasTexture:class{constructor(){this.repeat={set(){}};}}}};
-vm.runInNewContext(patternSource+"const a=patternFor('PASS');if(patternFor('PASS')!==a)throw Error('pattern not cached');patternFor('WIP');",patternContext);
-assert.equal(tiles,2);enabled=false;vm.runInNewContext("if(patternFor('PASS')!==null)throw Error('standard mode must not use a pattern');",patternContext);
-console.log('PASS: status textures are cached, differ by status and turn off with standard mode');
+assert(!source.includes('CanvasTexture')&&!source.includes('material.map='),'donut surfaces must not use symbol textures');
+console.log('PASS: donut surfaces stay smooth in all colour modes; status labels and keyboard tooltips remain');
