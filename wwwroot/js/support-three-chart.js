@@ -98,8 +98,9 @@ const create=(THREE,root)=>{
                 // A continuous material gradient follows the real extrusion, including its bevel.
                 const blue=row.isBlue,green=['green','lime','success'].includes(host.querySelector(`[data-project-status-metric="${CSS.escape(row.status)}"]`)?.dataset.projectStatusTone);
                 if(blue||green)material.onBeforeCompile=shader=>{
-                    shader.uniforms.projectHighlight={value:new THREE.Color(blue?'#79C9FF':'#B7FF80')};
-                    shader.uniforms.projectShadow={value:new THREE.Color(blue?'#0759A8':'#2D9708')};
+                    material.userData.projectShader=shader;
+                    shader.uniforms.projectHighlight={value:new THREE.Color(window.ptChartColor?.((blue?'primary':'success')+'-light',blue?'#79C9FF':'#B7FF80'))};
+                    shader.uniforms.projectShadow={value:new THREE.Color(window.ptChartColor?.((blue?'primary':'success')+'-dark',blue?'#0759A8':'#2D9708'))};
                     shader.vertexShader='varying vec3 projectPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nprojectPosition = position;');
                     shader.fragmentShader='varying vec3 projectPosition; uniform vec3 projectHighlight; uniform vec3 projectShadow;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
                         float heightLight = smoothstep(-0.06, 0.55, projectPosition.z);
@@ -121,7 +122,21 @@ const create=(THREE,root)=>{
     canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerleave',leave);canvas.addEventListener('keydown',keyboard);canvas.addEventListener('blur',leave);
     const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(root);
     const dataObserver=new MutationObserver(build);dataObserver.observe(host,{subtree:true,attributes:true,attributeFilter:['data-count','data-status','data-support-total','data-overview-total','data-status-counts']});
-    const refreshTheme=()=>{if(!dead){build();draw();}};
+    const refreshTheme=()=>{
+        if(dead)return;
+        // Recolour existing materials: switching a palette must never rebuild extrusion geometry.
+        meshes.forEach(mesh=>{
+            const tone=isProject ? host.querySelector(`[data-project-status-metric="${CSS.escape(mesh.userData.status)}"]`)?.dataset.projectStatusTone : mesh.userData.status;
+            const fallback=isProject ? (mesh.userData.isBlue ? '#2996F3' : '#7BE83C') : colors[mesh.userData.status]||'#64748b';
+            mesh.material.color.set(window.ptChartColor?.(tone,fallback)||fallback);
+            const shader=mesh.material.userData.projectShader;
+            if(shader){
+                shader.uniforms.projectHighlight.value.set(window.ptChartColor?.(tone+'-light',mesh.userData.isBlue?'#79C9FF':'#B7FF80'));
+                shader.uniforms.projectShadow.value.set(window.ptChartColor?.(tone+'-dark',mesh.userData.isBlue?'#0759A8':'#2D9708'));
+            }
+        });
+        draw();
+    };
     window.addEventListener('pt:color-vision-change',refreshTheme);
     const destroy=()=>{window.removeEventListener('pt:color-vision-change',refreshTheme);if(dead)return;dead=true;stop();resizeObserver.disconnect();dataObserver.disconnect();canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerleave',leave);canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('blur',leave);canvas.removeEventListener('webglcontextlost',lost);clear();floor.geometry.dispose();floor.material.dispose();environment.dispose();key.shadow.dispose();renderer.dispose();renderer.forceContextLoss();canvas.remove();tooltip.remove();scaleNote.remove();root.classList.remove('support-three-ready');label.style.removeProperty('left');label.style.removeProperty('top');charts.delete(root);};
     const lost=event=>{event.preventDefault();root.setAttribute('data-donut-fallback','');destroy();};canvas.addEventListener('webglcontextlost',lost);

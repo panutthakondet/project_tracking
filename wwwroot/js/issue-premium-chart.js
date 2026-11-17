@@ -74,7 +74,7 @@
             total.setAttribute('y','65');
         }
     };
-    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll(chartSelector).forEach(figure=>{ready.delete(figure);enhance(figure);}));
+    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll(chartSelector).forEach(figure=>{if(figure.classList.contains('support-three-ready'))return;ready.delete(figure);enhance(figure);}));
     document.querySelectorAll(chartSelector).forEach(enhance);
     const dashboard = document.querySelector('.dashboard-view');
     if(dashboard) new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{
