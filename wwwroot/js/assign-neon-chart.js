@@ -54,6 +54,7 @@
         });
         const value=svg.querySelector('.assign-neon-total');if(total>=10000)value.style.fontSize='38px';
     };
+    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll('[data-assign-neon-chart]').forEach(chart=>{ready.delete(chart);chart.querySelector('.assign-neon-segments')?.replaceChildren();chart.querySelectorAll('svg > defs').forEach(d=>d.remove());enhance(chart);}));
     document.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);
     const dashboard=document.querySelector('.dashboard-view');
     if(dashboard)new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(!(node instanceof Element))return;if(node.matches('[data-assign-neon-chart]'))enhance(node);node.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);}))).observe(dashboard,{childList:true,subtree:true});

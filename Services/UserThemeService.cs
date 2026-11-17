@@ -21,6 +21,19 @@ namespace ProjectTracking.Services
             _context = context;
         }
 
+        public async Task<Dictionary<string, string>> GetColorVisionStylesAsync(int userId, CancellationToken ct = default)
+        {
+            var theme = await GetResolvedThemeAsync(userId, ct);
+            var styles = new Dictionary<string, string>();
+            foreach (var mode in new[] { "standard", "red-green", "blue-yellow", "monochrome" })
+            {
+                theme.ColorBlindModeEnabled = mode != "standard";
+                theme.ColorVisionMode = mode;
+                styles[mode] = BuildThemeCss(theme);
+            }
+            return styles;
+        }
+
         // Only update colour-vision preferences; keep every stored theme/custom value intact.
         public async Task SetColorVisionModeAsync(int userId, string mode, CancellationToken ct = default)
         {

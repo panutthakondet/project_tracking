@@ -57,6 +57,7 @@
         };
         new ResizeObserver(()=>{const w=Math.round(stage.clientWidth);if(w!==previousWidth){previousWidth=w;draw();}}).observe(stage);
         new MutationObserver(draw).observe(root.querySelector('.bar-chart'),{subtree:true,attributes:true,attributeFilter:['data-month','data-completed','data-progress','data-completed-height','data-progress-height'],childList:true});
+        window.addEventListener('pt:color-vision-change',draw);
         draw();
     });
 })();

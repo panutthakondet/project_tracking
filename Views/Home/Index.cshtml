@@ -220,11 +220,12 @@
 
 <div class="dashboard-view is-loading">
     <section class="dashboard-global-searchbar" aria-label="เครื่องมือ Dashboard">
-    <form asp-controller="Settings" asp-action="ColorVision" method="post" class="dashboard-color-strip" aria-label="เลือกโหมดสีทั้งเว็บ">
+    <form asp-controller="Settings" asp-action="ColorVision" method="post" data-styles-url="@Url.Action("ColorVisionStyles", "Settings")" class="dashboard-color-strip" aria-label="เลือกโหมดสีทั้งเว็บ">
         @foreach (var choice in new[] { (Key: "standard", Label: "สีปกติ", Color: "#FFFFFF"), (Key: "red-green", Label: "ช่วยแยกสีแดง–เขียว", Color: "#0072B2"), (Key: "blue-yellow", Label: "ช่วยแยกสีน้ำเงิน–เหลือง", Color: "#CC79A7"), (Key: "monochrome", Label: "ขาวดำ", Color: "#000000") })
         {
             <button type="submit" name="mode" value="@choice.Key" title="@choice.Label" aria-label="@choice.Label" aria-pressed="@(selectedColorVision == choice.Key ? "true" : "false")" style="--swatch:@choice.Color"><span aria-hidden="true">@(selectedColorVision == choice.Key ? "✓" : "")</span></button>
         }
+    <span class="color-vision-save-status" role="status" aria-live="polite"></span>
     </form>
         @if (!string.IsNullOrWhiteSpace(aliasTickerText))
         {
@@ -8338,9 +8339,13 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 
 <style>
     .dashboard-color-strip { display:flex; align-items:center; gap:10px; width:max-content; max-width:100%; flex:0 0 auto; margin:0 auto 0 0; padding:8px 14px; background:#111; border-radius:999px; }
+    .dashboard-color-strip .color-vision-save-status { color:#fff; font-size:12px; max-width:220px; }
+    .dashboard-color-strip .color-vision-save-status:empty { display:none; }
     .dashboard-color-strip button { display:grid; place-items:center; width:26px; height:26px; padding:0; background:var(--swatch); color:#fff; border:1px solid #fff; border-radius:0; cursor:pointer; font-size:18px; font-weight:800; line-height:1; }
     .dashboard-color-strip button[value="standard"] { color:#111; }
     .dashboard-color-strip button[aria-pressed="true"] { outline:2px solid #fff; outline-offset:3px; }
     .dashboard-color-strip button:focus-visible { outline:3px solid #FFD800; outline-offset:3px; }
     @@media (pointer:coarse) { .dashboard-color-strip { gap:12px; } .dashboard-color-strip button { width:32px; height:32px; } }
 </style>
+
+<script src="~/js/dashboard-color-switcher.js" asp-append-version="true" defer></script>

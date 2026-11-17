@@ -14,6 +14,15 @@ namespace ProjectTracking.Controllers
             _themeService = themeService;
         }
 
+        [HttpGet]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> ColorVisionStyles(CancellationToken cancellationToken)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return Unauthorized();
+            return Json(await _themeService.GetColorVisionStylesAsync(userId.Value, cancellationToken));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ColorVision(string mode, CancellationToken cancellationToken)
@@ -22,6 +31,7 @@ namespace ProjectTracking.Controllers
             if (userId == null) return Unauthorized();
             if (mode is not ("standard" or "red-green" or "blue-yellow" or "monochrome")) return BadRequest();
             await _themeService.SetColorVisionModeAsync(userId.Value, mode, cancellationToken);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return NoContent();
             return RedirectToAction("Index", "Home");
         }
 

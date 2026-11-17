@@ -2,6 +2,7 @@
     const chartSelector = '[data-premium-issue-donut], [data-premium-support-donut]';
     const ns = 'http://www.w3.org/2000/svg';
     const ready = new WeakSet();
+    const sourcePaths = new WeakMap();
     const add = (parent, tag, attrs) => {
         const node = document.createElementNS(ns, tag);
         Object.entries(attrs).forEach(([key,value]) => node.setAttribute(key,value));
@@ -28,7 +29,9 @@
         const depth = svg?.querySelector('.overview-pie3d-depth');
         const defs = svg?.querySelector('defs');
         if (!top || !depth || !defs) return;
-        const sources = [...top.querySelectorAll('path')].map(p => ({ d:p.getAttribute('d'), tone:p.dataset.tone, label:p.dataset.label || name, count:p.dataset.count || '0' }));
+        const sources = sourcePaths.get(figure) || [...top.querySelectorAll('path')].map(p => ({ d:p.getAttribute('d'), tone:p.dataset.tone, label:p.dataset.label || name, count:p.dataset.count || '0' }));
+        sourcePaths.set(figure,sources);
+        defs.querySelectorAll(`[id^="${prefix}Premium"]`).forEach(node=>node.remove());
         const gradient = (id, colors, side = false) => {
             const g = add(defs,'linearGradient',{ id,x1:'12',y1:side?'66':'28',x2:side?'12':'132',y2:side?'104':'98',gradientUnits:'userSpaceOnUse' });
             (side ? [[0,colors[0]],[.35,colors[2]],[1,colors[2]]] : [[0,colors[1]],[.32,colors[0]],[.7,colors[0]],[1,colors[2]]]).forEach(([offset,color])=>add(g,'stop',{offset,'stop-color':color}));
@@ -71,6 +74,7 @@
             total.setAttribute('y','65');
         }
     };
+    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll(chartSelector).forEach(figure=>{ready.delete(figure);enhance(figure);}));
     document.querySelectorAll(chartSelector).forEach(enhance);
     const dashboard = document.querySelector('.dashboard-view');
     if(dashboard) new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{
