@@ -2,9 +2,11 @@
 
 Open **Settings → Appearance → การมองเห็นสี → โหมดช่วยแยกสี**, then save. Each user's preference is stored in `user_theme_preferences.color_blind_mode_enabled`; existing accounts default to off. Reset Appearance also turns it off. The idempotent startup schema helper adds the column after the theme preference table is prepared.
 
-The mode reduces red/green dependence using blue for completed/success and a darker orange for danger, with other differentiated colours. It preserves the selected background/theme, font scale, images, uploaded documents, underlying counts and status meanings. Bootstrap status badges gain symbols; owner-chart legend shapes also differ. Existing status names, totals and chart tooltips remain available.
+Three selectable palettes are stored in `color_vision_mode`: `red-green` (default for existing enabled accounts), `blue-yellow`, and `monochrome`. Unknown values fall back to red-green. These are assistance palettes, not vision simulations or medical correction.
 
-Coverage: shared theme status tokens, common Bootstrap status badges/alerts, owner overview, project/Issues/Support SVG and Three.js donuts, Assigns SVG donut, annual task SVG chart, and attendance charts that already consume shared tokens. Bespoke colours outside these shared tokens/selectors are not automatically transformed. This is a selectable palette aid, not a simulation/correction for every type of colour-vision deficiency or a claim of WCAG certification.
+While enabled, the shared theme resolves a neutral page canvas, high contrast dark menus/profile/dashboard panels, readable text, and palette-specific accents. The shared MVC and standalone layouts apply it across the site: navigation, page backgrounds, forms, tables, buttons, pagination, progress indicators, badges and alerts, plus chart palettes. Stored custom colours and presets are retained; disabling returns to them. Images and uploaded documents are not filtered. Decorative colours in third-party content are not rewritten.
+
+Status badges include symbols as well as labels; chart legends retain labels and shape cues. Colour alone must not communicate status. Monochrome uses different luminance levels; labels/tooltips remain necessary. This is not a claim of WCAG certification.
 
 The chart helper returns concrete hex colours for both SVG gradient code and Three.js; it preserves old palette values when the mode is off. No page-wide image filter is used.
 

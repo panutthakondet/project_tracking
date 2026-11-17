@@ -546,6 +546,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.UserId).HasColumnName("user_id");
                 entity.Property(x => x.ThemeId).HasColumnName("theme_id");
                 entity.Property(x => x.UseCustom).HasColumnName("use_custom").HasColumnType("tinyint(1)");
+                entity.Property(x => x.ColorVisionMode).HasColumnName("color_vision_mode").HasMaxLength(24).HasDefaultValue("red-green");
                 entity.Property(x => x.ColorBlindModeEnabled).HasColumnName("color_blind_mode_enabled").HasColumnType("tinyint(1)");
                 entity.Property(x => x.CustomAccentHex).HasColumnName("custom_accent_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomSidebarHex).HasColumnName("custom_sidebar_hex").HasColumnType("varchar(7)");

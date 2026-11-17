@@ -24,10 +24,24 @@ Check(enabled.Contains("--pt-colorblind-enabled:1")&&enabled.Contains("--pt-char
 Check(!(await service.GetAppearanceAsync(2)).ColorBlindModeEnabled&&!(await service.GetThemeCssAsync(2)).Contains("--pt-colorblind-enabled:1"),"another user remains unchanged");
 Check(appearance.FontScale==1.05m&&appearance.ThemeId==1,"existing theme and font settings preserved");
 Check(enabled.Contains("content:'✓ '")&&enabled.Contains("--owner-base:var(--pt-chart-success)"),"redundant status cues and owner chart palette included");
+Check(enabled.Contains("--pt-body-bg: #F1F3F5") || enabled.Contains("--pt-body-bg:#F1F3F5"), "page background adapts, not only charts");
+Check(enabled.Contains("#20252B") && enabled.Contains("#005A91"), "sidebar, menus and primary controls use accessible theme");
+foreach(var mode in new[]{"blue-yellow","monochrome"})
+{
+    var post=Post(true);post.ColorVisionMode=mode;
+    await service.SaveAppearanceAsync(1,post);db.ChangeTracker.Clear();
+    Check((await service.GetAppearanceAsync(1)).ColorVisionMode==mode, mode+" persists per user");
+    var css=await service.GetThemeCssAsync(1);
+    Check(css.Contains(mode=="monochrome"?"--pt-chart-success:#333333":"--pt-chart-success:#006B58"),mode+" semantic palette changes");
+}
+var invalid=Post(true);invalid.ColorVisionMode="invalid";await service.SaveAppearanceAsync(1,invalid);
+Check((await service.GetAppearanceAsync(1)).ColorVisionMode=="red-green","unknown modes fall back safely");
 await File.WriteAllTextAsync("/private/tmp/color-vision-enabled.css",enabled);
 await File.WriteAllTextAsync("/private/tmp/color-vision-standard.css",original);
 await service.SaveAppearanceAsync(1,Post(false));
-Check(!(await service.GetThemeCssAsync(1)).Contains("--pt-colorblind-enabled:1"),"mode can be disabled");
+var disabled=await service.GetThemeCssAsync(1);
+Check(!disabled.Contains("--pt-colorblind-enabled:1"),"mode can be disabled");
+Check(disabled.Contains("--pt-body-bg: #EEF3F9;"),"disabling restores original background palette");
 await service.SaveAppearanceAsync(1,Post(true));await service.ResetAppearanceAsync(1);
 Check(!(await service.GetAppearanceAsync(1)).ColorBlindModeEnabled,"reset clears accessibility preference too");
 Console.WriteLine("ALL APPEARANCE CHECKS PASSED (isolated SQLite, no production database)");

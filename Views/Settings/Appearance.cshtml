@@ -889,7 +889,7 @@
                     <label class="motion-option" for="ColorBlindModeEnabled">
                         <span>
                             <strong>โหมดช่วยแยกสี</strong>
-                            <small>ลดการใช้คู่แดง–เขียวในสถานะและกราฟหลัก ใช้สีฟ้า/ส้มร่วมกับข้อความและสัญลักษณ์ โดยคงธีมพื้นหลังเดิม กดบันทึกเพื่อใช้งาน</small>
+                            <small>ปรับสีทั้งเว็บ: พื้นหลัง เมนู ปุ่ม แบบฟอร์ม ตาราง และกราฟ พร้อมสัญลักษณ์แยกสถานะ ปิดโหมดเพื่อกลับธีมเดิม กดบันทึกเพื่อใช้งาน</small>
                         </span>
                         <span class="motion-switch">
                             <input type="checkbox" id="ColorBlindModeEnabled" name="ColorBlindModeEnabled" value="true" @(Model.ColorBlindModeEnabled ? "checked" : "") />
@@ -897,6 +897,13 @@
                         </span>
                     </label>
                     <input type="hidden" name="ColorBlindModeEnabled" value="false" />
+                    <label for="ColorVisionMode">รูปแบบการช่วยแยกสี</label>
+                    <select id="ColorVisionMode" name="ColorVisionMode" class="form-select">
+                        <option value="red-green" selected="@(Model.ColorVisionMode == "red-green")">แดง–เขียว</option>
+                        <option value="blue-yellow" selected="@(Model.ColorVisionMode == "blue-yellow")">น้ำเงิน–เหลือง</option>
+                        <option value="monochrome" selected="@(Model.ColorVisionMode == "monochrome")">ขาวดำ</option>
+                    </select>
+
 
                     <div class="appearance-section__head" style="margin-top:18px;">
                         <h2>Text Scale</h2>
@@ -1139,6 +1146,12 @@
 
     function applyTheme() {
         const theme = currentTheme();
+        if (document.getElementById('ColorBlindModeEnabled')?.checked) {
+            const mode = document.getElementById('ColorVisionMode')?.value;
+            const accent = mode === 'monochrome' ? '#454545' : mode === 'blue-yellow' ? '#8D2459' : '#005A91';
+            Object.assign(theme, {accent, accentDark:shiftHex(accent,-.18), sidebar:'#20252B', sidebarDeep:shiftHex('#20252B',-.20), profilePanel:'#303840', profilePanelDeep:shiftHex('#303840',-.18), profilePanelContrast:'#FFFFFF', body:'#F1F3F5', text:'#17212B', muted:'#47515C', chartPanel:'#20252B', chartPanelDeep:shiftHex('#20252B',-.18), chartPanelContrast:'#FFFFFF', menuPanel:'#303840', menuPanelDeep:shiftHex('#303840',-.18), menuPanelContrast:'#FFFFFF', contrast:'#FFFFFF'});
+            if (mode === 'monochrome') Object.assign(theme,{sidebar:'#242424',sidebarDeep:shiftHex('#242424',-.20),profilePanel:'#383838',profilePanelDeep:shiftHex('#383838',-.18),body:'#F2F2F2',text:'#202020',muted:'#505050',chartPanel:'#242424',chartPanelDeep:shiftHex('#242424',-.18),menuPanel:'#383838',menuPanelDeep:shiftHex('#383838',-.18)});
+        }
         const root = document.documentElement.style;
         root.setProperty('--pt-accent', theme.accent);
         root.setProperty('--pt-accent-dark', theme.accentDark);
@@ -1298,6 +1311,8 @@
     });
 
     customToggle.addEventListener('change', syncCustomState);
+    document.getElementById('ColorBlindModeEnabled')?.addEventListener('change', applyTheme);
+    document.getElementById('ColorVisionMode')?.addEventListener('change', applyTheme);
     fontScale.addEventListener('input', applyTheme);
     dinoNameInput?.addEventListener('input', applyTheme);
     syncCustomState();
