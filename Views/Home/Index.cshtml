@@ -1230,6 +1230,16 @@
 </div>
 
 @section Styles {
+<style>
+    .dashboard-color-strip { display:flex; align-items:center; gap:10px; width:max-content; max-width:100%; flex:0 0 auto; margin:0 auto 0 0; padding:8px 0; background:transparent; border-radius:0; }
+    .dashboard-color-strip .color-vision-save-status { color:var(--pt-text,#17212b); font-size:12px; max-width:220px; }
+    .dashboard-color-strip .color-vision-save-status:empty { display:none; }
+    .dashboard-color-strip button { display:grid; place-items:center; width:26px; height:26px; padding:0; background:var(--swatch); color:#fff; border:1px solid var(--pt-muted,#64748b); border-radius:0; cursor:pointer; font-size:18px; font-weight:800; line-height:1; }
+    .dashboard-color-strip button[value="standard"] { color:#111; }
+    .dashboard-color-strip button[aria-pressed="true"] { outline:2px solid var(--pt-accent,#005A91); outline-offset:3px; }
+    .dashboard-color-strip button:focus-visible { outline:3px solid #FFD800; outline-offset:3px; }
+    @@media (pointer:coarse) { .dashboard-color-strip { gap:12px; } .dashboard-color-strip button { width:32px; height:32px; } }
+</style>
 <link rel="stylesheet" href="~/css/dashboard-donut-loading.css" asp-append-version="true" />
 <script src="~/js/dashboard-donut-loading.js" asp-append-version="true"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&amp;display=swap" />
@@ -8337,15 +8347,6 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
 <script src="~/js/yearly-glossy-chart.js" asp-append-version="true" defer></script>
 <script src="~/js/owner-glossy-chart.js" asp-append-version="true" defer></script>
 
-<style>
-    .dashboard-color-strip { display:flex; align-items:center; gap:10px; width:max-content; max-width:100%; flex:0 0 auto; margin:0 auto 0 0; padding:8px 0; background:transparent; border-radius:0; }
-    .dashboard-color-strip .color-vision-save-status { color:var(--pt-text,#17212b); font-size:12px; max-width:220px; }
-    .dashboard-color-strip .color-vision-save-status:empty { display:none; }
-    .dashboard-color-strip button { display:grid; place-items:center; width:26px; height:26px; padding:0; background:var(--swatch); color:#fff; border:1px solid var(--pt-muted,#64748b); border-radius:0; cursor:pointer; font-size:18px; font-weight:800; line-height:1; }
-    .dashboard-color-strip button[value="standard"] { color:#111; }
-    .dashboard-color-strip button[aria-pressed="true"] { outline:2px solid var(--pt-accent,#005A91); outline-offset:3px; }
-    .dashboard-color-strip button:focus-visible { outline:3px solid #FFD800; outline-offset:3px; }
-    @@media (pointer:coarse) { .dashboard-color-strip { gap:12px; } .dashboard-color-strip button { width:32px; height:32px; } }
-</style>
+
 
 <script src="~/js/dashboard-color-switcher.js" asp-append-version="true" defer></script>
