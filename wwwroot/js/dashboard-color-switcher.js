@@ -20,7 +20,12 @@
             if(typeof styles[mode]!=='string')throw new Error('styles');
             style.textContent=styles[mode];
             status.textContent='';
-            form.querySelectorAll('button[name="mode"]').forEach(b=>b.setAttribute('aria-pressed',String(b.value===mode)));
+            form.querySelectorAll('button[name="mode"]').forEach(button=>{
+                const selected=button.value===mode;
+                button.setAttribute('aria-pressed',String(selected));
+                const mark=button.querySelector('span');
+                if(mark)mark.textContent=selected?'✓':'';
+            });
             window.dispatchEvent(new Event('pt:color-vision-change'));
             const data=new FormData(form);data.set('mode',mode);
             saveQueue=saveQueue.catch(()=>{}).then(async()=>{
