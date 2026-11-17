@@ -46,7 +46,7 @@
             add(body,'path',{d,fill:'none',stroke:color,'stroke-width':1.8,opacity:'.85',filter:`url(#${id}Glow)`,class:'assign-neon-edge'});
             add(body,'path',{d:ring(start+.15,end-.15,137,93),fill:'none',stroke:'#ddffff','stroke-width':'.65',opacity:'.28'});
             if(span>14) [99,105,131].forEach((radius,i)=>add(body,'path',{d:arc(radius,start+3+i,end-3-i),fill:'none',stroke:color,'stroke-width':'.55',opacity:'.18'}));
-            if(span>=32){const labelPoint=point(115,mid).split(' ');add(body,'text',{x:labelPoint[0],y:Number(labelPoint[1])+6,class:'assign-neon-percent'}).textContent=percent.toLocaleString('th-TH',{maximumFractionDigits:1})+'%';}
+            if(span>=32){const labelPoint=point(115,mid).split(' ');add(body,'text',{x:labelPoint[0],y:Number(labelPoint[1])+6,class:'assign-neon-percent'}).textContent=(window.ptColorVisionEnabled?.()?({DONE:'✓ ',WARNING:'! ',DANGER:'× '}[row.state]||''):'')+percent.toLocaleString('th-TH',{maximumFractionDigits:1})+'%';}
             const text=`${row.label}: ${row.count.toLocaleString('th-TH')} รายการ (${percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%)`;
             add(link,'title',{}).textContent=text;
             const show=()=>{tooltip.textContent=text;tooltip.hidden=false;};const hide=()=>tooltip.hidden=true;

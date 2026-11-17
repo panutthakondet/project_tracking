@@ -40,6 +40,16 @@
                     surface.append(node('path',{d:path,fill:palettes[i][3],filter:`url(#${id}-glow-${i})`}),node('path',{d:path,fill:`url(#${id}-fill-${i})`}),node('path',{d:path,fill:`url(#${id}-shade-${i})`}));
                     surface.append(node('ellipse',{cx:x+barWidth/2,cy:y+r*.55,rx:barWidth*.39,ry:Math.max(1,r*.5),fill:`url(#${id}-cap)`}));
                     if(h>8)surface.append(node('path',{d:`M ${x+barWidth*.15} ${y+r+1} V ${bottom-3}`,stroke:'#fff','stroke-opacity':.28,'stroke-width':Math.max(.7,barWidth*.06),'stroke-linecap':'round'}));
+                    if(window.ptColorVisionEnabled?.()){
+                        surface.append(node('path',{d:path,fill:'none',stroke:'#fff','stroke-width':1.5,...(i===1?{'stroke-dasharray':'4 3'}:{})}));
+                        // Different textures identify each series even without any hue information.
+                        const patternId=`${id}-pattern-${i}`;
+                        if(!defs.querySelector(`#${patternId}`)){
+                            const pattern=node('pattern',{id:patternId,width:8,height:8,patternUnits:'userSpaceOnUse'});
+                            pattern.append(i===0?node('path',{d:'M0 8L8 0',stroke:'#000','stroke-opacity':.45,'stroke-width':2}):node('circle',{cx:4,cy:4,r:1.6,fill:'#000','fill-opacity':.5}));defs.append(pattern);
+                        }
+                        surface.append(node('path',{d:path,fill:`url(#${patternId})`}));
+                    }
                     group.append(surface);
                     const text=String(count),badgeWidth=Math.max(compact?16:22,text.length*font*.65+10),bx=x+barWidth/2;
                     let by=Math.max(21,badgeY[i]);
@@ -52,7 +62,7 @@
                 svg.append(node('text',{x:center,y:bottom+24,'text-anchor':'middle',fill:'#c5c9c8','font-size':compact?9:12,...(compact?{transform:`rotate(-40 ${center} ${bottom+24})`,'text-anchor':'end'}:{})},row.month));
             });
             const legendY=height-12,legendGap=compact?85:115;
-            ['Completed','In Progress'].forEach((label,i)=>{const x=width/2-legendGap+(i*legendGap);svg.append(node('circle',{cx:x,cy:legendY-4,r:5,fill:palettes[i][1]}),node('text',{x:x+11,y:legendY,fill:'#f0f3ed','font-size':compact?10:13},label));});
+            ['Completed','In Progress'].forEach((label,i)=>{const x=width/2-legendGap+(i*legendGap);svg.append(node('circle',{cx:x,cy:legendY-4,r:5,fill:palettes[i][1],...(window.ptColorVisionEnabled?.()&&i===1?{'stroke':'#fff','stroke-width':2,'stroke-dasharray':'2 2'}:{})}),node('text',{x:x+11,y:legendY,fill:'#f0f3ed','font-size':compact?10:13},label));});
             stage.replaceChildren(svg,tooltip);tooltip.hidden=true;
         };
         new ResizeObserver(()=>{const w=Math.round(stage.clientWidth);if(w!==previousWidth){previousWidth=w;draw();}}).observe(stage);

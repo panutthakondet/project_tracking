@@ -62,6 +62,17 @@ const create=(THREE,root)=>{
         scaleNote.hidden=!adjusted;
         if(mesh){const d=mesh.userData,percent=d.percent<.001?'<0.001':d.percent.toLocaleString('th-TH',{maximumFractionDigits:d.percent<1?3:1});tooltip.textContent=`${d.label||d.status}: ${d.count.toLocaleString('th-TH')} ${isProject?'โครงการ':'รายการ'} (${percent}%${statusSum!==overviewTotal?' ของผลรวมสถานะ':''})${statusSum!==overviewTotal?' · '+kind+' จริง '+overviewTotal.toLocaleString('th-TH')+(isProject?' โครงการ บางสถานะอาจไม่แสดง':' รายการ สถานะอาจซ้อนกัน'):''}${adjusted?' · ขนาดชิ้นกราฟปรับเพื่อให้อ่านง่าย เปอร์เซ็นต์ข้างต้นเป็นค่าจริง':''}`;}
     };
+    const patternTextures=new Map();
+    const patternFor=tone=>{
+        if(!window.ptColorVisionEnabled?.())return null;
+        const key=String(tone||'unknown');if(patternTextures.has(key))return patternTextures.get(key);
+        const marks={OPEN:'O',WIP:'W',FIXED:'F',FAIL:'!',PASS:'✓',REJECT:'×',blue:'P',primary:'P',green:'✓',lime:'✓',success:'✓'};
+        const tile=document.createElement('canvas');tile.width=tile.height=64;
+        const ctx=tile.getContext('2d');if(!ctx)return null;
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,64,64);ctx.fillStyle='#444';ctx.font='bold 34px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(marks[key]||key.slice(0,1),32,32);
+        const texture=new THREE.CanvasTexture(tile);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(.55,.55);texture.colorSpace=THREE.SRGBColorSpace;
+        patternTextures.set(key,texture);return texture;
+    };
     const clear=()=>{meshes.forEach(mesh=>{group.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();});meshes.length=0;};
     const build=()=>{
         stop();clear();hover=null;tooltip.hidden=true;
@@ -94,6 +105,7 @@ const create=(THREE,root)=>{
             const bevelSize=Math.min(settings.bevelSize,Math.sin(Math.min(span,Math.PI)/2)*innerRadius*.35);
             const geometry=new THREE.ExtrudeGeometry(shape,{depth:settings.depth,steps:1,bevelEnabled:true,bevelThickness:settings.bevelThickness,bevelSize,bevelOffset:-bevelSize,bevelSegments:settings.bevelSegments,curveSegments:settings.curveSegments});
             const material=new THREE.MeshPhysicalMaterial({color:row.color||colors[row.status]||[0x39b9ee,0xb17af3,0xe882b5][index%3],roughness:isProject ? .18 : .35,metalness:.05,clearcoat:isProject ? .8 : .25,clearcoatRoughness:isProject ? .12 : .3,envMapIntensity:isProject ? .8 : .4});
+            material.map=patternFor(isProject?(row.isBlue?'primary':'success'):row.status);
             if(isProject){
                 // A continuous material gradient follows the real extrusion, including its bevel.
                 const blue=row.isBlue,green=['green','lime','success'].includes(host.querySelector(`[data-project-status-metric="${CSS.escape(row.status)}"]`)?.dataset.projectStatusTone);
@@ -129,6 +141,8 @@ const create=(THREE,root)=>{
             const tone=isProject ? host.querySelector(`[data-project-status-metric="${CSS.escape(mesh.userData.status)}"]`)?.dataset.projectStatusTone : mesh.userData.status;
             const fallback=isProject ? (mesh.userData.isBlue ? '#2996F3' : '#7BE83C') : colors[mesh.userData.status]||'#64748b';
             mesh.material.color.set(window.ptChartColor?.(tone,fallback)||fallback);
+            const pattern=patternFor(tone);
+            if(mesh.material.map!==pattern){mesh.material.map=pattern;mesh.material.needsUpdate=true;}
             const shader=mesh.material.userData.projectShader;
             if(shader){
                 shader.uniforms.projectHighlight.value.set(window.ptChartColor?.(tone+'-light',mesh.userData.isBlue?'#79C9FF':'#B7FF80'));
@@ -138,7 +152,7 @@ const create=(THREE,root)=>{
         draw();
     };
     window.addEventListener('pt:color-vision-change',refreshTheme);
-    const destroy=()=>{window.removeEventListener('pt:color-vision-change',refreshTheme);if(dead)return;dead=true;stop();resizeObserver.disconnect();dataObserver.disconnect();canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerleave',leave);canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('blur',leave);canvas.removeEventListener('webglcontextlost',lost);clear();floor.geometry.dispose();floor.material.dispose();environment.dispose();key.shadow.dispose();renderer.dispose();renderer.forceContextLoss();canvas.remove();tooltip.remove();scaleNote.remove();root.classList.remove('support-three-ready');label.style.removeProperty('left');label.style.removeProperty('top');charts.delete(root);};
+    const destroy=()=>{window.removeEventListener('pt:color-vision-change',refreshTheme);if(dead)return;dead=true;stop();resizeObserver.disconnect();dataObserver.disconnect();canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerleave',leave);canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('blur',leave);canvas.removeEventListener('webglcontextlost',lost);clear();floor.geometry.dispose();floor.material.dispose();environment.dispose();key.shadow.dispose();patternTextures.forEach(texture=>texture.dispose());patternTextures.clear();renderer.dispose();renderer.forceContextLoss();canvas.remove();tooltip.remove();scaleNote.remove();root.classList.remove('support-three-ready');label.style.removeProperty('left');label.style.removeProperty('top');charts.delete(root);};
     const lost=event=>{event.preventDefault();root.setAttribute('data-donut-fallback','');destroy();};canvas.addEventListener('webglcontextlost',lost);
     try{build();resize();root.classList.add('support-three-ready');if(!reduced.matches){animation={kind:'intro',start:performance.now(),duration:700};frame=requestAnimationFrame(tick);}}catch(error){destroy();throw error;}
     return {destroy,diagnostics:()=>({kind,total:overviewTotal,statusSum,displayAdjusted:adjusted,pixelRatio:renderer.getPixelRatio(),renderCount,animating:!!frame,camera:camera.position.toArray(),cameraType:camera.type,frustum:isProject?[camera.left,camera.right,camera.top,camera.bottom]:null,fov:camera.fov,geometrySettings:settings,segments:meshes.map(m=>({status:m.userData.status,count:m.userData.count,percent:m.userData.percent,color:m.material.color.getHexString(),roughness:m.material.roughness,metalness:m.material.metalness,clearcoat:m.material.clearcoat,clearcoatRoughness:m.material.clearcoatRoughness,geometry:m.geometry.type,material:m.material.type,options:m.geometry.parameters.options,start:m.userData.start,sweep:m.userData.span,mid:m.userData.mid,position:m.position.toArray(),highlighted:m.userData.highlighted,radial:Math.hypot(m.position.x,m.position.y)}))})};

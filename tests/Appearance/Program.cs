@@ -32,7 +32,7 @@ foreach(var mode in new[]{"blue-yellow","monochrome"})
     await service.SaveAppearanceAsync(1,post);db.ChangeTracker.Clear();
     Check((await service.GetAppearanceAsync(1)).ColorVisionMode==mode, mode+" persists per user");
     var css=await service.GetThemeCssAsync(1);
-    Check(css.Contains(mode=="monochrome"?"--pt-chart-success:#333333":"--pt-chart-success:#006B58"),mode+" semantic palette changes");
+    Check(css.Contains(mode=="monochrome"?"--pt-chart-success:#E6E6E6":"--pt-chart-success:#006B58"),mode+" semantic palette changes");
 }
 var invalid=Post(true);invalid.ColorVisionMode="invalid";await service.SaveAppearanceAsync(1,invalid);
 Check((await service.GetAppearanceAsync(1)).ColorVisionMode=="red-green","unknown modes fall back safely");
@@ -49,12 +49,27 @@ await service.SetColorVisionModeAsync(1,"blue-yellow");
 var shortcut=await service.GetAppearanceAsync(1);
 Check(shortcut.ColorVisionMode=="blue-yellow" && shortcut.FontScale==1.05m,"dashboard shortcut changes only colour vision preferences");
 var styles=await service.GetColorVisionStylesAsync(1);
-Check(styles.Count==4 && styles["standard"].Contains("--pt-colorblind-enabled:0") && styles["monochrome"].Contains("--pt-chart-success:#333333"),"preloaded styles include standard and all three modes");
+Check(styles.Count==4 && styles["standard"].Contains("--pt-colorblind-enabled:0") && styles["monochrome"].Contains("--pt-chart-success:#E6E6E6"),"preloaded styles include standard and all three modes");
 Check((await service.GetAppearanceAsync(1)).ColorVisionMode=="blue-yellow","preloading does not change saved preferences");
 await service.SetColorVisionModeAsync(1,"standard");
 Check(!(await service.GetAppearanceAsync(1)).ColorBlindModeEnabled,"dashboard shortcut restores standard mode");
 await service.SetColorVisionModeAsync(2,"monochrome");
 Check((await service.GetAppearanceAsync(2)).ColorVisionMode=="monochrome","dashboard shortcut supports accounts without preferences");
+var paletteReport=new Dictionary<string,object>();
+foreach(var mode in new[]{"red-green","blue-yellow","monochrome"})
+{
+    var palette=ColorVisionTheme.GetPalette(mode);
+    foreach(var (tone,color) in palette)
+        Check(ColorVisionTheme.Contrast(color,ColorVisionTheme.TextOn(color))>=4.5,mode+" "+tone+" foreground contrast >= 4.5:1");
+    if(mode=="monochrome")Check(palette.Values.All(c=>c.Substring(1,2)==c.Substring(3,2)&&c.Substring(3,2)==c.Substring(5,2)),"monochrome semantic palette is achromatic");
+    var css=ColorVisionTheme.BuildCss(true,mode);
+    Check(css.Contains("repeating-linear-gradient")&&css.Contains("content:'✓ '")&&css.Contains("content:'× '"),mode+" includes non-colour status cues");
+    paletteReport[mode]=palette.ToDictionary(p=>p.Key,p=>new {background=p.Value,foreground=ColorVisionTheme.TextOn(p.Value),contrast=ColorVisionTheme.Contrast(p.Value,ColorVisionTheme.TextOn(p.Value))});
+    var fullStyles=await service.GetColorVisionStylesAsync(1);
+    await File.WriteAllTextAsync("/private/tmp/color-vision-"+mode+".css",fullStyles[mode]);
+}
+Check(ColorVisionTheme.Contrast("#17212B","#F1F3F5")>=4.5&&ColorVisionTheme.Contrast("#47515C","#FFFFFF")>=4.5,"page text and muted labels meet normal text contrast");
+await File.WriteAllTextAsync("/private/tmp/color-vision-palette-audit.json",System.Text.Json.JsonSerializer.Serialize(paletteReport));
 Console.WriteLine("ALL APPEARANCE CHECKS PASSED (isolated SQLite, no production database)");
 class ThemeTestDb(DbContextOptions<AppDbContext> options):AppDbContext(options)
 {
