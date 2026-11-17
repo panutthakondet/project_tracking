@@ -12,6 +12,9 @@
             const rows=[...root.querySelectorAll('.bar-group[data-month]')].map(e=>({month:e.dataset.month,counts:[Number(e.dataset.completed)||0,Number(e.dataset.progress)||0],heights:[Number(e.dataset.completedHeight)||0,Number(e.dataset.progressHeight)||0]}));
             const svg=node('svg',{viewBox:`0 0 ${width} ${height}`,class:'yearly-glossy-svg',role:'group','aria-label':'ความคืบหน้าของงานรายเดือน Completed และ In Progress'}),defs=node('defs');svg.append(defs);
             const palettes=[['#A8FF80','#42E51C','#159B13','rgba(72,255,40,.25)'],['#8AD8FF','#2196F3','#0757A8','rgba(33,150,243,.25)']];
+            if(window.ptColorVisionEnabled?.())['success','primary'].forEach((tone,i)=>{
+                palettes[i]=[window.ptChartColor(tone+'-light','#cccccc'),window.ptChartColor(tone,'#707070'),window.ptChartColor(tone+'-dark','#333333'),window.ptChartColor(tone,'#707070')+'40'];
+            });
             palettes.forEach((p,i)=>{
                 const grad=node('linearGradient',{id:`${id}-fill-${i}`,x1:0,y1:0,x2:0,y2:1});[p[0],p[1],p[2]].forEach((c,j)=>grad.append(node('stop',{offset:[0,.38,1][j],'stop-color':c})));defs.append(grad);
                 const shade=node('linearGradient',{id:`${id}-shade-${i}`,x1:0,y1:0,x2:1,y2:0});[[0,'#fff',.38],[.22,'#fff',.04],[.65,'#000',0],[1,'#000',.3]].forEach(([o,c,a])=>shade.append(node('stop',{offset:o,'stop-color':c,'stop-opacity':a})));defs.append(shade);

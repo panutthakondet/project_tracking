@@ -15,6 +15,7 @@ namespace ProjectTracking.Models
         public string? CustomMenuPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        public bool ColorBlindModeEnabled { get; set; }
         public string? DinoName { get; set; }
         public string? DinoColorHex { get; set; }
         public string? DinoFoodColorHex { get; set; }

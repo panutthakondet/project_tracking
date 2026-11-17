@@ -49,6 +49,7 @@ namespace ProjectTracking.Services
             var dinoColor = NormalizeHexOrDefault(preference?.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(preference?.DinoFoodColorHex, DefaultDinoFoodColorHex);
             var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, profilePanel, bodyBg, chartPanel, menuPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
+            resolved.ColorBlindModeEnabled = preference?.ColorBlindModeEnabled ?? false;
 
             return new AppearanceViewModel
             {
@@ -63,6 +64,7 @@ namespace ProjectTracking.Services
                 CustomMenuPanelHex = menuPanel,
                 FontScale = fontScale,
                 ProfileBallEnabled = profileBallEnabled,
+                ColorBlindModeEnabled = preference?.ColorBlindModeEnabled ?? false,
                 DinoName = dinoName,
                 DinoColorHex = dinoColor,
                 DinoFoodColorHex = dinoFoodColor,
@@ -124,6 +126,7 @@ namespace ProjectTracking.Services
             preference.CustomMenuPanelHex = model.UseCustom ? menuPanel : null;
             preference.FontScale = fontScale;
             preference.ProfileBallEnabled = model.ProfileBallEnabled;
+            preference.ColorBlindModeEnabled = model.ColorBlindModeEnabled;
             preference.DinoName = dinoName;
             preference.DinoColorHex = dinoColor;
             preference.DinoFoodColorHex = dinoFoodColor;
@@ -171,7 +174,9 @@ namespace ProjectTracking.Services
                 var menuPanel = NormalizeHexOrDefault(preference.CustomMenuPanelHex, NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.MenuPanelHex));
                 var dinoColor = NormalizeHexOrDefault(preference.DinoColorHex, DefaultDinoColorHex);
                 var dinoFoodColor = NormalizeHexOrDefault(preference.DinoFoodColorHex, DefaultDinoFoodColorHex);
-                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, profilePanel, bodyBg, chartPanel, menuPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
+                var resolved = ResolveTheme(preset, preference.UseCustom, accent, sidebar, profilePanel, bodyBg, chartPanel, menuPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
+                resolved.ColorBlindModeEnabled = preference.ColorBlindModeEnabled;
+                return resolved;
             }
             catch
             {
@@ -3047,7 +3052,7 @@ html body main.route-controller-requirementboard :is(
     color: var(--pt-accent) !important;
 }
 ");
-            return sb.ToString();
+            return sb.ToString() + ColorVisionTheme.BuildCss(theme.ColorBlindModeEnabled);
         }
 
         private static void AppendVar(StringBuilder sb, string name, string value)

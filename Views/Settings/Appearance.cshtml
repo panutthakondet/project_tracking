@@ -884,6 +884,21 @@
                     </div>
 
                     <div class="appearance-section__head" style="margin-top:18px;">
+                        <h2>การมองเห็นสี</h2>
+                    </div>
+                    <label class="motion-option" for="ColorBlindModeEnabled">
+                        <span>
+                            <strong>โหมดช่วยแยกสี</strong>
+                            <small>ลดการใช้คู่แดง–เขียวในสถานะและกราฟหลัก ใช้สีฟ้า/ส้มร่วมกับข้อความและสัญลักษณ์ โดยคงธีมพื้นหลังเดิม กดบันทึกเพื่อใช้งาน</small>
+                        </span>
+                        <span class="motion-switch">
+                            <input type="checkbox" id="ColorBlindModeEnabled" name="ColorBlindModeEnabled" value="true" @(Model.ColorBlindModeEnabled ? "checked" : "") />
+                            <span></span>
+                        </span>
+                    </label>
+                    <input type="hidden" name="ColorBlindModeEnabled" value="false" />
+
+                    <div class="appearance-section__head" style="margin-top:18px;">
                         <h2>Text Scale</h2>
                     </div>
                     <div class="font-scale-row">

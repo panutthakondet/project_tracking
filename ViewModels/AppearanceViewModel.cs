@@ -30,6 +30,7 @@ namespace ProjectTracking.ViewModels
         [Range(0.90, 1.15)]
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        public bool ColorBlindModeEnabled { get; set; }
         [StringLength(24)]
         public string DinoName { get; set; } = "Dino";
         public string DinoColorHex { get; set; } = "#FFFFFF";
@@ -49,6 +50,7 @@ namespace ProjectTracking.ViewModels
         public string? CustomMenuPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        public bool ColorBlindModeEnabled { get; set; }
         public string? DinoName { get; set; }
         public string? DinoColorHex { get; set; }
         public string? DinoFoodColorHex { get; set; }
@@ -95,6 +97,7 @@ namespace ProjectTracking.ViewModels
         public string MenuPanelContrastHex { get; set; } = "#ffffff";
         public string MenuPanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
         public bool ProfileBallEnabled { get; set; }
+        public bool ColorBlindModeEnabled { get; set; }
         public string DinoColorHex { get; set; } = "#FFFFFF";
         public string DinoFoodColorHex { get; set; } = "#45D6C6";
         public string DinoFoodColorSoftRgba { get; set; } = "rgba(69, 214, 198, .24)";

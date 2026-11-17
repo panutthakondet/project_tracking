@@ -8,6 +8,7 @@
         parent.append(node); return node;
     };
     const palette = tone => {
+        if(window.ptColorVisionEnabled?.())return [window.ptChartColor(tone,'#707070'),window.ptChartColor(tone+'-light','#aaaaaa'),window.ptChartColor(tone+'-dark','#333333')];
         if (['green','lime','success'].includes(tone)) return ['#70E000','#A5FF55','#348C12'];
         if (['purple','violet'].includes(tone)) return ['#9945FF','#C18AFF','#5822A0'];
         if (['blue','primary'].includes(tone)) return ['#2996F3','#86CDFF','#135CA5'];

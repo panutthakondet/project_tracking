@@ -256,6 +256,7 @@ await EnsureSystemConfigTableAsync(app.Services);
 await EnsureSystemUpdateAnnouncementSchemaAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
+await ColorVisionSchema.EnsureAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);

@@ -17,7 +17,7 @@
         const tooltip=chart.querySelector('.assign-neon-tooltip');tooltip.id=id+'Tip';
         const total=Math.max(0,Number(chart.dataset.assignTotal)||0);
         const palette=['#2996F3','#A56AFF','#20D9D2','#E76DAA'];
-        const rows=[...host.querySelectorAll('[data-assign-neon-metric]')].map((node,index)=>({count:Math.max(0,Number(node.dataset.count)||0),label:node.querySelector('.metric-name').textContent.trim(),href:node.dataset.href,state:node.dataset.state,color:({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length]})).filter(row=>row.count>0);
+        const rows=[...host.querySelectorAll('[data-assign-neon-metric]')].map((node,index)=>({count:Math.max(0,Number(node.dataset.count)||0),label:node.querySelector('.metric-name').textContent.trim(),href:node.dataset.href,state:node.dataset.state,color:window.ptChartColor?.(node.dataset.state,({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length])||({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length]})).filter(row=>row.count>0);
         const defs=add(svg,'defs',{});
         const glow=add(defs,'filter',{id:id+'Glow',x:'-25%',y:'-25%',width:'150%',height:'150%'});
         add(glow,'feGaussianBlur',{stdDeviation:'2',result:'blur'});const merge=add(glow,'feMerge',{});add(merge,'feMergeNode',{in:'blur'});add(merge,'feMergeNode',{in:'SourceGraphic'});
