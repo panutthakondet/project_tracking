@@ -10,6 +10,8 @@
             toggle.setAttribute('aria-label',open?'ปิดเมนูหลัก':'เปิดเมนูหลัก');
             if(!open)sidebar.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(button=>window.bootstrap?.Dropdown.getInstance(button)?.hide());
     };
+    // Close the mobile menu before the Logout confirmation opens.
+    document.getElementById('sidebarLogoutLink')?.addEventListener('click',()=>{if(mobile.matches)setOpen(false);},true);
     toggle.addEventListener('click',()=>setOpen(!sidebar.classList.contains('mobile-menu-open')));
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mobile.matches&&sidebar.classList.contains('mobile-menu-open')){event.preventDefault();event.stopPropagation();setOpen(false);toggle.focus();}},true);
     document.addEventListener('pointerdown',event=>{if(mobile.matches&&!sidebar.contains(event.target))setOpen(false);});
