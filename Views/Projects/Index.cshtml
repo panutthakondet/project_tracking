@@ -609,6 +609,7 @@
                 }
 
                 <div class="project-actions">
+                    <a asp-controller="SecurityScans" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-outline-primary btn-sm">🛡️ ตรวจความปลอดภัย</a>
                     <a asp-action="ProductionMemo"
                        asp-route-id="@p.ProjectId"
                        target="_blank"

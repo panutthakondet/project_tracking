@@ -202,6 +202,8 @@ builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
 builder.Services.AddScoped<FieldServiceNotificationService>();
 builder.Services.AddScoped<UserThemeService>();
+builder.Services.AddScoped<ProjectTracking.Services.Security.SecurityStorage>();
+builder.Services.AddScoped<ProjectTracking.Services.Security.SecurityScanService>();
 builder.Services.AddScoped<AttendancePolicyService>();
 builder.Services.AddSignalR(options =>
 {
@@ -257,6 +259,7 @@ await EnsureSystemUpdateAnnouncementSchemaAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
 await ColorVisionSchema.EnsureAsync(app.Services);
+await ProjectTracking.Services.Security.SecuritySchema.EnsureAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);

@@ -26,3 +26,6 @@ wwwroot/uploads/requirement-cards/
 keys/
 inetpub/
 C:/inetpub/
+
+# project security scanner storage
+App_Data/Security/

@@ -1,0 +1,12 @@
+# Security worker build: allow only source files required by deploy/security/Dockerfile.
+# Environment files, credentials, uploads, reports and repository metadata never enter the context.
+**
+!SecurityWorker/
+!SecurityWorker/*.cs
+!SecurityWorker/SecurityWorker.csproj
+!Services/
+!Services/Security/
+!Services/Security/SecurityContracts.cs
+!deploy/
+!deploy/security/
+!deploy/security/Dockerfile

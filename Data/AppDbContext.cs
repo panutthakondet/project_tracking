@@ -13,6 +13,15 @@ namespace ProjectTracking.Data
         // ======================
         // ===== TABLES =====
         // ======================
+        public DbSet<SecuritySystem> SecuritySystemRows => Set<SecuritySystem>();
+        public DbSet<SecurityVersion> SecurityVersionRows => Set<SecurityVersion>();
+        public DbSet<SecurityArtifact> SecurityArtifactRows => Set<SecurityArtifact>();
+        public DbSet<SecurityScan> SecurityScanRows => Set<SecurityScan>();
+        public DbSet<SecurityFinding> SecurityFindingRows => Set<SecurityFinding>();
+        public DbSet<SecurityScanFinding> SecurityScanFindingRows => Set<SecurityScanFinding>();
+        public DbSet<SecurityReport> SecurityReportRows => Set<SecurityReport>();
+        public DbSet<SecurityFindingHistory> SecurityFindingHistoryRows => Set<SecurityFindingHistory>();
+        public DbSet<SecurityFindingIssueLink> SecurityFindingIssueLinkRows => Set<SecurityFindingIssueLink>();
         public DbSet<WebNotification> WebNotifications { get; set; }
         public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
         public DbSet<WebPushDelivery> WebPushDeliveries { get; set; }
@@ -121,6 +130,7 @@ namespace ProjectTracking.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            ProjectTracking.Services.Security.SecurityModelConfiguration.Configure(modelBuilder);
 
             modelBuilder.Entity<ProjectDepartment>(entity =>
             {

@@ -1,0 +1,7 @@
+{
+  "loginUrl": "https://uat.example.com/login",
+  "requestData": "username={%username%}&password={%password%}",
+  "loggedInRegex": "Sign out",
+  "username": "REPLACE_WITH_TEST_ACCOUNT",
+  "password": "REPLACE_LOCALLY_DO_NOT_COMMIT"
+}

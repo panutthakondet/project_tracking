@@ -1,0 +1,38 @@
+@model ProjectTracking.ViewModels.Security.SecurityProjectPage
+@using ProjectTracking.Services.Security
+@{ViewData["Title"]="ตรวจความปลอดภัยโครงการ";}
+@section Styles { <link rel="stylesheet" href="~/css/security-center.css" asp-append-version="true" /> }
+<div class="security-center">
+    <header class="index-hero security-hero"><div><small>PROJECT SECURITY CENTER</small><h1>🛡️ ตรวจความปลอดภัย</h1><p>@Model.Project.ProjectDisplayName</p></div><a class="btn btn-outline-light" asp-controller="Projects" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId">กลับโครงการ</a></header>
+    @if(TempData["Success"] is string success){<div class="alert alert-success" role="status">@success</div>}
+    @if(TempData["Error"] is string error){<div class="alert alert-danger" role="alert">@error</div>}
+    @if(!Model.WorkerConfigured){<div class="alert alert-info">ยังไม่ได้ตั้งค่าเครื่องสแกน สามารถเพิ่มระบบและเวอร์ชันได้ก่อน เมื่อพร้อมให้ผู้ดูแลติดตั้งชุด Docker และตั้งค่า SECURITY_WORKER_KEY ตามคู่มือ <code>docs/SecurityCenter.md</code></div>}
+    <div class="security-summary"><div><strong>@Model.Systems.Count</strong> ระบบ</div><div><strong>@Model.Versions.Count</strong> เวอร์ชัน</div><div><strong>@Model.Scans.Count(x=>x.Status is "Queued" or "Running")</strong> งานในคิว</div><div><strong>@Model.Scans.Count(x=>x.Status=="Completed")</strong> รอบที่เสร็จแล้ว</div></div>
+    @if(Model.CanManage){
+        <details class="security-card"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
+            <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
+            <label>ประเภท<select class="form-select" name="kind">@foreach(var kind in SecurityValues.Kinds){<option>@kind</option>}</select></label>
+            <label>URL เว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เว้นว่างสำหรับแอปมือถือ เครื่องสแกนจะตรวจเฉพาะโดเมนที่ผู้ดูแลอนุญาต</small></label>
+            <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" /> ต้อง Login เพื่อสแกน</label>
+            <label>ชื่อโปรไฟล์ Login<input class="form-control" name="authProfile" maxlength="80" placeholder="เช่น member-uat" /><small>อ้างถึงโปรไฟล์บนเครื่องสแกน ไม่กรอกรหัสผ่านในหน้านี้</small></label>
+            <button class="btn btn-primary" type="submit">เพิ่มระบบ</button></form></details>
+    }
+    @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
+    @foreach(var system in Model.Systems){
+        var versions=Model.Versions.Where(x=>x.SystemId==system.Id).ToList();
+        <section class="security-card"><header class="security-card-head"><div><h2>@system.Name</h2><span class="badge bg-info">@system.Kind</span> <span>@system.TargetUrl</span>@if(system.RequiresLogin){<span> · ต้อง Login (@system.AuthProfile)</span>}</div><span>@versions.Count เวอร์ชัน</span></header>
+        @if(Model.CanManage){<details><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
+            <label>Version<input class="form-control" name="versionName" maxlength="100" required placeholder="1.0.0" /></label><label>Build Number<input class="form-control" name="buildNumber" maxlength="100" /></label><label>Git Commit<input class="form-control" name="gitCommit" maxlength="64" /></label><label>สภาพแวดล้อม<select class="form-select" name="environment"><option>UAT</option><option>Production</option></select></label>
+            @if(SecurityValues.IsMobile(system.Kind)){<label>ไฟล์ @(system.Kind=="Android"?"APK":"IPA")<input class="form-control" type="file" name="application" accept="@(system.Kind=="Android"?".apk":".ipa")" required /><small>เก็บไฟล์และ SHA-256 แยกตามเวอร์ชัน สูงสุด 250 MB</small></label>}
+            <label>รายละเอียดการเปลี่ยนแปลง<textarea class="form-control" name="changeNotes" maxlength="4000"></textarea></label><button class="btn btn-primary" type="submit">เก็บเวอร์ชัน</button></form></details>}
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>เวอร์ชัน / Build</th><th>สภาพแวดล้อม</th><th>รายละเอียด</th><th>สั่งสแกน</th></tr></thead><tbody>
+        @foreach(var version in versions){var artifact=Model.Artifacts.FirstOrDefault(x=>x.VersionId==version.Id);<tr><td><strong>@version.VersionName</strong><br />@version.BuildNumber<small class="d-block">@version.GitCommit</small></td><td>@version.Environment</td><td>@version.ChangeNotes @if(artifact!=null){<small class="d-block">@artifact.OriginalName · @((artifact.Size/1048576d).ToString("0.##")) MB<br /><code class="security-hash">SHA-256 @artifact.Sha256</code></small>}</td><td>
+        @if(Model.CanManage){<form asp-action="Queue" method="post" class="security-inline"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+            <select class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select><button class="btn btn-primary" type="submit">เพิ่มเข้าคิว</button></form>}
+        </td></tr>}
+        </tbody></table></div></section>
+    }
+    <section class="security-card"><h2>ประวัติรอบสแกน</h2><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
+    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td>@SecurityValues.StatusLabel(scan.Status)</td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a></td></tr>}
+    </tbody></table></div></section>
+</div>

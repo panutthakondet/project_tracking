@@ -9,6 +9,13 @@
 
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />
+    <Compile Remove="SecurityWorker/**/*.cs" />
+    <Content Remove="SecurityWorker/**" />
+    <Content Remove="deploy/security/**" />
+    <Content Remove="App_Data/Security/**" />
+    <None Remove="App_Data/Security/**" />
+    <None Remove="deploy/security/**" />
+    <None Remove="SecurityWorker/**" />
     <Content Remove="tests/**" />
     <None Remove="tests/**" />
   </ItemGroup>
