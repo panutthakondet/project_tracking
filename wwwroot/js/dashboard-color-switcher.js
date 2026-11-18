@@ -19,10 +19,10 @@
     // Preload after initial rendering; subsequent switches are entirely local.
     const preload=()=>loadStyles().catch(()=>{});
     if('requestIdleCallback' in window)requestIdleCallback(preload,{timeout:1500});else setTimeout(preload,300);
-    form.addEventListener('submit',async event=>{
-        if(!event.submitter?.value)return;
+    const changeMode=async(event,button)=>{
+        if(!button?.value)return;
         event.preventDefault();
-        const mode=event.submitter.value;
+        const mode=button.value;
         const id=++selection;
         status.textContent='กำลังเตรียมสี…';
         const endLoading=window.ProjectTrackingLoading?.show('กำลังเปลี่ยนโหมดสี…',{delay:0});
@@ -51,5 +51,11 @@
             await saveQueue;
         }catch(error){if(id===selection)status.textContent='บันทึกโหมดสีไม่สำเร็จ กรุณากดอีกครั้ง';}
         finally{endLoading?.();}
-    });
+    };
+    // Start the overlay in the click event itself, before native form submission.
+    form.addEventListener('click',event=>{
+        const button=event.target.closest('button[name="mode"]');
+        if(button&&form.contains(button))return changeMode(event,button);
+    },true);
+    form.addEventListener('submit',event=>changeMode(event,event.submitter));
 })();

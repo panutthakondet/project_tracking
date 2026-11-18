@@ -22,7 +22,10 @@
     };
     const show=(message='กำลังดำเนินการ…',options={})=>{
         const id=++sequence;active.set(id,{message,blocking:options.blocking!==false});
-        if(overlay&&!overlay.hidden)paint();
+        if(options.delay===0){
+            if(timer!==undefined){clearTimeout(timer);timer=undefined;}
+            paint();
+        }else if(overlay&&!overlay.hidden)paint();
         else if(timer===undefined)timer=setTimeout(paint,options.delay??150);
         let ended=false;
         return ()=>{if(ended)return;ended=true;active.delete(id);if(!active.size&&timer!==undefined){clearTimeout(timer);timer=undefined;}if(overlay&&!overlay.hidden)paint();};

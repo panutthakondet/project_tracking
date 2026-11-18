@@ -13,6 +13,8 @@ vm.runInNewContext(fs.readFileSync('wwwroot/js/global-loading.js','utf8'),contex
 const api=context.window.ProjectTrackingLoading,tick=()=>{const jobs=[...timers.values()];timers.clear();jobs.forEach(fn=>fn());},overlay=()=>body.children[0];
 const submit=(form,extra={})=>{const event={target:form,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};handlers.submit(event);return event;};
 (async()=>{
+ let instant=api.show('instant',{delay:0});assert(!overlay().hidden,'delay zero displays synchronously, without a timer');instant();
+ let queued=api.show('queued');instant=api.show('instant',{delay:0});assert(!overlay().hidden,'immediate display bypasses an existing delayed spinner');instant();queued();
  let end=api.show('first');handlers.pageshow({persisted:false});let end2=api.show('second',{blocking:false});tick();assert(!overlay().hidden);end();assert(!overlay().hidden);end2();assert(overlay().hidden);end2();
  assert.equal(body.children.length,1,'one shared overlay');
  await assert.rejects(api.run(async()=>{throw Error('failure');}));tick();assert(overlay().hidden,'failure cleans up');
