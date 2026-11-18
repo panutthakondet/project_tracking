@@ -24,7 +24,7 @@
         event.preventDefault();
         const mode=button.value;
         const id=++selection;
-        status.textContent='กำลังเตรียมสี…';
+        status.textContent='';
         const endLoading=window.ProjectTrackingLoading?.show('กำลังเปลี่ยนโหมดสี…',{delay:0});
         try{
             // Allow the shared spinner to paint before applying styles and refreshing charts.
