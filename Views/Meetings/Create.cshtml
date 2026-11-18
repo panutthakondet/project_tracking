@@ -9,6 +9,15 @@
 }
 
 <style>
+    .meeting-save-overlay[hidden] { display:none !important; }
+    .meeting-save-overlay { position:fixed; inset:0; z-index:41000; display:grid; place-items:center; padding:24px; background:rgba(8,16,30,.48); backdrop-filter:blur(3px); }
+    .meeting-save-card { display:flex; flex-direction:column; align-items:center; gap:22px; width:min(100%,300px); padding:36px 24px; border-radius:22px; border:1px solid var(--pt-border-strong,#5591bf); background:var(--pt-surface,#fff); color:var(--pt-surface-contrast,#17212b); box-shadow:0 20px 60px var(--pt-shadow,rgba(0,0,0,.25)); text-align:center; }
+    .meeting-save-spinner { width:82px; height:82px; flex:none; filter:drop-shadow(0 0 5px var(--pt-accent-glow,rgba(41,150,243,.3))); animation:meeting-save-spin 1s linear infinite; }
+    .meeting-save-spinner::before { content:""; display:block; width:100%; height:100%; border-radius:50%; background:conic-gradient(from 0deg,transparent 0deg 55deg,var(--pt-accent-soft,#b2dbef) 100deg,var(--pt-accent-dark,#0757a8) 200deg,var(--pt-accent,#2996f3) 290deg,color-mix(in srgb,var(--pt-accent,#2996f3) 40%,white) 350deg,transparent 360deg); -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px)); mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px)); }
+    .meeting-save-card strong { font-size:1.05rem; font-weight:600; color:inherit; }
+    @@keyframes meeting-save-spin { to { transform:rotate(360deg); } }
+    @@media (prefers-reduced-motion:reduce) { .meeting-save-spinner { animation:none; } }
+
     .meeting-create-wrap {
         width: 100%;
         max-width: 100%;
@@ -306,6 +315,13 @@
     </div>
 </div>
 
+<div id="meetingSaveOverlay" class="meeting-save-overlay" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <div class="meeting-save-card">
+        <span class="meeting-save-spinner" aria-hidden="true"></span>
+        <strong>กำลังบันทึกการประชุม…</strong>
+    </div>
+</div>
+
 <script>
 (function () {
     const form = document.getElementById('meetingForm');
@@ -557,7 +573,20 @@
     if (startInput) startInput.addEventListener('change', validateTime);
     if (endInput) endInput.addEventListener('change', validateTime);
 
+    const saveOverlay = document.getElementById('meetingSaveOverlay');
+    if (saveOverlay) document.body.append(saveOverlay);
+    const saveButton = form.querySelector('button[type="submit"]');
+    const saveButtonText = saveButton?.textContent;
+    let saving = false;
+    window.addEventListener('pageshow', function () {
+        saving = false;
+        form.removeAttribute('aria-busy');
+        if (saveOverlay) saveOverlay.hidden = true;
+        if (saveButton) { saveButton.disabled = false; saveButton.textContent = saveButtonText; }
+    });
+
     form.addEventListener('submit', function (e) {
+        if (saving || e.defaultPrevented) { e.preventDefault(); return; }
         syncHiddenDate();
 
         if (!hiddenDate?.value) {
@@ -569,7 +598,13 @@
         if (!validateTime()) {
             e.preventDefault();
             endInput?.focus();
+            return;
         }
+        if (!form.checkValidity()) { e.preventDefault(); form.reportValidity(); return; }
+        saving = true;
+        form.setAttribute('aria-busy', 'true');
+        if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'กำลังบันทึก…'; }
+        if (saveOverlay) saveOverlay.hidden = false;
     });
 })();
 </script>
