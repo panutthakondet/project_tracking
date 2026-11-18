@@ -25,7 +25,10 @@
         const mode=event.submitter.value;
         const id=++selection;
         status.textContent='กำลังเตรียมสี…';
+        const endLoading=window.ProjectTrackingLoading?.show('กำลังเปลี่ยนโหมดสี…',{delay:0});
         try{
+            // Allow the shared spinner to paint before applying styles and refreshing charts.
+            if(endLoading)await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
             const styles=await loadStyles();
             if(id!==selection)return;
             if(typeof styles[mode]!=='string')throw new Error('styles');
@@ -47,5 +50,6 @@
             });
             await saveQueue;
         }catch(error){if(id===selection)status.textContent='บันทึกโหมดสีไม่สำเร็จ กรุณากดอีกครั้ง';}
+        finally{endLoading?.();}
     });
 })();
