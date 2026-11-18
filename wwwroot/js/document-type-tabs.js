@@ -11,7 +11,7 @@
         const version = ++revision;
         current.setAttribute('aria-busy', 'true');
         try {
-            const response = await fetch(url, { credentials: 'same-origin', signal: pending.signal });
+            const response = await window.ProjectTrackingLoading.fetch(url, { credentials: 'same-origin', signal: pending.signal }, {show:true,blocking:false,message:'กำลังโหลดเอกสาร…'});
             if (!response.ok || response.redirected) throw new Error('Cannot load documents');
             const html = new DOMParser().parseFromString(await response.text(), 'text/html');
             const next = html.querySelector('[data-document-list]');

@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>@ViewData["Title"] - ProjectTracking</title>
     @await Html.PartialAsync("_PwaHead")
+    @await Html.PartialAsync("_GlobalLoading")
     <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" />
     <script src="~/js/notifications.js" asp-append-version="true" defer></script>
 
@@ -2987,7 +2988,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const file = input.files[0];
         if (!file.type || !file.type.startsWith('image/')) {
-            input.form.submit();
+            window.ProjectTrackingLoading.submit(input.form);
             return;
         }
 
@@ -3038,7 +3039,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.classList.remove('is-open');
         modal.setAttribute('aria-hidden', 'true');
         cropState.input.disabled = true;
-        cropState.input.form.submit();
+        window.ProjectTrackingLoading.submit(cropState.input.form);
     };
 
     if (stage) {
@@ -3257,7 +3258,7 @@ document.addEventListener("DOMContentLoaded", function () {
             text: 'ระบบจะหมดเวลาในอีก 5 นาที',
             confirmButtonText: 'ต่อเวลา'
         }).then(() => {
-            fetch('/Auth/KeepAlive'); // ต่อ session
+            window.ProjectTrackingLoading.fetch('/Auth/KeepAlive'); // ต่อ session
         });
     }, warningTime);
 
@@ -3276,7 +3277,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ตรวจ session จริงทุก 1 นาที (กันพลาด)
     setInterval(async function () {
         try {
-            let res = await fetch('/Auth/CheckSession');
+            let res = await window.ProjectTrackingLoading.fetch('/Auth/CheckSession');
             if (res.status === 401) {
                 ProjectTrackingSwal.fire({
                     icon: 'error',

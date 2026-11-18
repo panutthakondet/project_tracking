@@ -1171,7 +1171,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function submitSafely() {
         setTimeout(function () {
-            form?.submit();
+            form && window.ProjectTrackingLoading.submit(form);
         }, 0);
     }
 
@@ -1368,7 +1368,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedProjectId = @((int?)ViewBag.SelectedProjectId ?? 0);
         const reorderUrl = '@Url.Action("Reorder", "PhaseAssigns")' + '?projectId=' + selectedProjectId;
 
-        const res = await fetch(reorderUrl, {
+        const res = await window.ProjectTrackingLoading.fetch(reorderUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify(payload)
@@ -1497,7 +1497,7 @@ function submitLog() {
     submitButton.disabled = true;
     submitButton.textContent = 'กำลังบันทึก...';
 
-    fetch('@Url.Action("SaveLog", "PhaseAssigns")', {
+    window.ProjectTrackingLoading.fetch('@Url.Action("SaveLog", "PhaseAssigns")', {
         method: 'POST',
         headers,
         body

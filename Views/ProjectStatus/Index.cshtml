@@ -63,7 +63,7 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-12">
                         <label for="departmentId" class="form-label fw-bold">ฝ่าย</label>
-                        <select id="departmentId" name="departmentId" class="form-select rounded-3" onchange="this.form.submit()">
+                        <select id="departmentId" name="departmentId" class="form-select rounded-3" onchange="window.ProjectTrackingLoading.submit(this.form)">
                             <option value="">ทุกฝ่าย</option>
                             @foreach (var department in statusPage.DepartmentOptions)
                             {

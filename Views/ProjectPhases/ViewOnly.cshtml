@@ -494,7 +494,7 @@
             function submitFilters() {
                 if (!form) return;
                 if (typeof form.requestSubmit === "function") form.requestSubmit();
-                else form.submit();
+                else window.ProjectTrackingLoading.submit(form);
             }
 
             function syncProjectFilterOptions() {

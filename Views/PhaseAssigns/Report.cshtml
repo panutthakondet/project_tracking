@@ -155,7 +155,7 @@ else
         syncProjectFilterOptions();
 
         $('#projectSelect, #empSelect').on('change', function () {
-            $('#filterForm').submit();
+            window.ProjectTrackingLoading.submit(document.getElementById('filterForm'));
         });
     });
 </script>

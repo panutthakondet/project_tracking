@@ -319,7 +319,7 @@
         <div class="row g-3">
             <div class="@(selectedProject != null ? "col-md-4" : "col-md-6")">
                 <label class="form-label fw-semibold">โครงการ</label>
-                <select id="projectSelect" name="projectId" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                <select id="projectSelect" name="projectId" class="form-select" onchange="window.ProjectTrackingLoading.submit(document.getElementById('filterForm'))">
                     <option value="">-- เลือกโครงการ --</option>
                     @foreach (var p in projects.OrderBy(x => x.Coop?.CoopName ?? "").ThenBy(x => x.ProjectName))
                     {
@@ -332,7 +332,7 @@
             {
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">เจ้าของงาน</label>
-                    <select name="empName" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                    <select name="empName" class="form-select" onchange="window.ProjectTrackingLoading.submit(document.getElementById('filterForm'))">
                         <option value="">-- ทั้งหมด --</option>
                         @foreach (var emp in empList)
                         {
@@ -343,7 +343,7 @@
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">สถานะ</label>
-                    <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                    <select name="status" class="form-select" onchange="window.ProjectTrackingLoading.submit(document.getElementById('filterForm'))">
                         <option value="">-- ทุกสถานะ --</option>
                         @foreach (var status in statusList)
                         {

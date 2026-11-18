@@ -67,6 +67,7 @@
             status.textContent = 'เตรียมอัปโหลด...';
             controls.forEach(([control]) => control.disabled = true);
             let uploadId;
+            const endLoading=window.ProjectTrackingLoading?.show('กำลังอัปโหลดไฟล์…',{blocking:false});
             try {
                 const started = await post(form.dataset.uploadBegin, {
                     empId: fields.get('empId'), documentType: fields.get('documentType'),
@@ -106,6 +107,7 @@
                 error.hidden = false;
                 status.textContent = '';
             } finally {
+                endLoading?.();
                 busy = false;
                 cancel.hidden = true;
                 controls.forEach(([control, disabled]) => control.disabled = disabled);

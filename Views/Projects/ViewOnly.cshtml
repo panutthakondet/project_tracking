@@ -445,7 +445,7 @@
         </div>
         <div class="field">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" data-placeholder="เลือกฝ่าย..." onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" data-placeholder="เลือกฝ่าย..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุกฝ่าย --</option>
                 @foreach (var department in departments)
                 {
@@ -457,7 +457,7 @@
         </div>
         <div class="field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projectList)
                 {
@@ -472,7 +472,7 @@
         </div>
         <div class="field">
             <label for="baEmpId">BA</label>
-            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="this.form.submit()">
+            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All BA --</option>
                 @foreach (var ba in baList)
                 {
@@ -484,7 +484,7 @@
         </div>
         <div class="field">
             <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Statuses --</option>
                 @foreach (var item in projectStatuses)
                 {

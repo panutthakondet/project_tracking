@@ -177,7 +177,7 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-12">
                         <label class="form-label fw-bold">📁 โครงการ</label>
-                        <select name="projectId" class="form-select form-select-lg" onchange="this.form.submit()">
+                        <select name="projectId" class="form-select form-select-lg" onchange="window.ProjectTrackingLoading.submit(this.form)">
                             <option value="">-- เลือกโครงการ --</option>
                             @foreach (var p in projects)
                             {

@@ -653,7 +653,7 @@
                             class="form-select"
                             data-scenario-coop-filter
                             data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์..."
-                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : window.ProjectTrackingLoading.submit(this.form)">
                         <option value="">-- ทุกสหกรณ์ --</option>
                         @foreach (var coop in coopOptions)
                         {
@@ -678,7 +678,7 @@
                             class="form-select"
                             data-scenario-project-filter
                             data-project-coop-filter="off"
-                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : window.ProjectTrackingLoading.submit(this.form)">
                         <option value="">-- เลือกโครงการ --</option>
                         @foreach (var p in projects)
                         {
@@ -711,7 +711,7 @@
 
                 <div class="scenario-filter-type">
                     <label class="form-label">ผู้ทดสอบ</label>
-                    <select name="scenarioType" class="form-select" onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                    <select name="scenarioType" class="form-select" onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : window.ProjectTrackingLoading.submit(this.form)">
                         <option value="">-- ผู้ทดสอบทั้งหมด --</option>
                         <option value="BA" selected="@(selectedScenarioType == "BA" ? "selected" : null)">BA</option>
                         <option value="DEV" selected="@(selectedScenarioType == "DEV" ? "selected" : null)">DEV</option>
@@ -722,7 +722,7 @@
                     <label class="form-label">สถานะ</label>
                     <select name="status"
                             class="form-select"
-                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : window.ProjectTrackingLoading.submit(this.form)">
                         <option value="">-- ทุกสถานะ --</option>
                         @foreach (var statusOption in statusList)
                         {
@@ -1110,7 +1110,7 @@
                         });
                     });
 
-                    fetch("/TestScenarios/UpdateSort", {
+                    window.ProjectTrackingLoading.fetch("/TestScenarios/UpdateSort", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
@@ -1144,7 +1144,7 @@
         results.classList.add('is-loading');
 
         try {
-            const response = await fetch(url.toString(), {
+            const response = await window.ProjectTrackingLoading.fetch(url.toString(), {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
 
@@ -1172,7 +1172,7 @@
         const controlSelect = form.querySelector('[data-control-select]');
         if (controlSelect) controlSelect.value = '';
         form.querySelectorAll('input[name="groupIds"]').forEach(input => input.remove());
-        form.submit();
+        window.ProjectTrackingLoading.submit(form);
     }
 
     function initScenarioProjectCoopFilter() {
@@ -1268,7 +1268,7 @@
                 return;
             }
 
-            filterForm?.submit();
+            filterForm && window.ProjectTrackingLoading.submit(filterForm);
         }
 
         function render() {

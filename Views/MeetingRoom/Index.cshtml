@@ -7991,7 +7991,7 @@
             }
 
             async function postForm(url, values) {
-                const response = await fetch(url, {
+                const response = await window.ProjectTrackingLoading.fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -10021,7 +10021,7 @@
 
                 isPollingRoomState = true;
                 try {
-                    const response = await fetch(root.dataset.stateUrl, {
+                    const response = await window.ProjectTrackingLoading.fetch(root.dataset.stateUrl, {
                         headers: { 'Accept': 'application/json' },
                         cache: 'no-store'
                     });
@@ -13207,7 +13207,7 @@
 
                 try {
                     const url = `${root.dataset.filesUrl}?areaKey=${encodeURIComponent(area.key)}`;
-                    const response = await fetch(url, {
+                    const response = await window.ProjectTrackingLoading.fetch(url, {
                         headers: { 'Accept': 'application/json' },
                         cache: 'no-store'
                     });
@@ -13360,7 +13360,7 @@
                 formData.append('areaTitle', area.title || area.key);
 
                 try {
-                    const response = await fetch(root.dataset.shareFileUrl, {
+                    const response = await window.ProjectTrackingLoading.fetch(root.dataset.shareFileUrl, {
                         method: 'POST',
                         headers: { 'Accept': 'application/json' },
                         body: formData

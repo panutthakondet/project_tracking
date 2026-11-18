@@ -1516,7 +1516,7 @@ else
             }
 
             hiddenSelect.addEventListener("change", function () {
-                hiddenSelect.closest("form").submit();
+                window.ProjectTrackingLoading.submit(hiddenSelect.closest("form"));
             });
 
             coopFilter?.addEventListener("change", function () {
@@ -1707,7 +1707,7 @@ else
                 // Persist order (optional): calls ProjectPhasesController.Reorder
                 // If you don't have this action yet, nothing will break visually; it will just fail to save.
                 try {
-                    const res = await fetch("@Url.Action("Reorder", "ProjectPhases")", {
+                    const res = await window.ProjectTrackingLoading.fetch("@Url.Action("Reorder", "ProjectPhases")", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",

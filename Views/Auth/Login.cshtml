@@ -297,6 +297,7 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_GlobalLoading")
 </head>
 
 <body>
@@ -341,7 +342,7 @@
                     </div>
                 }
 
-                <form asp-controller="Auth" asp-action="Login" method="post" autocomplete="on">
+                <form asp-controller="Auth" asp-action="Login" method="post" autocomplete="on" data-loading-message="กำลังเข้าสู่ระบบ…">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
 

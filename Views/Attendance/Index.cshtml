@@ -156,7 +156,7 @@
         navigator.geolocation.getCurrentPosition(async position => {
             showPositionOnMap(position);
             try {
-                const response = await fetch('@Url.Action("Save", "Attendance")', {
+                const response = await window.ProjectTrackingLoading.fetch('@Url.Action("Save", "Attendance")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

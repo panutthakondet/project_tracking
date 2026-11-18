@@ -1507,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMeetingList();
 
     function loadMeetingList() {
-        fetch('/Meetings/List?calendarId=' + meetingCalendarId)
+        window.ProjectTrackingLoading.fetch('/Meetings/List?calendarId=' + meetingCalendarId)
             .then(r => r.json())
             .then(data => {
                 const container = document.getElementById('meetingListTable');
@@ -1584,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateEventTime(event) {
-        fetch('/Meetings/Move', {
+        window.ProjectTrackingLoading.fetch('/Meetings/Move', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

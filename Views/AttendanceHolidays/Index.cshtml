@@ -538,7 +538,7 @@
                 });
 
                 try {
-                    const response = await fetch('@Url.Action("Save", "AttendanceHolidays")', {
+                    const response = await window.ProjectTrackingLoading.fetch('@Url.Action("Save", "AttendanceHolidays")', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         body
@@ -568,7 +568,7 @@
                 });
 
                 try {
-                    const response = await fetch('@Url.Action("Toggle", "AttendanceHolidays")', {
+                    const response = await window.ProjectTrackingLoading.fetch('@Url.Action("Toggle", "AttendanceHolidays")', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         body

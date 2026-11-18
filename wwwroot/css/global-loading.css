@@ -1,0 +1,14 @@
+.pt-global-loading[hidden]{display:none!important}
+.pt-global-loading{position:fixed;inset:0;z-index:41000;display:grid;place-items:center;padding:24px;background:rgba(8,16,30,.48);backdrop-filter:blur(3px)}
+.pt-global-loading__card{display:flex;flex-direction:column;align-items:center;gap:22px;width:min(100%,300px);box-sizing:border-box;padding:36px 24px;border-radius:22px;border:1px solid var(--pt-border-strong,#5591bf);background:var(--pt-surface,#fff);color:var(--pt-surface-contrast,#17212b);box-shadow:0 20px 60px var(--pt-shadow,rgba(0,0,0,.25));text-align:center;font:inherit}
+.pt-global-loading__spinner{width:82px;height:82px;flex:none;filter:drop-shadow(0 0 5px var(--pt-accent-glow,rgba(41,150,243,.3)));animation:pt-global-loading-spin 1s linear infinite}
+.pt-global-loading__spinner::before{content:"";display:block;width:100%;height:100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg 55deg,var(--pt-accent-soft,#b2dbef) 100deg,var(--pt-accent-dark,#0757a8) 200deg,var(--pt-accent,#2996f3) 290deg,color-mix(in srgb,var(--pt-accent,#2996f3) 40%,white) 350deg,transparent 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px));mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px))}
+.pt-global-loading__message{font-size:1.05rem;font-weight:600;color:inherit;overflow-wrap:anywhere}
+.pt-global-loading.is-nonblocking{inset:auto 16px calc(16px + env(safe-area-inset-bottom));padding:0;display:block;max-width:calc(100vw - 32px);background:none;backdrop-filter:none;pointer-events:none}
+.pt-global-loading.is-nonblocking .pt-global-loading__card{flex-direction:row;gap:14px;padding:16px 20px;width:auto;max-width:340px}
+.pt-global-loading.is-nonblocking .pt-global-loading__spinner{width:32px;height:32px}
+.pt-global-loading.is-nonblocking .pt-global-loading__spinner::before{-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+form.pt-form-saving [type=submit]{pointer-events:none;cursor:wait}
+@keyframes pt-global-loading-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.pt-global-loading__spinner{animation:none}}
+@media print{.pt-global-loading{display:none!important}}

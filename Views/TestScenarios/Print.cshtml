@@ -495,7 +495,7 @@
     <form method="get" class="filter-panel no-print">
         <div class="field department-field">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">ทุกฝ่าย</option>
                 @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
                 { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
@@ -516,7 +516,7 @@
 
         <div class="field project-field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
@@ -531,7 +531,7 @@
 
         <div class="field group-field">
             <label for="groupId">Group</label>
-            <select id="groupId" name="groupId" data-placeholder="🔍 พิมพ์ค้นหา Group..." onchange="this.form.submit()">
+            <select id="groupId" name="groupId" data-placeholder="🔍 พิมพ์ค้นหา Group..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Groups --</option>
                 @foreach (var group in groups)
                 {
@@ -544,7 +544,7 @@
 
         <div class="field status-field">
             <label for="status">สถานะ</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหาสถานะ..." onchange="this.form.submit()">
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหาสถานะ..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุกสถานะ --</option>
                 @foreach (var status in statusList)
                 {
@@ -557,7 +557,7 @@
 
         <div class="field priority-field">
             <label for="priority">Priority</label>
-            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
+            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Priorities --</option>
                 @foreach (var priority in priorityList)
                 {
@@ -569,7 +569,7 @@
         </div>
         <div class="field type-field">
             <label for="scenarioType">ผู้ทดสอบ</label>
-            <select id="scenarioType" name="scenarioType" onchange="this.form.submit()">
+            <select id="scenarioType" name="scenarioType" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">BA และ DEV</option>
                 <option value="BA" selected="@(selectedScenarioType == "BA" ? "selected" : null)">BA</option>
                 <option value="DEV" selected="@(selectedScenarioType == "DEV" ? "selected" : null)">DEV</option>

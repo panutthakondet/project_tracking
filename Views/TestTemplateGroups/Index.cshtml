@@ -275,7 +275,7 @@
                     name="departmentId"
                     class="form-select"
                     data-placeholder="ค้นหาฝ่าย..."
-                    onchange="this.form.elements['controlId'].value = ''; this.form.submit()">
+                    onchange="this.form.elements['controlId'].value = ''; window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุกฝ่าย --</option>
                 @foreach (var department in departments)
                 {
@@ -293,7 +293,7 @@
                     class="form-select"
                     data-placeholder="ค้นหา Template Groups Control..."
                     disabled="@(!selectedDepartment.HasValue ? "disabled" : null)"
-                    onchange="this.form.submit()">
+                    onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุก Control --</option>
                 @foreach (var control in controls)
                 {
@@ -419,7 +419,7 @@
                         });
                     });
 
-                    fetch('/TestTemplateGroups/UpdateSort', {
+                    window.ProjectTrackingLoading.fetch('/TestTemplateGroups/UpdateSort', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

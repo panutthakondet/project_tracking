@@ -125,7 +125,7 @@
 
     <form method="get" asp-action="Index" class="report-department-filter">
         <label for="reportDepartmentId">ฝ่าย</label>
-        <select id="reportDepartmentId" name="departmentId" onchange="this.form.submit()">
+        <select id="reportDepartmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
             <option value="">ทุกฝ่าย</option>
             @foreach (var department in departments)
             {

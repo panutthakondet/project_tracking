@@ -78,7 +78,7 @@
             <select id="employeeDepartmentFilter"
                     name="department"
                     class="form-select"
-                    onchange="document.getElementById('employeeFilter').value=''; this.form.submit()">
+                    onchange="document.getElementById('employeeFilter').value=''; window.ProjectTrackingLoading.submit(this.form)">
                 <option value="all" selected="@(selectedDepartment == "all" ? "selected" : null)">ทุกฝ่าย</option>
                 @foreach (var department in departments)
                 {
@@ -94,7 +94,7 @@
             <select id="employeeFilter"
                     name="employeeId"
                     class="form-select"
-                    onchange="this.form.submit()">
+                    onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">พนักงานทั้งหมด</option>
                 @foreach (var employee in employeeOptions)
                 {

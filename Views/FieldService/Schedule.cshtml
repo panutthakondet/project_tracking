@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function loadServiceList(start, end) {
         const employeeId = employeeFilter?.value || '';
-        fetch(`@Url.Action("CalendarEvents", "FieldService")?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&employeeId=${encodeURIComponent(employeeId)}`)
+        window.ProjectTrackingLoading.fetch(`@Url.Action("CalendarEvents", "FieldService")?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&employeeId=${encodeURIComponent(employeeId)}`)
             .then(response => response.ok ? response.json() : Promise.reject())
             .then(events => renderServiceList(events, start, end))
             .catch(() => { listElement.innerHTML = '<div class="text-center text-danger py-5">โหลดรายการงานไม่สำเร็จ</div>'; });
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateEventTime(event, revert) {
         const token = document.querySelector('#fieldServiceCalendarAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
-        fetch('@Url.Action("MoveCalendarEvent", "FieldService")', {
+        window.ProjectTrackingLoading.fetch('@Url.Action("MoveCalendarEvent", "FieldService")', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

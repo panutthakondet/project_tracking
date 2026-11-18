@@ -492,7 +492,7 @@
     <form method="get" class="filter-panel">
         <div class="field">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" data-placeholder="เลือกฝ่าย..." onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" data-placeholder="เลือกฝ่าย..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">ทุกฝ่าย</option>
                 @foreach (var department in report.DepartmentOptions)
                 {
@@ -515,7 +515,7 @@
 
         <div class="field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหา Project..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in report.ProjectOptions)
                 {
@@ -529,7 +529,7 @@
         </div>
         <div class="field">
             <label for="empId">Employee</label>
-            <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+            <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหา Employee..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Employees --</option>
                 @foreach (var emp in report.EmployeeOptions)
                 {
@@ -541,7 +541,7 @@
         </div>
         <div class="field">
             <label for="baEmpId">BA</label>
-            <select id="baEmpId" name="baEmpId" data-placeholder="พิมพ์ค้นหา BA..." onchange="this.form.submit()">
+            <select id="baEmpId" name="baEmpId" data-placeholder="พิมพ์ค้นหา BA..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All BA --</option>
                 @foreach (var ba in report.BaOptions)
                 {
@@ -553,7 +553,7 @@
         </div>
         <div class="field">
             <label for="year">Year</label>
-            <select id="year" name="year" data-placeholder="พิมพ์ค้นหา Year..." onchange="this.form.submit()">
+            <select id="year" name="year" data-placeholder="พิมพ์ค้นหา Year..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 @foreach (var y in report.YearOptions)
                 {
                     <option value="@y" selected="@(report.Year == y ? "selected" : null)">@YearText(y)</option>
@@ -562,7 +562,7 @@
         </div>
         <div class="field">
             <label for="status">Phase Status</label>
-            <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Phase Status..." onchange="this.form.submit()">
+            <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Phase Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Phase Statuses --</option>
                 @foreach (var option in statusOptions)
                 {
@@ -574,7 +574,7 @@
         </div>
         <div class="field">
             <label for="assignStatus">Assign Status</label>
-            <select id="assignStatus" name="assignStatus" data-placeholder="พิมพ์ค้นหา Assign Status..." onchange="this.form.submit()">
+            <select id="assignStatus" name="assignStatus" data-placeholder="พิมพ์ค้นหา Assign Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Assign Statuses --</option>
                 @foreach (var option in assignStatusOptions)
                 {

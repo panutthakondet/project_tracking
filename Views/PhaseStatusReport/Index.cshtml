@@ -463,7 +463,7 @@
     <form method="get" class="filter-panel no-print">
         <div class="field">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">ทุกฝ่าย</option>
                 @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
                 { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
@@ -484,7 +484,7 @@
 
         <div class="field">
             <label for="projectName">📁 โครงการ</label>
-            <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหาโครงการ..." onchange="this.form.submit()">
+            <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหาโครงการ..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Projects --</option>
                 @foreach (var p in (IEnumerable<SelectListItem>)ViewBag.ProjectList)
                 {
@@ -499,7 +499,7 @@
 
         <div class="field">
             <label for="empName">Employee</label>
-            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Employees --</option>
                 @foreach (var e in ViewBag.EmpList)
                 {
@@ -512,7 +512,7 @@
 
         <div class="field">
             <label for="phaseStatus">Status</label>
-            <select id="phaseStatus" name="phaseStatus" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+            <select id="phaseStatus" name="phaseStatus" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Statuses --</option>
                 @foreach (var status in ViewBag.StatusList)
                 {

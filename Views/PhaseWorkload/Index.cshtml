@@ -2869,7 +2869,7 @@ main.route-controller-phaseworkload {
                         if (form.requestSubmit) {
                             form.requestSubmit();
                         } else {
-                            form.submit();
+                            window.ProjectTrackingLoading.submit(form);
                         }
                     }, 220);
                 });
@@ -2884,7 +2884,7 @@ main.route-controller-phaseworkload {
             if ('fetch' in window) {
                 window.setInterval(() => {
                     if (document.visibilityState !== 'visible') return;
-                    fetch('@Url.Action("KeepAlive", "PhaseWorkload")', {
+                    window.ProjectTrackingLoading.fetch('@Url.Action("KeepAlive", "PhaseWorkload")', {
                         method: 'GET',
                         credentials: 'same-origin',
                         cache: 'no-store',

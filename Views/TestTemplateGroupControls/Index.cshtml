@@ -45,7 +45,7 @@
                 name="departmentId"
                 class="form-select"
                 data-placeholder="ค้นหาฝ่าย..."
-                onchange="this.form.submit()">
+                onchange="window.ProjectTrackingLoading.submit(this.form)">
             <option value="">-- ทุกฝ่าย --</option>
             @foreach (var department in departments)
             {
@@ -127,7 +127,7 @@ else
         document.querySelectorAll('[data-control-list]').forEach(controlList => {
             new Sortable(controlList, {
                 handle: '.control-drag', animation: 150,
-                onEnd: () => fetch('/TestTemplateGroupControls/UpdateSort', {
+                onEnd: () => window.ProjectTrackingLoading.fetch('/TestTemplateGroupControls/UpdateSort', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(Array.from(controlList.querySelectorAll('.control-card')).map((row, index) => ({ id: Number(row.dataset.id), sort: index + 1 })))
                 })

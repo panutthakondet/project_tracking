@@ -921,7 +921,7 @@
                 button.textContent = "กำลังโหลด...";
 
                 try {
-                    const response = await fetch(url, { headers: { Accept: "application/json" } });
+                    const response = await window.ProjectTrackingLoading.fetch(url, { headers: { Accept: "application/json" } }, {show:true,message:"กำลังโหลดรายละเอียด…"});
                     if (!response.ok) throw new Error("โหลดข้อมูลการ์ดไม่สำเร็จ");
 
                     const card = await response.json();

@@ -147,7 +147,7 @@
                 <input type="hidden" name="type" value="@typeTabs.SelectedType" />
                 <input type="hidden" name="q" value="@searchTerm" />
                 <label class="form-label fw-bold" for="employeeDocumentEmployee">👤 พนักงาน</label>
-                <select id="employeeDocumentEmployee" name="empId" class="form-select form-select-lg" onchange="this.form.submit()">
+                <select id="employeeDocumentEmployee" name="empId" class="form-select form-select-lg" onchange="window.ProjectTrackingLoading.submit(this.form)">
                     <option value="">-- เลือกพนักงาน --</option>
                     @foreach (var employee in employees)
                     {

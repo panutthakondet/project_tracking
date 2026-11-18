@@ -8239,7 +8239,7 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
             panel.setAttribute('aria-busy', 'true');
 
             try {
-                const response = await fetch(link.href, {
+                const response = await window.ProjectTrackingLoading.fetch(link.href, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     signal: request.signal
                 });

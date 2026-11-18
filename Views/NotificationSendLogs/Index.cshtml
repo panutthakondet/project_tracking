@@ -558,7 +558,7 @@
                 <form method="get" asp-controller="NotificationSendLogs" asp-action="Index" class="send-log-department-filter">
                     <input type="hidden" name="channel" value="@Model.SelectedChannel" />
                     <label for="notificationLogDepartment">ฝ่าย</label>
-                    <select id="notificationLogDepartment" name="departmentId" onchange="this.form.submit()">
+                    <select id="notificationLogDepartment" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
                         <option value="0" selected="@(!Model.SelectedDepartmentId.HasValue ? "selected" : null)">ทุกฝ่าย</option>
                         @foreach (var department in Model.Departments)
                         {

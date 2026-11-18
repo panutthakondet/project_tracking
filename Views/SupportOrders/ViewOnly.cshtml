@@ -511,7 +511,7 @@
     <form method="get" class="filter-panel">
         <div class="field">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">ทุกฝ่าย</option>
                 @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
                 { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
@@ -529,7 +529,7 @@
         </div>
         <div class="field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
@@ -543,7 +543,7 @@
         </div>
         <div class="field">
             <label for="baEmpId">BA</label>
-            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="this.form.submit()">
+            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All BA --</option>
                 @foreach (var ba in baList)
                 {
@@ -555,7 +555,7 @@
         </div>
         <div class="field">
             <label for="empName">Employee</label>
-            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Employees --</option>
                 @foreach (var emp in empList)
                 {
@@ -567,7 +567,7 @@
         </div>
         <div class="field">
             <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Statuses --</option>
                 @foreach (var item in statusList)
                 {
@@ -577,7 +577,7 @@
         </div>
         <div class="field">
             <label for="priority">Priority</label>
-            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
+            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Priorities --</option>
                 @foreach (var item in priorityList)
                 {
@@ -587,7 +587,7 @@
         </div>
         <div class="field">
             <label for="devStatus">Dev Status</label>
-            <select id="devStatus" name="devStatus" data-placeholder="🔍 พิมพ์ค้นหา Dev Status..." onchange="this.form.submit()">
+            <select id="devStatus" name="devStatus" data-placeholder="🔍 พิมพ์ค้นหา Dev Status..." onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- All Dev Statuses --</option>
                 @foreach (var item in devStatusList)
                 {

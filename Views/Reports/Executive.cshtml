@@ -244,7 +244,7 @@
     <div class="report-actions">
         <form method="get" class="department-filter">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+            <select id="departmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">ทุกฝ่าย</option>
                 @foreach (var department in report.DepartmentOptions)
                 {

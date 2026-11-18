@@ -38,7 +38,7 @@
     <!-- PROJECT -->
     <div class="col-md-4">
         <label class="form-label fw-bold">📁 โครงการ</label>
-        <select name="projectId" class="form-select" onchange="this.form.submit()">
+        <select name="projectId" class="form-select" onchange="window.ProjectTrackingLoading.submit(this.form)">
             <option value="">-- เลือกโครงการ --</option>
             @foreach (var p in ViewBag.Projects)
             {
@@ -53,7 +53,7 @@
     <!-- EMPLOYEE -->
     <div class="col-md-4">
         <label class="form-label fw-bold">👤 Employee</label>
-        <select name="empId" class="form-select" onchange="this.form.submit()">
+        <select name="empId" class="form-select" onchange="window.ProjectTrackingLoading.submit(this.form)">
             <option value="">-- All Employees --</option>
             @foreach (var e in ViewBag.EmployeeList)
             {

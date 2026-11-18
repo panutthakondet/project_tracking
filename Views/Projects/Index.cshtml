@@ -930,7 +930,7 @@ async function loadProjectInlinePanel(card, panel) {
 
     try {
         const separator = endpoint.includes("?") ? "&" : "?";
-        const response = await fetch(`${endpoint}${separator}section=${encodeURIComponent(section)}`, {
+        const response = await window.ProjectTrackingLoading.fetch(`${endpoint}${separator}section=${encodeURIComponent(section)}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" }
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);

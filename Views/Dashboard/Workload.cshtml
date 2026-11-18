@@ -244,7 +244,7 @@ let globalData = [];
 
 async function loadTimeline(yearFrom, yearTo){
 
-    const res = await fetch(`/Dashboard/GetWorkloadData?yearFrom=${yearFrom}&yearTo=${yearTo}`);
+    const res = await window.ProjectTrackingLoading.fetch(`/Dashboard/GetWorkloadData?yearFrom=${yearFrom}&yearTo=${yearTo}`);
     globalData = await res.json();
 
     populateEmployeeDropdown(globalData);

@@ -57,7 +57,7 @@
                     name="ownerEmpId"
                     class="form-select form-select-lg"
                     data-placeholder="🔍 ค้นหา Owner..."
-                    onchange="this.form.submit()">
+                    onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุกคน --</option>
                 @foreach (var owner in ownerEmployees)
                 {
@@ -75,7 +75,7 @@
                     name="status"
                     class="form-select form-select-lg"
                     data-placeholder="🔍 ค้นหาสถานะ..."
-                    onchange="this.form.submit()">
+                    onchange="window.ProjectTrackingLoading.submit(this.form)">
                 <option value="">-- ทุกสถานะ --</option>
                 @foreach (var status in statusList)
                 {

@@ -484,7 +484,7 @@
     <form class="open-work-filter" method="get" asp-controller="OpenWork" asp-action="Index">
         <div class="open-work-filter-field">
             <label for="workType">ประเภทงาน</label>
-            <select id="workType" name="workType" onchange="this.form.submit()">
+            <select id="workType" name="workType" onchange="window.ProjectTrackingLoading.submit(this.form)">
                 @if (string.IsNullOrWhiteSpace(pageModel.SelectedWorkType))
                 {
                     <option value="" selected>ทั้งหมด (@totalWorkTypeCount)</option>
