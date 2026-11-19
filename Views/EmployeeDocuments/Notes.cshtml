@@ -332,13 +332,13 @@
         gap: 8px;
     }
 
-    .employee-note-toolbar-left { min-width: 0; flex: 1; display: grid; grid-template-columns: minmax(0, max-content) max-content; justify-content: start; align-items: start; }
-    .employee-emoji-collapse { width: auto; min-width: 0; }
-    .employee-emoji-collapse summary { width: fit-content; cursor: pointer; padding: 8px 10px; border: 1px solid var(--notes-border); border-radius: 10px; color: var(--notes-text); background: var(--notes-soft); font-size: .9rem; }
-    .employee-emoji-collapse summary:focus-visible { outline: 2px solid var(--notes-accent); outline-offset: 2px; }
+    .employee-note-toolbar-left { min-width: 0; flex: 1; display: flex; justify-content: flex-start; align-items: center; }
+    .employee-emoji-toggle { width: fit-content; cursor: pointer; padding: 8px 10px; border: 1px solid var(--notes-border); border-radius: 10px; color: var(--notes-text); background: var(--notes-soft); font-size: .9rem; }
+    .employee-emoji-toggle:focus-visible { outline: 2px solid var(--notes-accent); outline-offset: 2px; }
     .employee-emoji-collapse-hint::after { content: "แสดง"; font-size: .8rem; color: var(--notes-muted); margin-left: 6px; }
-    .employee-emoji-collapse[open] .employee-emoji-collapse-hint::after { content: "ซ่อน"; }
-    .employee-emoji-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; }
+    .employee-emoji-toggle[aria-expanded="true"] .employee-emoji-collapse-hint::after { content: "ซ่อน"; }
+    .employee-emoji-quick[hidden] { display: none; }
+    .employee-emoji-quick { flex: 1 1 100%; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; }
 
     .employee-emoji-dialog {
         width: min(560px, calc(100vw - 32px)); max-height: 80dvh;
@@ -635,20 +635,19 @@
             {
                 <div class="employee-note-toolbar">
                     <div class="employee-note-toolbar-left" aria-label="เลือก Emoji">
-                        <details class="employee-emoji-collapse">
-                            <summary>😀 Emoji <span class="employee-emoji-collapse-hint" aria-hidden="true"></span></summary>
-                            <div class="employee-emoji-quick" data-user-id="@Context.Session.GetInt32("UserId")">
-                                @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
-                                {
-                                    <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
-                                }
-                                @if (canEdit)
-                                {
-                                    <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-label="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><span class="employee-emoji-plus" aria-hidden="true"></span></button>
-                                }
-                            </div>
-                        </details>
-                        <button type="button" id="employeeNoteHelpOpen" class="employee-note-help-button" title="วิธีใช้บันทึกและอีโมจิ" aria-label="วิธีใช้บันทึกและอีโมจิ" aria-haspopup="dialog" aria-controls="employeeNoteHelpDialog">💡</button>
+                        <button type="button" id="employeeEmojiToggle" class="employee-emoji-toggle" aria-expanded="false" aria-controls="employeeEmojiQuick"><span class="employee-emoji-toggle-arrow" aria-hidden="true">▸</span> 😀 Emoji <span class="employee-emoji-collapse-hint" aria-hidden="true"></span></button>
+                        <button type="button" id="employeeNoteHelpOpen" class="employee-note-help-button" title="คู่มือการใช้งาน" aria-label="คู่มือการใช้งาน" aria-haspopup="dialog" aria-controls="employeeNoteHelpDialog">คู่มือการใช้งาน</button>
+                        <div id="employeeEmojiQuick" class="employee-emoji-quick" hidden data-user-id="@Context.Session.GetInt32("UserId")">
+                            @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
+                            {
+                                <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
+                            }
+                            @if (canEdit)
+                            {
+                                <button type="button" id="employeeEmojiOpen" class="employee-emoji-button" title="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-label="เพิ่ม Emoji ในแถบใช้งานด่วน" aria-haspopup="dialog" aria-controls="employeeEmojiDialog"><span class="employee-emoji-plus" aria-hidden="true"></span></button>
+                            }
+                        </div>
+
                     </div>
                     <div class="employee-note-toolbar-right">
                         <button type="button" id="employeeNoteExpand" class="btn btn-outline-secondary employee-note-expand" title="ขยายพื้นที่บันทึกเต็มจอ" aria-label="ขยายพื้นที่บันทึกเต็มจอ" aria-controls="employeeNotesWorkspace" aria-pressed="false"><svg class="employee-note-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" /></svg></button>
@@ -797,6 +796,14 @@
             const expanded = !document.body.classList.contains('employee-notes-expanded');
             setExpanded(expanded);
             try { sessionStorage.setItem('employee-notes-expanded', String(expanded)); } catch { }
+        });
+        const emojiToggle = document.getElementById('employeeEmojiToggle');
+        const emojiQuick = document.getElementById('employeeEmojiQuick');
+        emojiToggle?.addEventListener('click', () => {
+            const expanded = emojiToggle.getAttribute('aria-expanded') !== 'true';
+            emojiToggle.setAttribute('aria-expanded', String(expanded));
+            emojiQuick.hidden = !expanded;
+            emojiToggle.querySelector('.employee-emoji-toggle-arrow').textContent = expanded ? '▾' : '▸';
         });
         const successMessage = document.getElementById('employeeNoteSuccess');
         if (successMessage) setTimeout(() => {
