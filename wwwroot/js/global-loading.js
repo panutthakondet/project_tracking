@@ -50,7 +50,7 @@
         forms.set(form,{busy:form.getAttribute('aria-busy'),buttons});
         form.setAttribute('aria-busy','true');form.classList.add('pt-form-saving');buttons.forEach(([b])=>b.setAttribute('aria-disabled','true'));
         // Do not disable controls: named submit buttons and form values must still be posted.
-        show(form.dataset.loadingMessage||((submitter?.formMethod||form.method).toLowerCase()==='get'?'กำลังโหลดข้อมูล…':'กำลังบันทึกข้อมูล…'));
+        show(form.dataset.loadingMessage||((submitter?.formMethod||form.method).toLowerCase()==='get'?'กำลังโหลดข้อมูล…':'กำลังบันทึกข้อมูล…'),{delay:form.dataset.loadingDelay==='0'?0:undefined});
     };
     const run=async(task,message,options)=>{const end=show(message,options);try{return await task();}finally{end();}};
     const fetchWithLoading=(input,init={},options={})=>{
