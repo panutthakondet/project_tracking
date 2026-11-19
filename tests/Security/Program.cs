@@ -69,6 +69,7 @@ await using var mysql=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>
 var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==9&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates nine new security tables");
 await File.WriteAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),"deploy/security/schema.sql"),"-- Generated from SecurityModelConfiguration. New tables only.\n"+string.Join("\n\n",sql)+"\n");
 await EngineChecks.Run();
+await ReadinessChecks.Run();
 await RazorChecks.Run();
 Console.WriteLine("ALL SECURITY CHECKS PASSED — isolated SQLite and fake HTTP; no real scans or production writes.");
 }finally{Directory.Delete(root,true);}

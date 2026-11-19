@@ -14,6 +14,25 @@ services:
     environment:
       MOBSF_API_KEY: ${MOBSF_API_KEY:?Set MOBSF_API_KEY}
       MOBSF_API_ONLY: '1'
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - |
+          import json, os, sys, urllib.request
+          try:
+              request = urllib.request.Request('http://127.0.0.1:8000/api/v1/scans', headers={'Authorization': os.environ['MOBSF_API_KEY']})
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  payload = json.load(response)
+                  valid = response.status == 200 and isinstance(payload, dict) and 'error' not in payload
+              sys.exit(0 if valid else 1)
+          except Exception:
+              sys.exit(1)
+      interval: 30s
+      timeout: 15s
+      start_period: 180s
+      retries: 3
     volumes: ["mobsf-data:/home/mobsf/.MobSF"]
     restart: unless-stopped
     mem_limit: 4g
@@ -36,7 +55,11 @@ services:
       MOBSF_API_KEY: ${MOBSF_API_KEY}
       MOBSF_IMAGE_VERSION: ${MOBSF_IMAGE:-opensecurity/mobile-security-framework-mobsf:latest}
     volumes: ["./profiles:/profiles:ro"]
-    depends_on: [zap, mobsf]
+    depends_on:
+      zap:
+        condition: service_healthy
+      mobsf:
+        condition: service_healthy
     restart: unless-stopped
     mem_limit: 512m
     cpus: 1

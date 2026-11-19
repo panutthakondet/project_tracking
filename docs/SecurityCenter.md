@@ -89,6 +89,10 @@ Worker ต่ออายุ lease ทุก 30 วินาที; ขาดก
 
 หาก Failed: ตรวจ allowlist, DNS/เครือข่าย, key ตรงกัน, HTTPS certificate, engine พร้อมหรือไม่, auth profile, ขนาดไฟล์/รายงาน และรูปแบบ JSON หากเครื่องมือเปลี่ยน schema จน parser ไม่รู้จัก ระบบจะไม่สรุปว่าไม่มีช่องโหว่
 
+MobSF แบบ API-only บางรุ่นอาจตอบ HTTP 500 จาก `/login/` ขณะที่ API ทำงานได้ Image เดิมใช้หน้า Login เป็น Health Check ชุด Compose นี้จึงตรวจ `GET /api/v1/scans` พร้อม API key และตรวจผล JSON แทน Worker ใช้ endpoint เดียวกันก่อนรับงาน ไม่ข้ามการตรวจสุขภาพหรือปิดการยืนยันตัวตน และ Compose รอทั้งสองเครื่องมือเป็น healthy ก่อนเริ่ม Worker
+
+เมื่ออัปเดต Health Check ให้ใช้ `up -d --no-deps mobsf` เพื่อสร้าง container MobSF ใหม่จาก configuration ปัจจุบัน โดยยังใช้ named volume เดิม ไม่ใช้ `down -v` จากนั้นรอให้ healthy ก่อนสั่ง build/start Worker รุ่นใหม่ การแก้ชุดนี้อยู่เฉพาะ Docker/Worker ไม่ต้อง deploy IIS หรือรัน schema ซ้ำ
+
 ## ตารางที่เพิ่ม
 
 `security_systems`, `security_versions`, `security_artifacts`, `security_scans`, `security_findings`, `security_scan_findings`, `security_reports`, `security_finding_history`, `security_finding_issue_links`
@@ -101,6 +105,7 @@ Worker ต่ออายุ lease ทุก 30 วินาที; ขาดก
 dotnet build --no-restore
 dotnet build SecurityWorker/SecurityWorker.csproj
 dotnet run --project tests/Security/SecurityTests.csproj
+python3 tests/Security/mobsf-healthcheck.test.py
 ```
 
 ชุดทดสอบใช้ SQLite ชั่วคราวและ HTTP จำลอง ไม่เชื่อมฐานข้อมูลจริง ไม่ยิงสแกนภายนอก และสร้าง schema.sql จาก EF MySQL metadata โดยไม่เปิด connection

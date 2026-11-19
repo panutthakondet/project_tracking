@@ -14,7 +14,7 @@ using var mobsf=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){B
 var engines=new ScannerEngines(zap,mobsf,Setting);
 Console.WriteLine("Waiting for scanner APIs before claiming jobs");
 while(!stop.IsCancellationRequested){
- try{using var z=await zap.GetAsync("JSON/core/view/version/?apikey="+Uri.EscapeDataString(Setting("ZAP_API_KEY")),stop.Token);z.EnsureSuccessStatusCode();using var m=await mobsf.GetAsync("",stop.Token);if((int)m.StatusCode>=500)throw new HttpRequestException();break;}
+ try{using var z=await zap.GetAsync("JSON/core/view/version/?apikey="+Uri.EscapeDataString(Setting("ZAP_API_KEY")),stop.Token);z.EnsureSuccessStatusCode();await ScannerReadiness.MobSfAsync(mobsf,stop.Token);break;}
  catch(OperationCanceledException)when(stop.IsCancellationRequested){return;}
  catch{try{await Task.Delay(5000,stop.Token);}catch(OperationCanceledException){return;}}
 }
