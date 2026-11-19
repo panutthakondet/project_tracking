@@ -32,7 +32,19 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        return View(new SecurityProjectPage{Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured});
+        return View(new SecurityProjectPage{CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured});
+    }
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.ApproveHosts")]
+    public async Task<IActionResult> ApproveHost(long systemId,bool approved,CancellationToken ct)
+    {
+        var system=await db.SecuritySystemRows.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==systemId,ct);
+        if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(SecurityValues.IsMobile(system.Kind))return BadRequest();
+        try{
+            await scans.SetHostApprovalAsync(system.ProjectId,SecurityScanService.TargetHost(system.TargetUrl),approved,UserId,ct);
+            TempData["Success"]=approved?"อนุมัติโดเมนแล้ว สั่งสแกนได้ทันทีโดยไม่ต้อง Restart Worker":"ถอนการอนุมัติโดเมนแล้ว งานที่ยังไม่เริ่มจะไม่รับไปสแกน";
+        }catch(InvalidOperationException error){TempData["Error"]=error.Message;}
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct)

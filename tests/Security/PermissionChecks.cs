@@ -13,7 +13,7 @@ public static class PermissionChecks
  public static void Run()
  {
   var keys=MenuScanner.ScanMenus().Select(x=>x.Key).ToHashSet();
-  foreach(var key in new[]{"Index","Edit","CreateIssues","ViewAllProjects"})Check(keys.Contains("SecurityScans."+key),"permissions page discovers SecurityScans."+key);
+  foreach(var key in new[]{"Index","Edit","CreateIssues","ViewAllProjects","ApproveHosts"})Check(keys.Contains("SecurityScans."+key),"permissions page discovers SecurityScans."+key);
   bool Allowed(string action,string menus,string role="USER"){
    var session=new MemorySession();session.SetInt32("UserId",1);session.SetString("Role",role);session.SetString("Menus",menus);
    var http=new DefaultHttpContext{Session=session};
@@ -22,6 +22,8 @@ public static class PermissionChecks
    foreach(var attr in type.GetCustomAttributes<RequireMenuAttribute>().Concat(type.GetMethod(action)!.GetCustomAttributes<RequireMenuAttribute>())){attr.OnAuthorization(context);if(context.Result!=null)return false;}
    return true;
   }
+  Check(!Allowed("ApproveHost","SecurityScans.Index,SecurityScans.Edit"),"scan editor cannot approve a new target without separate grant");
+  Check(Allowed("ApproveHost","SecurityScans.Index,SecurityScans.ApproveHosts"),"designated approver can approve targets without edit grant");
   Check(Allowed("Index","SecurityScans.Index"),"read access uses its own grant without Projects.Index");
   Check(!Allowed("Queue","SecurityScans.Index"),"read-only grant cannot queue scans");
   Check(!Allowed("Queue","Projects.Index,Projects.Edit"),"project editing alone cannot manage security scans");

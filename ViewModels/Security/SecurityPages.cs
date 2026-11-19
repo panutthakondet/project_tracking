@@ -3,6 +3,8 @@ namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
     public Project Project { get; set; }=null!;
+    public bool CanApproveHosts { get; set; }
+    public List<SecurityHostApproval> HostApprovals { get; set; }=[];
     public List<SecuritySystem> Systems { get; set; }=[];
     public List<SecurityVersion> Versions { get; set; }=[];
     public List<SecurityArtifact> Artifacts { get; set; }=[];

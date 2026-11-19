@@ -131,3 +131,14 @@ public class SecurityFindingIssueLink
     public int CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("security_host_approvals")]
+public class SecurityHostApproval
+{
+    public long Id { get; set; }
+    public int ProjectId { get; set; }
+    [MaxLength(253)] public string Host { get; set; } = "";
+    public bool IsApproved { get; set; }
+    public int UpdatedBy { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

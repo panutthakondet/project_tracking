@@ -5,7 +5,7 @@ public static class TargetPolicy
     public static async Task<Uri> ValidateAsync(string value,string allowedHosts,bool allowPrivate,CancellationToken ct)
     {
         if(!Uri.TryCreate(value,UriKind.Absolute,out var uri)||uri.Scheme is not ("http" or "https")||uri.UserInfo!=""||uri.Fragment!="")throw new InvalidOperationException("Target URL is invalid");
-        if(!allowedHosts.Split(',',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries).Contains(uri.IdnHost,StringComparer.OrdinalIgnoreCase))throw new InvalidOperationException("Target host is not approved");
+        if(!allowedHosts.Split(',',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries).Contains(uri.IdnHost.TrimEnd('.'),StringComparer.OrdinalIgnoreCase))throw new InvalidOperationException("Target host is not approved");
         var addresses=await Dns.GetHostAddressesAsync(uri.IdnHost,ct);
         if(addresses.Length==0||addresses.Any(a=>Forbidden(a,allowPrivate)))throw new InvalidOperationException("Target resolves to a prohibited network");
         return uri;

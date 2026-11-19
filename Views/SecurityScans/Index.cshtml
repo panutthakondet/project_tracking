@@ -31,7 +31,17 @@
     @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
     @foreach(var system in Model.Systems){
         var versions=Model.Versions.Where(x=>x.SystemId==system.Id).ToList();
+        var mobile=SecurityValues.IsMobile(system.Kind);
+        var host=!mobile&&Uri.TryCreate(system.TargetUrl,UriKind.Absolute,out var target)?target.IdnHost.TrimEnd('.').ToLowerInvariant():null;
+        var approval=Model.HostApprovals.FirstOrDefault(x=>x.Host==host);
+        var hostApproved=mobile||approval?.IsApproved==true;
         <section class="security-card security-system"><header class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><span class="security-chip">@system.Kind</span> <span class="security-target">@system.TargetUrl</span>@if(system.RequiresLogin){<span> · ต้อง Login (@system.AuthProfile)</span>}</div></div><span class="security-chip">@versions.Count เวอร์ชัน</span></header>
+        @if(!mobile){
+            <div class="security-host-approval">
+                <div><strong>@(host??"ยังไม่ได้ระบุโดเมน")</strong><span class="security-status">@(hostApproved?"อนุมัติให้สแกนแล้ว":"รออนุมัติโดเมน")</span><p>อนุมัติเฉพาะโดเมนนี้ในโครงการนี้ ไม่รวมโดเมนย่อยหรือเว็บไซต์ที่ Redirect ไป</p>@if(!hostApproved&&!Model.CanApproveHosts){<small>ให้ผู้มีสิทธิ์ “อนุมัติและถอนโดเมน” อนุมัติก่อนเพิ่มเข้าคิว</small>}</div>
+                @if(Model.CanApproveHosts&&host!=null){<form asp-action="ApproveHost" method="post"><input type="hidden" name="systemId" value="@system.Id" /><input type="hidden" name="approved" value="@((!hostApproved).ToString().ToLowerInvariant())" /><button class="btn @(hostApproved?"btn-outline-primary":"btn-primary")" type="submit" aria-label="@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมน") @host">@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+            </div>
+        }
         @if(Model.CanManage){<details class="security-disclosure"><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
             <label>Version<input class="form-control" name="versionName" maxlength="100" required placeholder="1.0.0" /></label><label>Build Number<input class="form-control" name="buildNumber" maxlength="100" /></label><label>Git Commit<input class="form-control" name="gitCommit" maxlength="64" /></label><label>สภาพแวดล้อม<select class="form-select" name="environment"><option>UAT</option><option>Production</option></select></label>
             @if(SecurityValues.IsMobile(system.Kind)){<label>ไฟล์ @(system.Kind=="Android"?"APK":"IPA")<input class="form-control" type="file" name="application" accept="@(system.Kind=="Android"?".apk":".ipa")" required /><small>เก็บไฟล์และ SHA-256 แยกตามเวอร์ชัน สูงสุด 250 MB</small></label>}
@@ -51,7 +61,7 @@
                 @if(Model.CanManage){<form asp-action="Queue" method="post" class="security-queue"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
                     <label for="scan-mode-@version.Id">รูปแบบการตรวจ</label>
                     <select id="scan-mode-@version.Id" class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select>
-                    <button class="btn btn-primary" type="submit">เพิ่มเข้าคิวสแกน</button>
+                    <button class="btn btn-primary" type="submit" disabled="@(!hostApproved)" title="@(hostApproved?"เพิ่มเข้าคิวสแกน":"ต้องอนุมัติโดเมนก่อนสั่งสแกน")">เพิ่มเข้าคิวสแกน</button>
                 </form>}
             </article>
         }

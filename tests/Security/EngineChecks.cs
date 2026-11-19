@@ -12,6 +12,10 @@ public static class EngineChecks
   var result=await engines.Web(job,default);
   if(SecurityReportParser.Parse("ZAP",result.Json).Count!=0||handler.Paths.Any(p=>p.Contains("ascan/action/scan"))||!handler.Paths.Any(p=>p.Contains("removeContext")))throw new Exception("Passive workflow or cleanup incorrect");
   Console.WriteLine("PASS ZAP passive adapter executes scope, crawl, passive drain, report and cleanup with fake HTTP");
+  var dynamicEngines=new ScannerEngines(client,client,k=>k=="SECURITY_ALLOWED_HOSTS"?throw new Exception("Dynamic approval read legacy env list"):"test");
+  await dynamicEngines.Web(job with{ApprovedHosts=["93.184.216.34"]},default);
+  try{await engines.Web(job with{ApprovedHosts=[]},default);throw new Exception("Empty server approval fell back to local allowlist");}catch(InvalidOperationException e)when(e.Message=="Target host is not approved"){}
+  Console.WriteLine("PASS dynamic approval works without environment changes; empty server approval cannot fall back to a permissive local list");
   var profiles=Path.Combine(Path.GetTempPath(),"security-auth-fixture-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(profiles);
   try{
    await File.WriteAllTextAsync(Path.Combine(profiles,"member.json"),"""{"loginUrl":"https://93.184.216.34/login","requestData":"username={%username%}&password={%password%}","loggedInRegex":"Logout","username":"fixture","password":"fixture"}""");

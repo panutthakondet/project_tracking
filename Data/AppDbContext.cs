@@ -17,6 +17,7 @@ namespace ProjectTracking.Data
         public DbSet<SecurityVersion> SecurityVersionRows => Set<SecurityVersion>();
         public DbSet<SecurityArtifact> SecurityArtifactRows => Set<SecurityArtifact>();
         public DbSet<SecurityScan> SecurityScanRows => Set<SecurityScan>();
+        public DbSet<SecurityHostApproval> SecurityHostApprovals => Set<SecurityHostApproval>();
         public DbSet<SecurityScanProgress> SecurityScanProgressRows => Set<SecurityScanProgress>();
         public DbSet<SecurityFinding> SecurityFindingRows => Set<SecurityFinding>();
         public DbSet<SecurityScanFinding> SecurityScanFindingRows => Set<SecurityScanFinding>();

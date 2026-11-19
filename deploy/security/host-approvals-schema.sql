@@ -1,0 +1,2 @@
+-- Select the existing ProjectTracking database before running. Creates one new table only.
+CREATE TABLE IF NOT EXISTS `security_host_approvals` (`Id` bigint NOT NULL AUTO_INCREMENT,`Host` varchar(253) NOT NULL,`IsApproved` tinyint(1) NOT NULL,`ProjectId` int NOT NULL,`UpdatedAt` datetime(6) NOT NULL,`UpdatedBy` int NOT NULL,PRIMARY KEY (`Id`),UNIQUE KEY `ix_security_host_approvals_0` (`ProjectId`,`Host`)) CHARACTER SET utf8mb4;

@@ -889,6 +889,7 @@ namespace ProjectTracking.Controllers
         {
             if (string.IsNullOrWhiteSpace(key)) return key;
 
+            if (key == "SecurityScans.ApproveHosts") return "ตรวจความปลอดภัยโครงการ - อนุมัติและถอนโดเมนเว็บไซต์สำหรับสแกน";
             if (key == "SecurityScans.Index") return "ตรวจความปลอดภัยโครงการ - เข้าใช้งานและดูรายงาน";
             if (key == "SecurityScans.Edit") return "ตรวจความปลอดภัยโครงการ - จัดการระบบ เวอร์ชัน สั่งสแกน และติดตามผล";
             if (key == "SecurityScans.CreateIssues") return "ตรวจความปลอดภัยโครงการ - สร้างและเชื่อม Issues (ต้องมีสิทธิ์สร้างปัญหาโครงการด้วย)";

@@ -30,7 +30,7 @@ using var conn=new SqliteConnection("DataSource=:memory:");await conn.OpenAsync(
 await using var db=new TestDb(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(conn).Options);await db.Database.EnsureCreatedAsync();
 var system=new SecuritySystem{ProjectId=1,Name="Web",TargetUrl="https://uat.example.com/",CreatedBy=1};db.SecuritySystemRows.Add(system);await db.SaveChangesAsync();
 var version=new SecurityVersion{SystemId=system.Id,VersionName="1",Environment="UAT",CreatedBy=1};db.SecurityVersionRows.Add(version);await db.SaveChangesAsync();
-var service=new SecurityScanService(db,storage,config);var request=Guid.NewGuid().ToString();var id=await service.QueueAsync(version.Id,"Passive",request,1,default);
+var service=new SecurityScanService(db,storage,config);await service.SetHostApprovalAsync(1,"uat.example.com",true,1,default);var request=Guid.NewGuid().ToString();var id=await service.QueueAsync(version.Id,"Passive",request,1,default);
 Check(id==await service.QueueAsync(version.Id,"Passive",request,1,default),"queue submission is idempotent");
 await Reject(()=>service.QueueAsync(version.Id,"Passive",request,2,default),"another user cannot reuse a request key");
 var job=await service.ClaimAsync(default);Check(job?.Id==id&&await service.ClaimAsync(default)==null,"only one worker claims a queued run");
@@ -67,12 +67,15 @@ await Reject(()=>TargetPolicy.ValidateAsync("https://93.184.216.34/","",false,de
 using var fake=new HttpClient(new FakeEngine()){BaseAddress=new Uri("http://zap/")};var engines=new ScannerEngines(fake,fake,_=>"");
 await Reject(()=>engines.Web(new(1,"lease","WebInformation","ZAP","Passive","1",null,"UAT","https://unapproved.example/",false,null,null,null),default),"scanner refuses unapproved jobs");
 await using var mysql=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseMySql("Server=localhost;Database=unused;User=unused",new MySqlServerVersion(new Version(8,0,36))).Options);
-var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==10&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates ten security tables including independent progress snapshots");
+var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==11&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates eleven security tables including independent progress snapshots");
 await File.WriteAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),"deploy/security/schema.sql"),"-- Generated from SecurityModelConfiguration. New tables only.\n"+string.Join("\n\n",sql)+"\n");
 var progressDdl=sql.Single(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_scan_progress`"));
 Check(progressDdl.Contains("PRIMARY KEY (`ScanId`)")&&!progressDdl.Contains("AUTO_INCREMENT"),"progress schema uses existing scan ID without altering scan/report tables");
 await File.WriteAllTextAsync("deploy/security/progress-schema.sql","-- Select the existing ProjectTracking database before running. Creates one new table only.\n"+progressDdl+"\n");
 
+var hostDdl=sql.Single(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_host_approvals`"));
+await File.WriteAllTextAsync("deploy/security/host-approvals-schema.sql","-- Select the existing ProjectTracking database before running. Creates one new table only.\n"+hostDdl+"\n");
+await HostApprovalChecks.Run(db,service);
 await ProgressChecks.Run(db,service,version.Id);
 PermissionChecks.Run();
 await ArtifactChecks.Run(db,service,storage);

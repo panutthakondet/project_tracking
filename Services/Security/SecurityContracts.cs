@@ -1,5 +1,5 @@
 namespace ProjectTracking.Services.Security;
-public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,string Mode,string VersionName,string? BuildNumber,string Environment,string? TargetUrl,bool RequiresLogin,string? AuthProfile,string? ArtifactName,string? ArtifactSha256);
+public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,string Mode,string VersionName,string? BuildNumber,string Environment,string? TargetUrl,bool RequiresLogin,string? AuthProfile,string? ArtifactName,string? ArtifactSha256,string[]? ApprovedHosts=null);
 public record ScanObservation(string RuleId,string Title,string Severity,string Location,string Description,string Evidence,string Remediation,string References,string? Cwe=null);
 public record ScanCompletion(string EngineVersion,string Coverage);
 public record ScanProgressUpdate(string Stage,int? Percent=null,long? BytesDone=null,long? BytesTotal=null);

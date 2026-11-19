@@ -26,7 +26,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     public async Task<EngineResult> Web(SecurityJob job,CancellationToken ct)
     {
         reportProgress?.Invoke(new("Preparing"));
-        var target=await TargetPolicy.ValidateAsync(job.TargetUrl??"",setting("SECURITY_ALLOWED_HOSTS"),setting("SECURITY_ALLOW_PRIVATE_TARGETS")=="true",ct);
+        var target=await TargetPolicy.ValidateAsync(job.TargetUrl??"",job.ApprovedHosts==null?setting("SECURITY_ALLOWED_HOSTS"):string.Join(",",job.ApprovedHosts),setting("SECURITY_ALLOW_PRIVATE_TARGETS")=="true",ct);
         if(job.Mode=="Active"&&(job.Environment!="UAT"||setting("SECURITY_ALLOW_ACTIVE")!="true"))throw new InvalidOperationException("Active scans require UAT and explicit worker configuration");
         var name="security-"+job.Id+"-"+job.LeaseToken[..8];string? context=null,spider=null,active=null;
         try{

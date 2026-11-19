@@ -13,7 +13,7 @@
 
 ## 1. เตรียม IIS และฐานข้อมูล
 
-สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 10 ตารางใหม่ `security_*` ไม่มี ALTER/DROP ตารางเดิม
+สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 11 ตารางใหม่ `security_*` ไม่มี ALTER/DROP ตารางเดิม
 
 ค่าเริ่มต้นไม่สร้างตารางอัตโนมัติ ตั้ง `SECURITY_AUTO_CREATE_SCHEMA=false` บน IIS หากติดตั้ง schema เอง หรือใช้ `true` เพื่อให้แอปสร้างตารางใหม่ตอนเริ่ม (ต้องมีสิทธิ์ CREATE TABLE) ไม่ควรใช้การสร้าง schema อัตโนมัติแทนกระบวนการ deploy ที่ตรวจสอบแล้ว
 
@@ -47,7 +47,7 @@ openssl rand -hex 32
 - `SECURITY_APP_URL`: HTTPS URL ของ IIS (รวม path base ถ้ามี) ห้าม localhost ของ container
 - `SECURITY_WORKER_KEY`: ค่าเดียวกับ IIS
 - `ZAP_API_KEY`, `MOBSF_API_KEY`: key สุ่มแยกกัน
-- `SECURITY_ALLOWED_HOSTS`: โฮสต์ที่โครงการได้รับอนุญาตให้ทดสอบ คั่นด้วย comma เช่น `uat.example.com,member-uat.example.com` ไม่ใช้ wildcard เว้นว่างได้หากเริ่มด้วย APK/IPA เท่านั้น เมื่อว่าง Worker จะปฏิเสธการสแกนเว็บทุก Host ก่อนเรียก DNS โดยยังรับงาน MobSF ได้
+- `SECURITY_ALLOWED_HOSTS`: ค่าสำรองสำหรับ API รุ่นเก่าเท่านั้น ในรุ่นใหม่ให้อนุมัติโดเมนจาก SecurityScans แทน ไม่ต้องเพิ่มโดเมนใน `.env` และยังไม่ใช้ wildcard
 - `SECURITY_ALLOW_PRIVATE_TARGETS=true` เฉพาะเมื่อ UAT อยู่เครือข่ายภายใน (ยังบล็อก loopback/link-local/metadata)
 - `SECURITY_ALLOW_ACTIVE=true` เฉพาะเมื่อต้องการ Active Scan บน UAT; ฝั่งแอปและ worker บล็อก Production อยู่แล้ว
 - Pin `ZAP_IMAGE` และ `MOBSF_IMAGE` เป็น tag/digest ที่ทดสอบแล้วก่อนใช้งานจริง ค่า stable/latest ในตัวอย่างใช้สำหรับเริ่มติดตั้ง
@@ -143,3 +143,14 @@ Progress ส่งผ่าน heartbeat ที่ตรวจ worker key แล
 หากฐานข้อมูลมี artifact แต่ไฟล์จริงหายจาก `SECURITY_STORAGE_PATH` เว็บจะตอบ 404 พร้อมรหัส `ARTIFACT_FILE_MISSING` เฉพาะ Worker ที่มี key และ lease ถูกต้อง ไม่ส่งเส้นทางไฟล์ภายในออกไป และไม่ Redirect เข้าหน้า Login Worker รุ่นใหม่แสดงสาเหตุไฟล์หายโดยตรง
 
 กู้ไฟล์เดิมจาก backup/เครื่องที่อัปโหลด แล้วคืนตาม StorageKey ในโฟลเดอร์เก็บไฟล์ของ Server หรือเพิ่มเวอร์ชันใหม่พร้อมอัปโหลดไฟล์แอปอีกครั้ง อย่าแก้ SHA-256 หรือ StorageKey ในฐานข้อมูลเพื่อแทนไฟล์ต่างตัว และอย่าสั่งรอบเดิมซ้ำก่อนมีไฟล์จริง หากหลายเครื่องใช้ฐานข้อมูลเดียวกันแต่คนละ storage ต้องให้การอัปโหลดและ Worker API ใช้พื้นที่เก็บไฟล์เดียวกันด้วย
+
+
+### อนุมัติโดเมนผ่านหน้าเว็บ (ไม่ต้องแก้ .env ทุกเว็บไซต์)
+
+อัปเดตระบบเดิมครั้งเดียว: สำรองฐานข้อมูล เลือกฐานข้อมูล ProjectTracking แล้วรัน `deploy/security/host-approvals-schema.sql` ก่อน deploy เว็บ และอัปเดต/build Worker รุ่นเดียวกัน (รอไม่มีงานสแกนกำลังทำก่อน restart) ไม่เปลี่ยน `.env` หรือกุญแจเดิม และรักษาค่า `SECURITY_*` ใน web.config ของ IIS ตอน deploy
+
+กำหนด `SecurityScans.Index` และ `SecurityScans.ApproveHosts` ใน UserManagement/Permissions แล้วให้ผู้ใช้ออก/เข้าใหม่ ผู้อนุมัติจะเห็น “อนุมัติโดเมนนี้” ใต้ระบบเว็บไซต์ การอนุมัติแยกตามโครงการและ hostname ที่แน่นอน เช่น `www.example.com` ไม่รวม `example.com` หรือ subdomain อื่น มีข้อมูลผู้แก้ไขและเวลาอนุมัติ/ถอนล่าสุด
+
+เว็บตรวจการอนุมัติก่อนเข้าคิวและก่อนออกงานให้ Worker รายชื่อ `ApprovedHosts` ที่มากับงานมีเฉพาะ hostname เป้าหมายของงานนั้น Worker รุ่นใหม่ใช้รายการนี้แทน `.env` และไม่ fallback หากรายการเป็นค่าว่าง โหมดอ่าน `.env` เดิมใช้เฉพาะเมื่อคุยกับ API รุ่นเก่าที่ไม่มี field นี้ (เพื่อรองรับการอัปเดต) ดังนั้นต้องอัปเดต Worker ครั้งแรกก่อนใช้ความสามารถใหม่ หลังจากนั้นไม่ต้อง restart เมื่อเพิ่มหรือถอนโดเมน
+
+โดเมนเดิมใน `.env` ไม่ถูกนำเข้าเป็นสิทธิ์บนเว็บอัตโนมัติ ผู้อนุมัติต้องอนุมัติจากหน้าเว็บด้วย ไฟล์ APK/IPA ไม่ต้องอนุมัติโดเมน การถอนสิทธิ์ป้องกันงานในคิวที่ยังไม่ได้ออกให้ Worker แต่ไม่หยุดงานที่ออกให้ Worker แล้ว การตรวจ private network/metadata/loopback และข้อกำหนด Active UAT ยังบังคับตามเดิม

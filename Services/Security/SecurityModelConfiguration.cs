@@ -5,6 +5,7 @@ public static class SecurityModelConfiguration
 {
     public static void Configure(ModelBuilder b)
     {
+        b.Entity<SecurityHostApproval>().HasIndex(x=>new{x.ProjectId,x.Host}).IsUnique();
         b.Entity<SecuritySystem>().HasIndex(x=>x.ProjectId);
         b.Entity<SecurityVersion>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityArtifact>().HasIndex(x=>x.VersionId).IsUnique();

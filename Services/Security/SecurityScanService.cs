@@ -11,6 +11,20 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         if(value?.Length>2000||!Uri.TryCreate(value,UriKind.Absolute,out var uri)||uri.Scheme is not ("http" or "https")||uri.UserInfo!=""||uri.Fragment!=""||uri.HostNameType==UriHostNameType.Unknown)throw new InvalidOperationException("ระบุ URL http/https โดยไม่ใส่รหัสผ่านหรือ fragment ใน URL");
         return uri;
     }
+    public static string TargetHost(string? url)
+    {
+        var host=ValidateUrl(url).IdnHost.TrimEnd('.').ToLowerInvariant();
+        if(host.Length is 0 or >253)throw new InvalidOperationException("ชื่อโดเมนไม่ถูกต้อง");
+        return host;
+    }
+    public Task<bool> IsHostApprovedAsync(int projectId,string host,CancellationToken ct)=>db.SecurityHostApprovals.AnyAsync(x=>x.ProjectId==projectId&&x.Host==host&&x.IsApproved,ct);
+    public async Task SetHostApprovalAsync(int projectId,string host,bool approved,int userId,CancellationToken ct)
+    {
+        var row=await db.SecurityHostApprovals.SingleOrDefaultAsync(x=>x.ProjectId==projectId&&x.Host==host,ct);
+        if(row==null){row=new(){ProjectId=projectId,Host=host};db.SecurityHostApprovals.Add(row);}
+        row.IsApproved=approved;row.UpdatedBy=userId;row.UpdatedAt=DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
     public async Task<long> QueueAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct)
     {
         if(!WorkerConfigured)throw new InvalidOperationException("ยังไม่ได้ตั้งค่า SECURITY_WORKER_KEY และเครื่องสแกน กรุณาติดตั้งตามคู่มือก่อน");
@@ -21,6 +35,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             if(mode!="Static")throw new InvalidOperationException("แอปมือถือรองรับ Static Analysis ในรุ่นนี้");
             if(!await db.SecurityArtifactRows.AnyAsync(x=>x.VersionId==versionId,ct))throw new InvalidOperationException("เวอร์ชันนี้ยังไม่มีไฟล์ APK/IPA");
         }else{
+            if(!await IsHostApprovedAsync(system.ProjectId,TargetHost(system.TargetUrl),ct))throw new InvalidOperationException("โดเมนนี้ยังไม่ได้รับอนุมัติ กรุณาให้ผู้มีสิทธิ์อนุมัติโดเมนจากหน้านี้ก่อนสั่งสแกน");
             ValidateUrl(system.TargetUrl);if(mode is not ("Passive" or "Active"))throw new InvalidOperationException("โหมดสแกนไม่ถูกต้อง");
             if(mode=="Active"&&version.Environment!="UAT")throw new InvalidOperationException("Active Scan เปิดใช้เฉพาะ UAT");
             if(system.RequiresLogin&&string.IsNullOrWhiteSpace(system.AuthProfile))throw new InvalidOperationException("กรุณาระบุโปรไฟล์ Login ที่ตั้งค่าบนเครื่องสแกน");
@@ -44,7 +59,16 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             var changed=await db.SecurityScanRows.Where(x=>x.Id==id&&x.Status=="Queued").ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Running").SetProperty(x=>x.LeaseToken,token).SetProperty(x=>x.LeaseUntil,now.AddMinutes(3)).SetProperty(x=>x.StartedAt,now),ct);
             if(changed==0)continue;
             var scan=await db.SecurityScanRows.AsNoTracking().SingleAsync(x=>x.Id==id,ct);var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==scan.VersionId,ct);var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);var artifact=await db.SecurityArtifactRows.AsNoTracking().SingleOrDefaultAsync(x=>x.VersionId==version.Id,ct);
-            return new(id,token,system.Kind,scan.Engine,scan.Mode,version.VersionName,version.BuildNumber,version.Environment,scan.TargetUrl,scan.RequiresLogin,scan.AuthProfile,artifact?.OriginalName,artifact?.Sha256);
+            string[] approvedHosts=[];
+            if(scan.Engine=="ZAP"){
+                var host=TargetHost(scan.TargetUrl);
+                if(!await IsHostApprovedAsync(system.ProjectId,host,ct)){
+                    await db.SecurityScanRows.Where(x=>x.Id==id&&x.LeaseToken==token&&x.Status=="Running").ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Failed").SetProperty(x=>x.Error,"โดเมนถูกถอนหรือยังไม่ได้รับอนุมัติก่อนเริ่มงาน กรุณาตรวจสิทธิ์โดเมนแล้วสั่งรอบใหม่").SetProperty(x=>x.FinishedAt,DateTime.UtcNow),ct);
+                    continue;
+                }
+                approvedHosts=[host];
+            }
+            return new(id,token,system.Kind,scan.Engine,scan.Mode,version.VersionName,version.BuildNumber,version.Environment,scan.TargetUrl,scan.RequiresLogin,scan.AuthProfile,artifact?.OriginalName,artifact?.Sha256,approvedHosts);
         }
         return null;
     }
