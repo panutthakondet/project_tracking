@@ -34,11 +34,12 @@ public static class RazorChecks
    var temp=new TempDataDictionary(http,scope.ServiceProvider.GetRequiredService<ITempDataProvider>());
    Console.WriteLine("Razor: rendering "+pair.Item1);
    await view.View.RenderAsync(new ViewContext(action,view.View,data,temp,writer,new HtmlHelperOptions()));
-   var html="<!doctype html><html lang='th'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='bootstrap.css'><link rel='stylesheet' href='security.css'><style>body{padding:16px;background:#eef3f9}.index-hero{background:#10264b;color:white}main{max-width:1400px;margin:auto}</style><main>"+writer+"</main></html>";
+   var html="<!doctype html><html lang='th'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='bootstrap.css'><link rel='stylesheet' href='site.css'><link rel='stylesheet' href='security.css'><style>body{padding:16px;background:#eef3f9}.index-hero{background:#10264b;color:white}main{max-width:1400px;margin:auto}</style><main>"+writer+"</main></html>";
    await File.WriteAllTextAsync(Path.Combine(output,pair.Item1+".html"),html);
    if(!html.Contains("__RequestVerificationToken")||!html.Contains("SecurityScans/"))throw new Exception("Missing CSRF token or generated routes");
    Console.WriteLine("PASS compiled Razor "+pair.Item1+" renders with CSRF and routes");
   }
+  File.Copy("wwwroot/css/site.css",Path.Combine(output,"site.css"),true);
   File.Copy("wwwroot/lib/bootstrap/dist/css/bootstrap.min.css",Path.Combine(output,"bootstrap.css"),true);File.Copy("wwwroot/css/security-center.css",Path.Combine(output,"security.css"),true);
  }
  class PreviewRouter:IRouter

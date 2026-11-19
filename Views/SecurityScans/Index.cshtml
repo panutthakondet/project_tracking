@@ -3,7 +3,16 @@
 @{ViewData["Title"]="ตรวจความปลอดภัยโครงการ";}
 @section Styles { <link rel="stylesheet" href="~/css/security-center.css" asp-append-version="true" /> }
 <div class="security-center">
-    <header class="index-hero security-hero"><div><small>PROJECT SECURITY CENTER</small><h1>🛡️ ตรวจความปลอดภัย</h1><p>@Model.Project.ProjectDisplayName</p></div><a class="btn btn-outline-light" asp-controller="Projects" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId">กลับโครงการ</a></header>
+    <header class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Project Security Center</span>
+            <h1 class="index-title">🛡️ ตรวจความปลอดภัย</h1>
+            <p class="index-subtitle">@Model.Project.ProjectDisplayName</p>
+        </div>
+        <div class="index-actions">
+            <a class="btn btn-outline-light" asp-controller="Projects" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId">กลับโครงการ</a>
+        </div>
+    </header>
     @if(TempData["Success"] is string success){<div class="alert alert-success" role="status">@success</div>}
     @if(TempData["Error"] is string error){<div class="alert alert-danger" role="alert">@error</div>}
     @if(!Model.WorkerConfigured){<div class="alert alert-info">ยังไม่ได้ตั้งค่าเครื่องสแกน สามารถเพิ่มระบบและเวอร์ชันได้ก่อน เมื่อพร้อมให้ผู้ดูแลติดตั้งชุด Docker และตั้งค่า SECURITY_WORKER_KEY ตามคู่มือ <code>docs/SecurityCenter.md</code></div>}
