@@ -20,13 +20,16 @@
     <div id="security-overview" class="security-summary"><div><strong>@Model.Systems.Count</strong> ระบบ</div><div><strong>@Model.Versions.Count</strong> เวอร์ชัน</div><div><strong>@Model.Scans.Count(x=>x.Status is "Queued" or "Running")</strong> งานในคิว</div><div><strong>@Model.Scans.Count(x=>x.Status=="Completed")</strong> รอบที่เสร็จแล้ว</div></div>
     <div id="security-systems" class="security-section-heading"><div><h2>ระบบและเวอร์ชัน</h2><p>จัดเก็บไฟล์แต่ละเวอร์ชัน แล้วเลือกส่งตรวจความปลอดภัย</p></div></div>
     @if(Model.CanManage){
-        <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
+        <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form security-system-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
             <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
             <label>ประเภท<select class="form-select" name="kind">@foreach(var kind in SecurityValues.Kinds){<option>@kind</option>}</select></label>
             <label>URL เว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เว้นว่างสำหรับแอปมือถือ เครื่องสแกนจะตรวจเฉพาะโดเมนที่ผู้ดูแลอนุญาต</small></label>
-            <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" /> ต้อง Login เพื่อสแกน</label>
-            <label>ชื่อโปรไฟล์ Login<input class="form-control" name="authProfile" maxlength="80" placeholder="เช่น member-uat" /><small>อ้างถึงโปรไฟล์บนเครื่องสแกน ไม่กรอกรหัสผ่านในหน้านี้</small></label>
-            <button class="btn btn-primary" type="submit">เพิ่มระบบ</button></form></details>
+            <fieldset class="security-system-auth">
+                <legend>การเข้าสู่ระบบสำหรับสแกน</legend>
+                <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" /> ต้อง Login เพื่อสแกน</label>
+                <label>ชื่อโปรไฟล์ Login<input class="form-control" name="authProfile" maxlength="80" placeholder="เช่น member-uat" /><small>อ้างถึงโปรไฟล์บนเครื่องสแกน ไม่กรอกรหัสผ่านในหน้านี้</small></label>
+            </fieldset>
+            <div class="security-system-form-actions"><button class="btn btn-primary" type="submit">เพิ่มระบบ</button></div></form></details>
     }
     @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
     @foreach(var system in Model.Systems){

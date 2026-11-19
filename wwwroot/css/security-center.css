@@ -75,3 +75,16 @@ html body main .security-center :is(.security-chip,.security-status,.security-se
 .security-center .security-version-toggle>.security-chip{font-weight:400}
 .security-center .security-system-overview>.security-chip,.security-center .security-history-heading>.security-chip{font-weight:400}
 .security-center .security-finding h2 .security-severity{margin-right:8px}
+
+/* Add-system form: align input rows independently of helper text height. */
+.security-workspace .security-system-form{align-items:start;grid-template-columns:minmax(0,1fr) minmax(180px,.7fr) minmax(0,1.2fr);padding:8px 0 14px;gap:20px}
+.security-system-form>label{align-content:start;gap:8px;margin:0}
+.security-system-form>label small{margin:0}
+.security-system-auth{grid-column:1/-1;display:grid;grid-template-columns:minmax(180px,.7fr) minmax(0,1.2fr);gap:12px 24px;padding:18px 0 0;margin:0;border:0;border-top:1px solid var(--pt-border,#c2ccd8);min-width:0}
+.security-system-auth legend{float:none;width:auto;padding:0;margin:0 0 12px;font-size:14px;font-weight:600;color:var(--pt-surface-contrast,#17212b)}
+.security-system-auth .security-check{align-self:start;justify-content:flex-start;gap:8px;padding-top:8px;margin:0}
+.security-system-auth>label:not(.security-check){max-width:520px;gap:8px}
+.security-system-form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;padding-top:4px}
+.security-system-form-actions .btn{min-width:160px}
+@media(max-width:900px){.security-workspace .security-system-form{grid-template-columns:repeat(2,minmax(0,1fr))}.security-system-form>label:nth-of-type(3){grid-column:1/-1}}
+@media(max-width:600px){.security-workspace .security-system-form{grid-template-columns:minmax(0,1fr);gap:16px}.security-system-auth{grid-template-columns:minmax(0,1fr);gap:14px}.security-system-auth .security-check{padding:0}.security-system-form-actions .btn{width:100%}}
