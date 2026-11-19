@@ -205,7 +205,8 @@
     .employee-note-group { min-width: 0; }
     .employee-note-group > summary { display:flex; justify-content:space-between; gap:8px; padding:10px 12px; margin:4px 0 8px; cursor:pointer; font-weight:700; border-inline-start:4px solid var(--notes-accent); border-radius:8px; background:var(--notes-soft); background:color-mix(in srgb, var(--notes-accent) 12%, var(--notes-bg)); color:var(--notes-text); }
     .employee-note-group > summary span { display:grid; place-items:center; min-width:24px; padding:1px 6px; border-radius:12px; background:var(--notes-bg); color:var(--notes-text); font-size:.8rem; }
-    .employee-note-group-field { flex-shrink:0; display:grid; gap:6px; padding:12px 0; font-size:.85rem; }
+    .employee-note-group-field { flex-shrink:0; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:8px; width:100%; max-width:480px; margin:0 0 10px; padding:0; font-size:.8rem; }
+    .employee-note-group-field .form-control { min-height:32px; height:32px; padding:4px 10px; border-radius:8px; font-size:.8rem; }
     @@media(max-width: 768px) { .employee-note-group { flex:0 0 260px; overflow-y:auto; } }
     .employee-notes-list {
         min-height: 0;
@@ -389,7 +390,7 @@
         flex: 1;
         flex-direction: column;
         min-height: 0;
-        padding: 24px clamp(20px, 4vw, 48px) 18px;
+        padding: 8px clamp(20px, 4vw, 48px) 18px;
     }
 
     .employee-note-title {
@@ -476,7 +477,7 @@
         .employee-note-toolbar { gap: 12px; padding: 14px 18px; }
         .employee-note-toolbar-left, .employee-note-toolbar-right { width: 100%; }
         .employee-note-toolbar-right { justify-content: flex-end; }
-        .employee-note-form { padding: 18px 22px; }
+        .employee-note-form { padding: 8px 22px 18px; }
         .employee-note-meta { flex-wrap: wrap; gap: 6px 16px; }
     }
     @@media (max-width: 575.98px) {
@@ -497,7 +498,7 @@
         .employee-note-toolbar-right { justify-content: stretch; gap: 6px; }
         .employee-note-toolbar-right > .btn, .employee-note-toolbar-right > form { flex: 1 1 80px; }
         .employee-note-toolbar-right .btn { width: 100%; min-height: 44px; padding: 8px 6px; font-size: .82rem; white-space: normal; }
-        .employee-note-form { padding: 16px 14px 12px; }
+        .employee-note-form { padding: 8px 14px 12px; }
         .employee-note-title { font-size: 1.2rem; padding-bottom: 12px; }
         .employee-note-content { height: 55dvh; min-height: 260px; font-size: 16px; padding: 16px 0; }
         .employee-note-meta { flex-direction: column; font-size: .72rem; gap: 5px; }
