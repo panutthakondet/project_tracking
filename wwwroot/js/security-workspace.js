@@ -5,6 +5,15 @@
         const target=root.querySelector(link.getAttribute('href'));
         if(target&&target.tagName==='DETAILS')target.open=true;
     }));
+    root.querySelectorAll('[data-login-form]').forEach(form=>{
+        const enabled=form.querySelector('[data-login-enabled]');
+        if(!enabled)return;
+        const sync=()=>form.querySelectorAll('[data-login-required], [name="requestData"]').forEach(field=>{
+            field.disabled=!enabled.checked;
+            field.required=enabled.checked&&field.hasAttribute('data-login-required');
+        });
+        enabled.addEventListener('change',sync);sync();
+    });
     const storageKey='security-system-open:'+root.dataset.projectId;
     const systems=Array.from(root.querySelectorAll('[data-system-id]'));
     try{const saved=sessionStorage.getItem(storageKey);systems.forEach(system=>{if(system.dataset.systemId===saved)system.open=true;});}catch{}

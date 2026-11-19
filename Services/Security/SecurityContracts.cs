@@ -1,5 +1,14 @@
 namespace ProjectTracking.Services.Security;
-public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,string Mode,string VersionName,string? BuildNumber,string Environment,string? TargetUrl,bool RequiresLogin,string? AuthProfile,string? ArtifactName,string? ArtifactSha256,string[]? ApprovedHosts=null);
+public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,string Mode,string VersionName,string? BuildNumber,string Environment,string? TargetUrl,bool RequiresLogin,string? AuthProfile,string? ArtifactName,string? ArtifactSha256,string[]? ApprovedHosts=null,SecurityLoginCredentials? Login=null);
+// Class rather than record: incidental ToString() must not print credentials.
+public sealed class SecurityLoginCredentials
+{
+    public string LoginUrl { get; set; } = "";
+    public string RequestData { get; set; } = "username={%username%}&password={%password%}";
+    public string LoggedInRegex { get; set; } = "";
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = "";
+}
 public record ScanObservation(string RuleId,string Title,string Severity,string Location,string Description,string Evidence,string Remediation,string References,string? Cwe=null);
 public record ScanCompletion(string EngineVersion,string Coverage);
 public record ScanProgressUpdate(string Stage,int? Percent=null,long? BytesDone=null,long? BytesTotal=null);

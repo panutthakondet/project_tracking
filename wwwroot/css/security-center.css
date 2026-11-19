@@ -88,3 +88,13 @@ html body main .security-center :is(.security-chip,.security-status,.security-se
 .security-system-form-actions .btn{min-width:160px}
 @media(max-width:900px){.security-workspace .security-system-form{grid-template-columns:repeat(2,minmax(0,1fr))}.security-system-form>label:nth-of-type(3){grid-column:1/-1}}
 @media(max-width:600px){.security-workspace .security-system-form{grid-template-columns:minmax(0,1fr);gap:16px}.security-system-auth{grid-template-columns:minmax(0,1fr);gap:14px}.security-system-auth .security-check{padding:0}.security-system-form-actions .btn{width:100%}}
+
+.security-login-create-hint{grid-column:1/-1}
+.security-login-settings>p{font-size:13px;line-height:1.6;margin:8px 0;color:var(--pt-surface-contrast-muted,#47515c)}
+.security-center .security-login-form{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.security-login-toggle,.security-login-url,.security-login-indicator,.security-login-advanced{grid-column:1/-1}
+.security-login-form label{gap:8px;margin:0}
+.security-login-form .security-check{justify-content:flex-start;gap:8px}
+.security-login-advanced>label{display:grid;gap:8px}
+.security-login-form .security-system-form-actions{gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+@media(max-width:600px){.security-center .security-login-form{grid-template-columns:minmax(0,1fr)}}

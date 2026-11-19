@@ -23,6 +23,12 @@ public static class EngineChecks
    try{await authenticated.Web(job with{RequiresLogin=true,AuthProfile="member"},default);throw new Exception("Failed authentication was accepted");}catch(InvalidOperationException){Console.WriteLine("PASS authenticated scan rejects failed login verification");}
   }finally{Directory.Delete(profiles,true);}
 
+  handler.AuthSuccess=true;
+  var webLogin=new SecurityLoginCredentials{LoginUrl="https://93.184.216.34/login",Username="embedded-test",Password="embedded-secret",LoggedInRegex="Logout"};
+  var webAuthenticated=new ScannerEngines(client,client,k=>k=="SECURITY_AUTH_PROFILES_PATH"?throw new Exception("Web login must not read local profiles"):k=="SECURITY_ALLOWED_HOSTS"?"93.184.216.34":"test");
+  await webAuthenticated.Web(job with{RequiresLogin=true,AuthProfile="web-"+new string('a',32),Login=webLogin},default);
+  if(!handler.EmbeddedCredentialsSeen)throw new Exception("Embedded credentials were not passed to ZAP");
+  Console.WriteLine("PASS web-managed credentials authenticate through ZAP without a local profile file");
   var file=Path.GetTempFileName();try{
    await File.WriteAllTextAsync(file,"fixture");var mobile=await engines.Mobile(job with{Engine="MobSF",Kind="Android",Mode="Static"},file,default);
    if(SecurityReportParser.Parse("MobSF",mobile.Json).Count!=0||!handler.Paths.Any(p=>p.Contains("api/v1/scan")))throw new Exception("MobSF workflow incorrect");
@@ -45,12 +51,18 @@ public static class EngineChecks
  {
   public List<string> Paths{get;}=[];
   public string? FailPath{get;set;}
+  public bool AuthSuccess{get;set;}
+  public bool EmbeddedCredentialsSeen{get;set;}
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
    var path=request.RequestUri!.AbsolutePath;Paths.Add(path);
    if(path=="/JSON/core/action/setMode/"){
     var query=System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query);
     if(query["mode"]!="protect")return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("{\"code\":\"illegal_parameter\"}")});
+   }
+   if(path=="/JSON/users/action/setAuthenticationCredentials/"){
+    var credentials=System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query)["authCredentialsConfigParams"];
+    EmbeddedCredentialsSeen=credentials=="username=embedded-test&password=embedded-secret";
    }
    if(path=="/api/v1/upload") {
     var form=request.Content as MultipartFormDataContent??throw new Exception("Expected multipart upload");
@@ -62,13 +74,14 @@ public static class EngineChecks
    if(path==FailPath)return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("fixture-private-response")});
    var json=path switch{
     "/JSON/context/action/newContext/"=>"{\"contextId\":\"1\"}",
+    "/JSON/spider/action/scanAsUser/"=>"{\"scan\":\"1\"}",
     "/JSON/spider/action/scan/"=>"{\"scan\":\"1\"}",
     "/JSON/spider/view/results/"=>"{\"results\":[\"https://93.184.216.34/\"]}",
     "/JSON/spider/view/status/"=>"{\"status\":\"100\"}",
     "/JSON/pscan/view/recordsToScan/"=>"{\"recordsToScan\":\"0\"}",
     "/JSON/alert/view/alerts/"=>"{\"alerts\":[]}",
     "/JSON/users/action/newUser/"=>"{\"userId\":\"1\"}",
-    "/JSON/users/action/authenticateAsUser/"=>"{\"authSuccessful\":\"false\"}",
+    "/JSON/users/action/authenticateAsUser/"=>AuthSuccess?"{\"authSuccessful\":\"true\"}":"{\"authSuccessful\":\"false\"}",
     "/JSON/core/view/version/"=>"{\"version\":\"fake\"}",
     "/api/v1/upload"=>"{\"hash\":\"abc\",\"scan_type\":\"apk\",\"file_name\":\"application.apk\"}",
     "/api/v1/report_json"=>"{\"code_analysis\":{\"findings\":{}},\"mobsf_version\":\"fake\"}",

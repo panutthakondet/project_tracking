@@ -9,7 +9,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 namespace ProjectTracking.Controllers;
 [RequireMenu("SecurityScans.Index")]
-public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env):BaseController
+public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env,SecurityLoginStore loginStore):BaseController
 {
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
     private bool Can(string key)=>string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||(HttpContext.Session.GetString("Menus")??"").Split(',').Any(x=>x.Trim().Equals(key,StringComparison.OrdinalIgnoreCase));
@@ -33,6 +33,33 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
         return View(new SecurityProjectPage{CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured});
+    }
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
+    public async Task<IActionResult> SaveLogin(long systemId,bool enabled,string? loginUrl,string? username,string? password,string? loggedInRegex,string? requestData,CancellationToken ct)
+    {
+        Response.Headers.CacheControl="no-store";
+        var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);
+        if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(SecurityValues.IsMobile(system.Kind))return BadRequest();
+        string? profile=null;
+        try{
+            if(enabled){
+                profile=await loginStore.SaveAsync(system.Id,new SecurityLoginCredentials{
+                    LoginUrl=loginUrl?.Trim()??"",Username=username??"",Password=password??"",LoggedInRegex=loggedInRegex??"",
+                    RequestData=string.IsNullOrWhiteSpace(requestData)?"username={%username%}&password={%password%}":requestData
+                },system.TargetUrl,ct);
+            }
+            system.RequiresLogin=enabled;system.AuthProfile=profile;
+            await db.SaveChangesAsync(ct);
+            TempData["Success"]=enabled?"บันทึก Login แบบเข้ารหัสแล้ว ใช้กับรอบสแกนใหม่ได้ทันที":"ปิดการ Login สำหรับรอบสแกนใหม่แล้ว";
+        }catch(InvalidOperationException error){
+            if(profile!=null)loginStore.DeleteUncommitted(profile);
+            TempData["Error"]=error.Message;
+        }catch{
+            if(profile!=null)loginStore.DeleteUncommitted(profile);
+            throw;
+        }
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.ApproveHosts")]
     public async Task<IActionResult> ApproveHost(long systemId,bool approved,CancellationToken ct)

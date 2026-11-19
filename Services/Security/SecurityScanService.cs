@@ -3,7 +3,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using System.Text;
 namespace ProjectTracking.Services.Security;
-public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfiguration config)
+public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfiguration config,SecurityLoginStore? loginStore=null)
 {
     public bool WorkerConfigured=>(Environment.GetEnvironmentVariable("SECURITY_WORKER_KEY")??config["SECURITY_WORKER_KEY"])?.Length>=32;
     public static Uri ValidateUrl(string? value)
@@ -68,7 +68,17 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
                 }
                 approvedHosts=[host];
             }
-            return new(id,token,system.Kind,scan.Engine,scan.Mode,version.VersionName,version.BuildNumber,version.Environment,scan.TargetUrl,scan.RequiresLogin,scan.AuthProfile,artifact?.OriginalName,artifact?.Sha256,approvedHosts);
+            SecurityLoginCredentials? login=null;
+            if(scan.Engine=="ZAP"&&scan.RequiresLogin&&SecurityLoginStore.IsManaged(scan.AuthProfile)){
+                try{
+                    if(loginStore==null)throw new InvalidOperationException("Login store is not configured");
+                    login=await loginStore.ReadAsync(system.Id,scan.AuthProfile!,scan.TargetUrl,ct);
+                }catch(InvalidOperationException){
+                    await db.SecurityScanRows.Where(x=>x.Id==id&&x.LeaseToken==token&&x.Status=="Running").ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Failed").SetProperty(x=>x.Error,"อ่านการตั้งค่า Login ไม่ได้ กรุณาบันทึก Login ใหม่และตรวจสอบ Data Protection keys").SetProperty(x=>x.FinishedAt,DateTime.UtcNow),ct);
+                    continue;
+                }
+            }
+            return new(id,token,system.Kind,scan.Engine,scan.Mode,version.VersionName,version.BuildNumber,version.Environment,scan.TargetUrl,scan.RequiresLogin,scan.AuthProfile,artifact?.OriginalName,artifact?.Sha256,approvedHosts,login);
         }
         return null;
     }

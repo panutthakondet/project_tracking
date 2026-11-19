@@ -80,6 +80,18 @@ MobSF เก็บข้อมูลใน volume `mobsf-data`; จำกัด�
 
 ## 3. Web Member ที่ต้อง Login
 
+### ตั้งค่า Login จากหน้า SecurityScans (แนะนำ)
+
+เปิดระบบเว็บไซต์ → ตั้งค่า Login → เลือก “Login ก่อนสแกน” แล้วกรอก URL ที่รับฟอร์ม Login, Username, Password และข้อความตรวจสอบหลัง Login สำเร็จ หากชื่อช่องไม่ใช่ username/password ให้เปิด “ตั้งค่าขั้นสูง” และเปลี่ยน requestData โดยคง {%username%}/{%password%} ไว้ ตั้งค่าได้เฉพาะผู้มี SecurityScans.Edit และสิทธิ์ในโครงการนั้น หน้าเว็บไม่ส่งรหัสผ่านเดิมกลับมา การเปลี่ยนข้อมูลต้องกรอกใหม่ให้ครบ หรือเอาเครื่องหมาย Login ก่อนสแกนออกแล้วบันทึกเพื่อปิด
+
+บัญชีถูกเข้ารหัสด้วย ASP.NET Data Protection แยก purpose ตาม system ID เก็บไฟล์ .login แบบ immutable ใน SECURITY_STORAGE_PATH นอก wwwroot ฐานข้อมูลเก็บเฉพาะชื่ออ้างอิง ไม่เก็บรหัสผ่าน plaintext ต้องสำรองทั้ง storage และ C:\inetpub\keys\ProjectTracking ที่เป็น Data Protection key ring ห้ามลบไฟล์ .login ของโปรไฟล์เก่าระหว่างมีงานในคิว เพราะแต่ละรอบอ้างอิงข้อมูลชุดเดิม
+
+Worker รับข้อมูลผ่าน claim API ที่ตรวจคีย์แล้วทาง HTTPS (Cache-Control: no-store) และใช้ในหน่วยความจำโดยไม่ต้องสร้างไฟล์ JSON บน Ubuntu การแก้ไขมีผลต่อรอบที่เข้าคิวใหม่เท่านั้น งานที่เข้าไปแล้วคงชุดเดิม การอ่านข้อมูลไม่ได้จะทำให้งานล้มเหลว ไม่ลดเป็นการสแกนแบบไม่ Login อัตโนมัติ
+
+ต้องอัปเดตทั้งเว็บ Windows และ Worker Ubuntu ครั้งแรก ไม่มีตารางใหม่และไม่เปลี่ยนคีย์ใน .env หลังจากนี้แก้บัญชีผ่านหน้าเว็บได้โดยไม่ต้อง rebuild/restart Worker รองรับ Form Login ตาม ZAP; SSO, MFA, OTP, JavaScript และ flow เฉพาะต้องเตรียม integration เพิ่ม การตั้งค่าหน้าเว็บไม่ได้ยืนยันว่าล็อกอินได้จนกว่า ZAP ตรวจพบ login indicator สำเร็จจริง
+
+### โปรไฟล์ไฟล์เดิมบน Ubuntu (ยังรองรับ)
+
 คัดลอก `deploy/security/profiles/login.example.json` เป็น `member-uat.json` (ไฟล์ส่วนตัวถูก gitignore) แล้วแก้ loginUrl, requestData, loggedInRegex, username/password ของบัญชี UAT สิทธิ์ต่ำที่เตรียมไว้
 
 ในหน้าระบบระบุชื่อโปรไฟล์ `member-uat` และเลือก “ต้อง Login” Worker จะ mount profiles แบบอ่านอย่างเดียวและส่งให้ ZAP ไม่เก็บรหัสผ่านในฐานข้อมูล/หน้าจอ และต้องตรวจสอบ `authSuccessful` ก่อนสแกน

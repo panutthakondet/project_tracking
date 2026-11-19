@@ -25,6 +25,8 @@ public static class PermissionChecks
   Check(!Allowed("ApproveHost","SecurityScans.Index,SecurityScans.Edit"),"scan editor cannot approve a new target without separate grant");
   Check(Allowed("ApproveHost","SecurityScans.Index,SecurityScans.ApproveHosts"),"designated approver can approve targets without edit grant");
   Check(Allowed("Index","SecurityScans.Index"),"read access uses its own grant without Projects.Index");
+  Check(!Allowed("SaveLogin","SecurityScans.Index"),"read-only grant cannot set scanner credentials");
+  Check(Allowed("SaveLogin","SecurityScans.Index,SecurityScans.Edit"),"security editor can configure login");
   Check(!Allowed("Queue","SecurityScans.Index"),"read-only grant cannot queue scans");
   Check(!Allowed("Queue","Projects.Index,Projects.Edit"),"project editing alone cannot manage security scans");
   Check(Allowed("Queue","SecurityScans.Index,SecurityScans.Edit"),"explicit security edit grant permits scan management");

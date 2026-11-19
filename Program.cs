@@ -207,6 +207,7 @@ builder.Services.AddScoped<MeetingNotificationService>();
 builder.Services.AddScoped<FieldServiceNotificationService>();
 builder.Services.AddScoped<UserThemeService>();
 builder.Services.AddScoped<ProjectTracking.Services.Security.SecurityStorage>();
+builder.Services.AddScoped<ProjectTracking.Services.Security.SecurityLoginStore>();
 builder.Services.AddScoped<ProjectTracking.Services.Security.SecurityScanService>();
 builder.Services.AddScoped<AttendancePolicyService>();
 builder.Services.AddSignalR(options =>

@@ -24,11 +24,7 @@
             <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
             <label>ประเภท<select class="form-select" name="kind">@foreach(var kind in SecurityValues.Kinds){<option>@kind</option>}</select></label>
             <label>URL เว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เว้นว่างสำหรับแอปมือถือ เครื่องสแกนจะตรวจเฉพาะโดเมนที่ผู้ดูแลอนุญาต</small></label>
-            <fieldset class="security-system-auth">
-                <legend>การเข้าสู่ระบบสำหรับสแกน</legend>
-                <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" /> ต้อง Login เพื่อสแกน</label>
-                <label>ชื่อโปรไฟล์ Login<input class="form-control" name="authProfile" maxlength="80" placeholder="เช่น member-uat" /><small>อ้างถึงโปรไฟล์บนเครื่องสแกน ไม่กรอกรหัสผ่านในหน้านี้</small></label>
-            </fieldset>
+            <small class="security-login-create-hint">เว็บไซต์ที่ต้อง Login สามารถตั้งค่า Username และ Password หลังเพิ่มระบบได้</small>
             <div class="security-system-form-actions"><button class="btn btn-primary" type="submit">เพิ่มระบบ</button></div></form></details>
     }
     @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
@@ -39,13 +35,30 @@
         var approval=Model.HostApprovals.FirstOrDefault(x=>x.Host==host);
         var hostApproved=mobile||approval?.IsApproved==true;
         var latestScan=Model.Scans.FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
-        <details class="security-card security-system" name="security-system" data-system-id="@system.Id"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@system.Kind</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login (@system.AuthProfile)</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
+        <details class="security-card security-system" name="security-system" data-system-id="@system.Id"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@system.Kind</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
         @if(latestScan!=null){<div class="security-latest-scan"><span>ผลตรวจล่าสุด #@latestScan.Id · @latestScan.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span><a class="btn btn-outline-primary btn-sm" asp-action="Scan" asp-route-id="@latestScan.Id">ดูผลล่าสุด</a></div>}
         @if(!mobile){
             <div class="security-host-approval">
                 <div><strong>@(host??"ยังไม่ได้ระบุโดเมน")</strong><span class="security-status">@(hostApproved?"อนุมัติให้สแกนแล้ว":"รออนุมัติโดเมน")</span><p>อนุมัติเฉพาะโดเมนนี้ในโครงการนี้ ไม่รวมโดเมนย่อยหรือเว็บไซต์ที่ Redirect ไป</p>@if(!hostApproved&&!Model.CanApproveHosts){<small>ให้ผู้มีสิทธิ์ “อนุมัติและถอนโดเมน” อนุมัติก่อนเพิ่มเข้าคิว</small>}</div>
                 @if(Model.CanApproveHosts&&host!=null){<form asp-action="ApproveHost" method="post"><input type="hidden" name="systemId" value="@system.Id" /><input type="hidden" name="approved" value="@((!hostApproved).ToString().ToLowerInvariant())" /><button class="btn @(hostApproved?"btn-outline-primary":"btn-primary")" type="submit" aria-label="@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมน") @host">@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
             </div>
+        }
+        @if(!mobile&&Model.CanManage){
+            <details class="security-disclosure security-login-settings">
+                <summary>ตั้งค่า Login <small>— @(system.RequiresLogin ? "เปิดใช้งานแล้ว" : "ยังไม่เปิดใช้งาน")</small></summary>
+                <p>กรอกบัญชีทดสอบที่ใช้เข้าสู่เว็บไซต์ ระบบจะเข้ารหัสข้อมูลและส่งให้เครื่องสแกนเมื่อรับงาน ไม่ต้องสร้างไฟล์บน Ubuntu</p>
+                @if(system.RequiresLogin){<p class="security-muted">@(ProjectTracking.Services.Security.SecurityLoginStore.IsManaged(system.AuthProfile) ? "มีข้อมูล Login บันทึกไว้แล้ว หากต้องการเปลี่ยน ให้กรอกข้อมูลใหม่ให้ครบ" : "กำลังใช้โปรไฟล์เดิมบนเครื่องสแกน กรอกข้อมูลด้านล่างเพื่อเปลี่ยนมาตั้งค่าจากหน้าเว็บ")</p>}
+                <form asp-action="SaveLogin" method="post" class="security-form security-login-form" data-login-form autocomplete="off" data-loading-delay="0" data-loading-message="กำลังบันทึกการตั้งค่า Login…">
+                    <input type="hidden" name="systemId" value="@system.Id" />
+                    <label class="security-check security-login-toggle"><input type="checkbox" name="enabled" value="true" checked="@system.RequiresLogin" data-login-enabled /> Login ก่อนสแกน</label>
+                    <label class="security-login-url">URL ที่รับข้อมูล Login<input class="form-control" type="url" name="loginUrl" maxlength="2000" placeholder="https://your-site.example/login" data-login-required /><small>ใช้โดเมน พอร์ต และ HTTP/HTTPS เดียวกับ URL เว็บไซต์ของระบบนี้</small></label>
+                    <label>Username<input class="form-control" name="username" maxlength="255" autocomplete="off" data-login-required /></label>
+                    <label>Password<input class="form-control" type="password" name="password" maxlength="2000" autocomplete="new-password" data-login-required /><small>ไม่แสดงรหัสผ่านเดิมกลับบนหน้าจอ</small></label>
+                    <label class="security-login-indicator">ข้อความที่พบหลัง Login สำเร็จ<input class="form-control" name="loggedInRegex" maxlength="500" placeholder="เช่น ออกจากระบบ หรือ Sign out" data-login-required /><small>ต้องเป็นข้อความที่มีเฉพาะหลังเข้าสู่ระบบ เพื่อยืนยันว่า Login สำเร็จจริง</small></label>
+                    <details class="security-login-advanced"><summary>ตั้งค่าขั้นสูง — ชื่อช่องในฟอร์ม Login</summary><label>ข้อมูลที่ส่งจากฟอร์ม<input class="form-control" name="requestData" maxlength="4000" value="username={%username%}&amp;password={%password%}" /><small>ถ้าเว็บใช้ชื่อช่องอื่น ให้เปลี่ยนเฉพาะชื่อช่อง เช่น user={%username%}&amp;pass={%password%}</small></label></details>
+                    <div class="security-system-form-actions"><small>รองรับ Form Login ทั่วไป · OTP, SSO และ JavaScript Login ต้องเตรียมการเชื่อมต่อเพิ่มเติม</small><button class="btn btn-primary" type="submit">บันทึกการตั้งค่า Login</button></div>
+                </form>
+            </details>
         }
         @if(Model.CanManage){<details class="security-disclosure"><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
             <label>Version<input class="form-control" name="versionName" maxlength="100" required placeholder="1.0.0" /></label><label>Build Number<input class="form-control" name="buildNumber" maxlength="100" /></label><label>Git Commit<input class="form-control" name="gitCommit" maxlength="64" /></label><label>สภาพแวดล้อม<select class="form-select" name="environment"><option>UAT</option><option>Production</option></select></label>

@@ -9,7 +9,7 @@ public class SecurityWorkerController(SecurityScanService scans,AppDbContext db,
 {
     public record LeaseRequest(string LeaseToken,string? Error=null,ScanProgressUpdate? Progress=null);
     [HttpPost("claim")]
-    public async Task<IActionResult> Claim(CancellationToken ct){var job=await scans.ClaimAsync(ct);return job==null?NoContent():Json(job);}
+    public async Task<IActionResult> Claim(CancellationToken ct){Response.Headers.CacheControl="no-store";var job=await scans.ClaimAsync(ct);return job==null?NoContent():Json(job);}
     [HttpPost("heartbeat/{id:long}")]
     public async Task<IActionResult> Heartbeat(long id,[FromBody]LeaseRequest request,CancellationToken ct)
     {

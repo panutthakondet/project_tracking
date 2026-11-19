@@ -42,8 +42,10 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             if(job.RequiresLogin){
                 reportProgress?.Invoke(new("Authenticating"));
                 if(string.IsNullOrWhiteSpace(job.AuthProfile)||!Regex.IsMatch(job.AuthProfile,@"^[A-Za-z0-9_-]+$"))throw new InvalidOperationException("Invalid login profile");
-                var path=Path.Combine(setting("SECURITY_AUTH_PROFILES_PATH"),job.AuthProfile+".json");
-                using var profile=JsonDocument.Parse(await File.ReadAllTextAsync(path,ct));var p=profile.RootElement;
+                using var profile=job.Login!=null
+                    ? JsonDocument.Parse(JsonSerializer.Serialize(job.Login,new JsonSerializerOptions(JsonSerializerDefaults.Web)))
+                    : JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(setting("SECURITY_AUTH_PROFILES_PATH"),job.AuthProfile+".json"),ct));
+                var p=profile.RootElement;
                 var login=new Uri(Value(p,"loginUrl"));if(login.GetLeftPart(UriPartial.Authority)!=target.GetLeftPart(UriPartial.Authority))throw new InvalidOperationException("Login URL must use the approved origin");
                 var loggedIn=Value(p,"loggedInRegex");if(string.IsNullOrWhiteSpace(loggedIn))throw new InvalidOperationException("Login verification is required");
                 var config="loginUrl="+Uri.EscapeDataString(login.AbsoluteUri)+"&loginRequestData="+Uri.EscapeDataString(Value(p,"requestData"));
