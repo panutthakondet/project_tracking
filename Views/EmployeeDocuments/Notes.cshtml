@@ -509,7 +509,10 @@
     }
 
     body.employee-notes-expanded { overflow:hidden !important; }
-    body.employee-notes-expanded .v2-page { z-index:1045; }
+    html body.employee-notes-expanded .v2-sidebar { display:none !important; }
+    html body.employee-notes-expanded .v2-page {
+        z-index:26000; margin-left:0; width:100%; max-width:100%;
+    }
     body.employee-notes-expanded .employee-notes-workspace {
         position:fixed; inset:0; z-index:1045; width:100%; height:100dvh;
         max-height:none; margin:0; border-radius:0;
