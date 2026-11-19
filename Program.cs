@@ -1842,6 +1842,7 @@ static async Task EnsureEmployeeNotesTableAsync(IServiceProvider services)
               `emp_id` int(11) NOT NULL,
               `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
               `is_rich_text` tinyint(1) NOT NULL DEFAULT 0,
+              `group_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
               `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'บันทึกใหม่',
               `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
               `created_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
@@ -1870,6 +1871,16 @@ static async Task EnsureEmployeeNotesTableAsync(IServiceProvider services)
         if (Convert.ToInt32(await command.ExecuteScalarAsync()) == 0)
         {
             command.CommandText = "ALTER TABLE `employee_notes` ADD COLUMN `is_rich_text` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_pinned`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employee_notes'
+              AND COLUMN_NAME = 'group_name';";
+        if (Convert.ToInt32(await command.ExecuteScalarAsync()) == 0)
+        {
+            command.CommandText = "ALTER TABLE `employee_notes` ADD COLUMN `group_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;";
             await command.ExecuteNonQueryAsync();
         }
 

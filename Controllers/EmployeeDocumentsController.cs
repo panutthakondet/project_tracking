@@ -190,7 +190,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("EmployeeDocuments.Upload")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content, bool isRichText = false)
+        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content, bool isRichText = false, string? groupName = null)
         {
             var note = await _context.EmployeeNotes
                 .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
@@ -201,6 +201,9 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Notes), new { empId });
             }
 
+            groupName = groupName?.Trim();
+            if (groupName?.Length > 100) return BadRequest("ชื่อกลุ่มต้องไม่เกิน 100 ตัวอักษร");
+            note.GroupName = string.IsNullOrWhiteSpace(groupName) ? null : groupName;
             note.Title = LimitTextElements(
                 string.IsNullOrWhiteSpace(title) ? "ไม่มีชื่อ" : title.Trim(),
                 255);

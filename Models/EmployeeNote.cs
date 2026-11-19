@@ -20,6 +20,10 @@ namespace ProjectTracking.Models
         [StringLength(255)]
         public string Title { get; set; } = "บันทึกใหม่";
 
+        [Column("group_name")]
+        [StringLength(100)]
+        public string? GroupName { get; set; }
+
         [Column("content")]
         public string Content { get; set; } = string.Empty;
 

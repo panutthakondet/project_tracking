@@ -202,6 +202,11 @@
     .employee-emoji-plus::before { width: 18px; height: 2px; }
     .employee-emoji-plus::after { width: 2px; height: 18px; }
 
+    .employee-note-group { min-width: 0; }
+    .employee-note-group > summary { display:flex; justify-content:space-between; gap:8px; padding:10px 12px; cursor:pointer; font-weight:700; }
+    .employee-note-group > summary span { font-size:.8rem; opacity:.75; }
+    .employee-note-group-field { flex-shrink:0; display:grid; gap:6px; padding:12px 0; font-size:.85rem; }
+    @@media(max-width: 768px) { .employee-note-group { flex:0 0 260px; overflow-y:auto; } }
     .employee-notes-list {
         min-height: 0;
         flex: 1;
@@ -557,8 +562,12 @@
                 }
                 else
                 {
-                    @foreach (var note in Model.Notes)
+                    @foreach (var noteGroup in Model.Notes.GroupBy(x => new { x.IsPinned, Name = x.IsPinned ? null : x.GroupName }).OrderByDescending(x => x.Key.IsPinned).ThenBy(x => x.Key.Name == null).ThenBy(x => x.Key.Name))
                     {
+                        <details class="employee-note-group" open>
+                        <summary>@(noteGroup.Key.IsPinned ? "ปักหมุด" : noteGroup.Key.Name ?? "ไม่มีกลุ่ม") <span>@noteGroup.Count()</span></summary>
+                        @foreach (var note in noteGroup)
+                        {
                         var isActive = Model.SelectedNote?.EmployeeNoteId == note.EmployeeNoteId;
                         <a asp-action="Notes"
                            asp-route-empId="@Model.Employee.EmpId"
@@ -568,6 +577,8 @@
                             <span class="employee-note-list-preview">@NotePreview(note.Content, note.IsRichText)</span>
                             <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
                         </a>
+                        }
+                        </details>
                     }
                 }
             </div>
@@ -634,6 +645,12 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
                     <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
+                    <label class="employee-note-group-field" for="employeeNoteGroup">กลุ่มบันทึก
+                        <input id="employeeNoteGroup" class="form-control" name="groupName" list="employeeNoteGroups" value="@Model.SelectedNote.GroupName" maxlength="100" placeholder="เลือกกลุ่มเดิม หรือพิมพ์ชื่อกลุ่มใหม่" disabled="@editorDisabled" />
+                        <datalist id="employeeNoteGroups">
+                            @foreach(var groupName in Model.Notes.Where(x => !string.IsNullOrWhiteSpace(x.GroupName)).Select(x => x.GroupName).Distinct().OrderBy(x => x)) { <option value="@groupName"></option> }
+                        </datalist>
+                    </label>
                     <input id="employeeNoteTitle"
                            name="title"
                            value="@Model.SelectedNote.Title"
@@ -734,12 +751,14 @@
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
         const form = document.getElementById('employeeNoteSaveForm');
+        const groupInput = document.getElementById('employeeNoteGroup');
+        const originalGroup = groupInput?.value;
         const originalTitle = title?.value;
         const originalContent = content?.value;
         let saving = false;
         let leavingConfirmed = false;
         const hasChanges = () => !saving && title && !title.disabled &&
-            (title.value !== originalTitle || content.value !== originalContent);
+            (title.value !== originalTitle || content.value !== originalContent || groupInput?.value !== originalGroup);
         const confirmLeaving = () => {
             if (!hasChanges()) return true;
             if (!window.confirm('คุณมีข้อความที่ยังไม่ได้บันทึก หากออกจากหน้านี้ ข้อความที่แก้ไขจะหายไป\n\nต้องการออกจากหน้านี้โดยไม่บันทึกหรือไม่?')) return false;
