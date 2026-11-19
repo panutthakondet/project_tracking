@@ -23,14 +23,35 @@ public static class EngineChecks
    await File.WriteAllTextAsync(file,"fixture");var mobile=await engines.Mobile(job with{Engine="MobSF",Kind="Android",Mode="Static"},file,default);
    if(SecurityReportParser.Parse("MobSF",mobile.Json).Count!=0||!handler.Paths.Any(p=>p.Contains("api/v1/scan")))throw new Exception("MobSF workflow incorrect");
    Console.WriteLine("PASS MobSF adapter uploads, requests static scan and retrieves JSON with fake HTTP");
+   await engines.Mobile(job with{Engine="MobSF",Kind="iOS",Mode="Static"},file,default);
+   Console.WriteLine("PASS APK and IPA upload parts include supported MIME types and filenames");
+   foreach(var failure in new[]{("/api/v1/upload","MobSF upload"),("/api/v1/scan","MobSF static analysis"),("/api/v1/report_json","MobSF JSON report")}){
+    handler.FailPath=failure.Item1;
+    try{await engines.Mobile(job with{Engine="MobSF",Kind="Android",Mode="Static"},file,default);throw new Exception("Expected failed engine request");}
+    catch(ScannerRequestException error){
+     if(error.Stage!=failure.Item2||error.StatusCode!=HttpStatusCode.BadRequest||error.Message.Contains("fixture-private-response"))throw new Exception("Stage or redaction incorrect");
+    }
+   }
+   handler.FailPath=null;
+   if(ScannerHttp.IsTransient(new ScannerRequestException("completion",HttpStatusCode.BadRequest))||!ScannerHttp.IsTransient(new ScannerRequestException("completion",HttpStatusCode.ServiceUnavailable))||!ScannerHttp.IsTransient(new HttpRequestException("fixture")))throw new Exception("Incorrect retry classification");
+   Console.WriteLine("PASS scanner HTTP failures identify stages without exposing response bodies; only transient completion failures retry");
   }finally{File.Delete(file);}
  }
  class EngineStub:HttpMessageHandler
  {
   public List<string> Paths{get;}=[];
+  public string? FailPath{get;set;}
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
    var path=request.RequestUri!.AbsolutePath;Paths.Add(path);
+   if(path=="/api/v1/upload"){
+    var form=request.Content as MultipartFormDataContent??throw new Exception("Expected multipart upload");
+    var part=form.Single(p=>p.Headers.ContentDisposition?.Name?.Trim('"')=="file");
+    var name=part.Headers.ContentDisposition!.FileName?.Trim('"');
+    var expected=name=="application.apk"?"application/vnd.android.package-archive":name=="application.ipa"?"application/octet-stream":throw new Exception("Unexpected upload filename");
+    if(part.Headers.ContentType?.MediaType!=expected)throw new Exception("MobSF rejects uploads without a supported MIME type");
+   }
+   if(path==FailPath)return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("fixture-private-response")});
    var json=path switch{
     "/JSON/context/action/newContext/"=>"{\"contextId\":\"1\"}",
     "/JSON/spider/action/scan/"=>"{\"scan\":\"1\"}",

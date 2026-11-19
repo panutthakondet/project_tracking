@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ProjectTracking.Services.Security;
@@ -10,7 +11,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     {
         args??=new();args["apikey"]=setting("ZAP_API_KEY");
         using var response=await zap.GetAsync($"JSON/{component}/{type}/{method}/?"+string.Join("&",args.Select(p=>Uri.EscapeDataString(p.Key)+"="+Uri.EscapeDataString(p.Value))),ct);
-        response.EnsureSuccessStatusCode();var result=await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        ScannerHttp.RequireSuccess(response,"ZAP "+component+"/"+method);var result=await response.Content.ReadFromJsonAsync<JsonElement>(ct);
         if(result.TryGetProperty("code",out _))throw new InvalidOperationException("ZAP API rejected the request");return result;
     }
     static bool ContainsTrue(JsonElement e,string key)
@@ -75,12 +76,15 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     }
     public async Task<EngineResult> Mobile(SecurityJob job,string file,CancellationToken ct)
     {
-        using var content=new MultipartFormDataContent();await using var stream=File.OpenRead(file);content.Add(new StreamContent(stream),"file",job.Kind=="Android"?"application.apk":"application.ipa");
-        using var upload=await mobsf.PostAsync("api/v1/upload",content,ct);upload.EnsureSuccessStatusCode();var info=await upload.Content.ReadFromJsonAsync<JsonElement>(ct);var hash=Value(info,"hash");
+        using var content=new MultipartFormDataContent();await using var stream=File.OpenRead(file);
+        var application=new StreamContent(stream);
+        application.Headers.ContentType=new MediaTypeHeaderValue(job.Kind=="Android"?"application/vnd.android.package-archive":"application/octet-stream");
+        content.Add(application,"file",job.Kind=="Android"?"application.apk":"application.ipa");
+        using var upload=await mobsf.PostAsync("api/v1/upload",content,ct);ScannerHttp.RequireSuccess(upload,"MobSF upload");var info=await upload.Content.ReadFromJsonAsync<JsonElement>(ct);var hash=Value(info,"hash");
         var args=new Dictionary<string,string>{["hash"]=hash,["scan_type"]=Value(info,"scan_type"),["file_name"]=Value(info,"file_name"),["re_scan"]="0"};
-        using var scan=await mobsf.PostAsync("api/v1/scan",new FormUrlEncodedContent(args),ct);scan.EnsureSuccessStatusCode();
+        using var scan=await mobsf.PostAsync("api/v1/scan",new FormUrlEncodedContent(args),ct);ScannerHttp.RequireSuccess(scan,"MobSF static analysis");
         var scanResult=await scan.Content.ReadFromJsonAsync<JsonElement>(ct);if(scanResult.TryGetProperty("error",out _))throw new InvalidOperationException("MobSF scan failed");
-        using var report=await mobsf.PostAsync("api/v1/report_json",new FormUrlEncodedContent(new Dictionary<string,string>{["hash"]=hash}),ct);report.EnsureSuccessStatusCode();var json=await report.Content.ReadAsStringAsync(ct);
+        using var report=await mobsf.PostAsync("api/v1/report_json",new FormUrlEncodedContent(new Dictionary<string,string>{["hash"]=hash}),ct);ScannerHttp.RequireSuccess(report,"MobSF JSON report");var json=await report.Content.ReadAsStringAsync(ct);
         using var parsed=JsonDocument.Parse(json);if(parsed.RootElement.TryGetProperty("error",out _))throw new InvalidOperationException("MobSF report failed");
         var version=parsed.RootElement.TryGetProperty("mobsf_version",out var v)?v.ToString():"MobSF / "+setting("MOBSF_IMAGE_VERSION");
         return new(json,version,"Static analysis only. No emulator, runtime traffic, device exploitation or authenticated API testing. Normalized view covers supported rule sections; review original JSON for additional output. Validate findings manually.");

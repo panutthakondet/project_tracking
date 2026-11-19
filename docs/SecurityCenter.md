@@ -91,6 +91,8 @@ Worker ต่ออายุ lease ทุก 30 วินาที; ขาดก
 
 MobSF แบบ API-only บางรุ่นอาจตอบ HTTP 500 จาก `/login/` ขณะที่ API ทำงานได้ Image เดิมใช้หน้า Login เป็น Health Check ชุด Compose นี้จึงตรวจ `GET /api/v1/scans` พร้อม API key และตรวจผล JSON แทน Worker ใช้ endpoint เดียวกันก่อนรับงาน ไม่ข้ามการตรวจสุขภาพหรือปิดการยืนยันตัวตน และ Compose รอทั้งสองเครื่องมือเป็น healthy ก่อนเริ่ม Worker
 
+Worker ระบุ MIME ของ multipart file เป็น `application/vnd.android.package-archive` สำหรับ APK และ `application/octet-stream` สำหรับ IPA ตามชนิดที่ MobSF รองรับ หากใช้ Worker เก่าที่ไม่ระบุ MIME อาจถูกปฏิเสธด้วย HTTP 400 แม้ไฟล์และนามสกุลถูกต้อง ข้อผิดพลาด HTTP ของ Worker รุ่นใหม่ระบุขั้นตอน เช่น `MobSF upload`, `MobSF static analysis`, `MobSF JSON report`, `ProjectTracking artifact download` หรือ `ProjectTracking report completion` โดยไม่พิมพ์เนื้อหาตอบกลับหรือกุญแจ เมื่อแก้ Worker ต้อง build และ recreate เฉพาะ worker แล้วสั่งรอบใหม่จากเวอร์ชัน APK เดิม ไม่ต้องอัปโหลดไฟล์ซ้ำหรือแก้แถวรอบเก่าในฐานข้อมูล
+
 เมื่ออัปเดต Health Check ให้ใช้ `up -d --no-deps mobsf` เพื่อสร้าง container MobSF ใหม่จาก configuration ปัจจุบัน โดยยังใช้ named volume เดิม ไม่ใช้ `down -v` จากนั้นรอให้ healthy ก่อนสั่ง build/start Worker รุ่นใหม่ การแก้ชุดนี้อยู่เฉพาะ Docker/Worker ไม่ต้อง deploy IIS หรือรัน schema ซ้ำ
 
 ## ตารางที่เพิ่ม

@@ -19,12 +19,14 @@ while(!stop.IsCancellationRequested){
  catch{try{await Task.Delay(5000,stop.Token);}catch(OperationCanceledException){return;}}
 }
 
+if(stop.IsCancellationRequested)return;
+Console.WriteLine("Scanner APIs ready; waiting for queued scans");
 while(!stop.IsCancellationRequested){
     SecurityJob? job=null;
     try{
         using var claim=await api.PostAsync("api/security-worker/claim",null,stop.Token);
         if(claim.StatusCode==HttpStatusCode.NoContent){await Task.Delay(5000,stop.Token);continue;}
-        claim.EnsureSuccessStatusCode();job=await claim.Content.ReadFromJsonAsync<SecurityJob>(stop.Token)??throw new InvalidOperationException("Invalid job");
+        ScannerHttp.RequireSuccess(claim,"ProjectTracking claim");job=await claim.Content.ReadFromJsonAsync<SecurityJob>(stop.Token)??throw new InvalidOperationException("Invalid job");
         Console.WriteLine($"Starting scan {job.Id} ({job.Engine})");
         using var work=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);work.CancelAfter(TimeSpan.FromMinutes(30));
         using var heartbeatStop=CancellationTokenSource.CreateLinkedTokenSource(work.Token);
@@ -36,7 +38,7 @@ while(!stop.IsCancellationRequested){
             else if(job.Engine=="MobSF"){
                 file=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N")+(job.Kind=="Android"?".apk":".ipa"));
                 using var request=new HttpRequestMessage(HttpMethod.Get,$"api/security-worker/artifact/{job.Id}");request.Headers.Add("X-Scan-Lease",job.LeaseToken);
-                using var download=await api.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,work.Token);download.EnsureSuccessStatusCode();
+                using var download=await api.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,work.Token);ScannerHttp.RequireSuccess(download,"ProjectTracking artifact download");
                 await using(var input=await download.Content.ReadAsStreamAsync(work.Token))await using(var output=File.Create(file)){
                     var buffer=new byte[81920];long size=0;int count;
                     while((count=await input.ReadAsync(buffer,work.Token))>0){size+=count;if(size>250L*1024*1024)throw new InvalidOperationException("Artifact size limit exceeded");await output.WriteAsync(buffer.AsMemory(0,count),work.Token);}
@@ -46,14 +48,14 @@ while(!stop.IsCancellationRequested){
             }else throw new InvalidOperationException("Unsupported engine");
             for(var attempt=0;;attempt++){
                 using var form=new MultipartFormDataContent();form.Add(new StringContent(job.LeaseToken),"leaseToken");form.Add(new StringContent(result.Version),"engineVersion");form.Add(new StringContent(result.Coverage),"coverage");form.Add(new StringContent(result.Json),"report","report.json");
-                try{using var complete=await api.PostAsync($"api/security-worker/complete/{job.Id}",form,work.Token);complete.EnsureSuccessStatusCode();break;}catch(HttpRequestException)when(attempt<2){await Task.Delay(2000,work.Token);}
+                try{using var complete=await api.PostAsync($"api/security-worker/complete/{job.Id}",form,work.Token);ScannerHttp.RequireSuccess(complete,"ProjectTracking report completion");break;}catch(HttpRequestException error)when(attempt<2&&ScannerHttp.IsTransient(error)){await Task.Delay(2000,work.Token);}
             }
             Console.WriteLine($"Completed scan {job.Id}");
         }finally{heartbeatStop.Cancel();await heartbeat;if(file!=null)File.Delete(file);}
     }catch(OperationCanceledException)when(stop.IsCancellationRequested){break;}
     catch(Exception error){
         // Do not log exception messages or request URLs: engine requests may contain credentials.
-        var reason=error is InvalidOperationException?error.Message:error is HttpRequestException http&&http.StatusCode.HasValue?"Engine/API HTTP "+(int)http.StatusCode.Value:error.GetType().Name;
+        var reason=error is ScannerRequestException stageError?stageError.Message:error is InvalidOperationException?error.Message:error is HttpRequestException http&&http.StatusCode.HasValue?"Engine/API HTTP "+(int)http.StatusCode.Value:error.GetType().Name;
         Console.Error.WriteLine($"Scan {job?.Id} failed: {reason}");
         if(job!=null)try{using var response=await api.PostAsJsonAsync($"api/security-worker/fail/{job.Id}",new{job.LeaseToken,Error="Scanner failed: "+reason+". Check engine configuration, target allowlist and engine health; start a new scan after correction."},stop.Token);}catch{Console.Error.WriteLine("Could not report failure; the lease will expire.");}
         try{await Task.Delay(5000,stop.Token);}catch(OperationCanceledException){break;}
