@@ -2,6 +2,19 @@ namespace ProjectTracking.Services.Security;
 public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,string Mode,string VersionName,string? BuildNumber,string Environment,string? TargetUrl,bool RequiresLogin,string? AuthProfile,string? ArtifactName,string? ArtifactSha256);
 public record ScanObservation(string RuleId,string Title,string Severity,string Location,string Description,string Evidence,string Remediation,string References,string? Cwe=null);
 public record ScanCompletion(string EngineVersion,string Coverage);
+public record ScanProgressUpdate(string Stage,int? Percent=null,long? BytesDone=null,long? BytesTotal=null);
+public record ScanProgressStep(string Stage,string Label);
+public static class SecurityProgress
+{
+    public static ScanProgressStep[] Stages(string engine,string mode="",bool requiresLogin=false) => engine=="MobSF"
+        ? [new("Preparing","เตรียมงาน"),new("Downloading","ดาวน์โหลดไฟล์จากระบบ"),new("Verifying","ตรวจสอบไฟล์"),new("Uploading","ส่งไฟล์เข้า MobSF"),new("Analyzing","วิเคราะห์ความปลอดภัย"),new("FetchingReport","รับรายงานจาก MobSF"),new("SavingResults","บันทึกผลเข้าระบบ")]
+        : new[]{new ScanProgressStep("Preparing","เตรียมงาน"),new("Authenticating","เข้าสู่ระบบทดสอบ"),new("Crawling","สำรวจหน้าเว็บไซต์"),new("ActiveScanning","ตรวจแบบ Active"),new("PassiveChecks","ตรวจแบบ Passive"),new("FetchingReport","รับรายงานจาก ZAP"),new("SavingResults","บันทึกผลเข้าระบบ")}.Where(s=>(s.Stage!="Authenticating"||requiresLogin)&&(s.Stage!="ActiveScanning"||mode=="Active")).ToArray();
+    public static bool IsValid(ScanProgressUpdate update) => !string.IsNullOrEmpty(update.Stage)
+        && Stages("MobSF").Concat(Stages("ZAP","Active",true)).Any(s=>s.Stage==update.Stage)
+        && (update.Percent is null or >=0 and <=100)
+        && (update.BytesDone is null or >=0) && (update.BytesTotal is null or >0)
+        && (!update.BytesDone.HasValue||!update.BytesTotal.HasValue||update.BytesDone<=update.BytesTotal);
+}
 public static class SecurityValues
 {
     public static readonly string[] Kinds=["WebInformation","WebMember","Android","iOS"];

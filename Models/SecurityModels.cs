@@ -74,6 +74,17 @@ public class SecurityFinding
     public DateTime FirstSeenAt { get; set; } = DateTime.UtcNow;
     public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("security_scan_progress")]
+public class SecurityScanProgress
+{
+    [Key] public long ScanId { get; set; }
+    [MaxLength(40)] public string Stage { get; set; } = "Preparing";
+    public int? Percent { get; set; }
+    public long? BytesDone { get; set; }
+    public long? BytesTotal { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
 [Table("security_scan_findings")]
 public class SecurityScanFinding
 {

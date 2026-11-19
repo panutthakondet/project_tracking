@@ -12,6 +12,7 @@ public class SecurityProjectPage
 }
 public class SecurityScanPage
 {
+    public SecurityScanProgress? Progress { get; set; }
     public Project Project { get; set; }=null!;
     public SecuritySystem System { get; set; }=null!;
     public SecurityVersion Version { get; set; }=null!;

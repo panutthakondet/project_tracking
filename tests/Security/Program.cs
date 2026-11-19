@@ -67,8 +67,13 @@ await Reject(()=>TargetPolicy.ValidateAsync("https://93.184.216.34/","",false,de
 using var fake=new HttpClient(new FakeEngine()){BaseAddress=new Uri("http://zap/")};var engines=new ScannerEngines(fake,fake,_=>"");
 await Reject(()=>engines.Web(new(1,"lease","WebInformation","ZAP","Passive","1",null,"UAT","https://unapproved.example/",false,null,null,null),default),"scanner refuses unapproved jobs");
 await using var mysql=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseMySql("Server=localhost;Database=unused;User=unused",new MySqlServerVersion(new Version(8,0,36))).Options);
-var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==9&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates nine new security tables");
+var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==10&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates ten security tables including independent progress snapshots");
 await File.WriteAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),"deploy/security/schema.sql"),"-- Generated from SecurityModelConfiguration. New tables only.\n"+string.Join("\n\n",sql)+"\n");
+var progressDdl=sql.Single(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_scan_progress`"));
+Check(progressDdl.Contains("PRIMARY KEY (`ScanId`)")&&!progressDdl.Contains("AUTO_INCREMENT"),"progress schema uses existing scan ID without altering scan/report tables");
+await File.WriteAllTextAsync("deploy/security/progress-schema.sql","-- Select the existing ProjectTracking database before running. Creates one new table only.\n"+progressDdl+"\n");
+
+await ProgressChecks.Run(db,service,version.Id);
 await EngineChecks.Run();
 await ReadinessChecks.Run();
 await RazorChecks.Run();

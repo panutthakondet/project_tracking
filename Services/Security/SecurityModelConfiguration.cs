@@ -12,6 +12,8 @@ public static class SecurityModelConfiguration
         b.Entity<SecurityScan>().HasIndex(x=>x.RequestKey).IsUnique();
         b.Entity<SecurityScan>().HasIndex(x=>new{x.Status,x.CreatedAt});
         b.Entity<SecurityScan>().HasOne<SecurityVersion>().WithMany().HasForeignKey(x=>x.VersionId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SecurityScanProgress>().Property(x=>x.ScanId).ValueGeneratedNever();
+        b.Entity<SecurityScanProgress>().HasOne<SecurityScan>().WithOne().HasForeignKey<SecurityScanProgress>(x=>x.ScanId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityFinding>().HasIndex(x=>new{x.SystemId,x.Fingerprint}).IsUnique();
         b.Entity<SecurityFinding>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityScanFinding>().HasIndex(x=>new{x.ScanId,x.FindingId}).IsUnique();

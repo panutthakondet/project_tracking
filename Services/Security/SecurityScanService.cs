@@ -48,7 +48,27 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         }
         return null;
     }
-    public async Task<bool> HeartbeatAsync(long id,string lease,CancellationToken ct)=>await db.SecurityScanRows.Where(x=>x.Id==id&&x.Status=="Running"&&x.LeaseToken==lease&&x.LeaseUntil>DateTime.UtcNow).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LeaseUntil,DateTime.UtcNow.AddMinutes(3)),ct)>0;
+    public async Task<bool> HeartbeatAsync(long id,string lease,CancellationToken ct,ScanProgressUpdate? progress=null)
+    {
+        if(progress!=null&&!SecurityProgress.IsValid(progress))throw new InvalidOperationException("Invalid scan progress");
+        // Old workers keep the existing lease-only behaviour and do not require a progress row.
+        if(progress==null)return await RenewLease(id,lease,ct)>0;
+        await using var tx=await db.Database.BeginTransactionAsync(ct);
+        if(await RenewLease(id,lease,ct)==0){await tx.RollbackAsync(ct);return false;}
+        var scan=await db.SecurityScanRows.AsNoTracking().SingleAsync(x=>x.Id==id,ct);
+        var plan=SecurityProgress.Stages(scan.Engine,scan.Mode,scan.RequiresLogin);
+        var nextIndex=Array.FindIndex(plan,s=>s.Stage==progress.Stage);
+        if(nextIndex<0)throw new InvalidOperationException("Progress stage does not match the scan engine");
+        var row=await db.SecurityScanProgressRows.SingleOrDefaultAsync(x=>x.ScanId==id,ct);
+        if(row==null){row=new(){ScanId=id};db.SecurityScanProgressRows.Add(row);}
+        var currentIndex=Array.FindIndex(plan,s=>s.Stage==row.Stage);
+        if(nextIndex>=currentIndex){
+            row.Stage=progress.Stage;row.Percent=progress.Percent;row.BytesDone=progress.BytesDone;row.BytesTotal=progress.BytesTotal;
+        }
+        row.UpdatedAt=DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return true;
+    }
+    private Task<int> RenewLease(long id,string lease,CancellationToken ct)=>db.SecurityScanRows.Where(x=>x.Id==id&&x.Status=="Running"&&x.LeaseToken==lease&&x.LeaseUntil>DateTime.UtcNow).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LeaseUntil,DateTime.UtcNow.AddMinutes(3)),ct);
     public async Task<bool> HasLeaseAsync(long id,string lease,CancellationToken ct)=>await db.SecurityScanRows.AnyAsync(x=>x.Id==id&&x.Status=="Running"&&x.LeaseToken==lease&&x.LeaseUntil>DateTime.UtcNow,ct);
     public async Task CompleteAsync(long id,string lease,string json,ScanCompletion completion,CancellationToken ct)
     {

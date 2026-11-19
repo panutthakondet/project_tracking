@@ -11,7 +11,6 @@ using var stop=new CancellationTokenSource();Console.CancelKeyPress+=(_,e)=>{e.C
 using var api=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri(baseUrl.TrimEnd('/')+"/"),Timeout=TimeSpan.FromMinutes(3)};api.DefaultRequestHeaders.Authorization=new("Bearer",key);
 using var zap=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri(Setting("ZAP_URL")),Timeout=TimeSpan.FromMinutes(2)};
 using var mobsf=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri(Setting("MOBSF_URL")),Timeout=TimeSpan.FromMinutes(25)};mobsf.DefaultRequestHeaders.TryAddWithoutValidation("Authorization",Setting("MOBSF_API_KEY"));
-var engines=new ScannerEngines(zap,mobsf,Setting);
 Console.WriteLine("Waiting for scanner APIs before claiming jobs");
 while(!stop.IsCancellationRequested){
  try{using var z=await zap.GetAsync("JSON/core/view/version/?apikey="+Uri.EscapeDataString(Setting("ZAP_API_KEY")),stop.Token);z.EnsureSuccessStatusCode();await ScannerReadiness.MobSfAsync(mobsf,stop.Token);break;}
@@ -30,22 +29,27 @@ while(!stop.IsCancellationRequested){
         Console.WriteLine($"Starting scan {job.Id} ({job.Engine})");
         using var work=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);work.CancelAfter(TimeSpan.FromMinutes(30));
         using var heartbeatStop=CancellationTokenSource.CreateLinkedTokenSource(work.Token);
-        var heartbeat=Task.Run(async()=>{try{while(true){await Task.Delay(TimeSpan.FromSeconds(30),heartbeatStop.Token);using var response=await api.PostAsJsonAsync($"api/security-worker/heartbeat/{job.Id}",new{job.LeaseToken},heartbeatStop.Token);response.EnsureSuccessStatusCode();}}catch(OperationCanceledException)when(heartbeatStop.IsCancellationRequested){}catch{work.Cancel();}},CancellationToken.None);
+        using var progress=new ScanProgressReporter();
+        var heartbeat=progress.RunAsync(api,job,work,heartbeatStop.Token);
+        var engines=new ScannerEngines(zap,mobsf,Setting,progress.Update);
         string? file=null;
         try{
             EngineResult result;
             if(job.Engine=="ZAP")result=await engines.Web(job,work.Token);
             else if(job.Engine=="MobSF"){
+                progress.Update(new("Downloading",0));
                 file=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N")+(job.Kind=="Android"?".apk":".ipa"));
                 using var request=new HttpRequestMessage(HttpMethod.Get,$"api/security-worker/artifact/{job.Id}");request.Headers.Add("X-Scan-Lease",job.LeaseToken);
                 using var download=await api.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,work.Token);ScannerHttp.RequireSuccess(download,"ProjectTracking artifact download");
                 await using(var input=await download.Content.ReadAsStreamAsync(work.Token))await using(var output=File.Create(file)){
-                    var buffer=new byte[81920];long size=0;int count;
-                    while((count=await input.ReadAsync(buffer,work.Token))>0){size+=count;if(size>250L*1024*1024)throw new InvalidOperationException("Artifact size limit exceeded");await output.WriteAsync(buffer.AsMemory(0,count),work.Token);}
+                    var buffer=new byte[81920];long size=0;int count;var total=download.Content.Headers.ContentLength;
+                    while((count=await input.ReadAsync(buffer,work.Token))>0){size+=count;if(size>250L*1024*1024)throw new InvalidOperationException("Artifact size limit exceeded");await output.WriteAsync(buffer.AsMemory(0,count),work.Token);progress.Update(new("Downloading",total>0?(int)Math.Clamp(size*100d/total.Value,0,100):null,size,total>0?total:null));}
                 }
+                progress.Update(new("Verifying"));
                 await using(var input=File.OpenRead(file)){var hash=Convert.ToHexString(await SHA256.HashDataAsync(input,work.Token));if(!hash.Equals(job.ArtifactSha256,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Artifact checksum mismatch");}
                 result=await engines.Mobile(job,file,work.Token);
             }else throw new InvalidOperationException("Unsupported engine");
+            progress.Update(new("SavingResults"));
             for(var attempt=0;;attempt++){
                 using var form=new MultipartFormDataContent();form.Add(new StringContent(job.LeaseToken),"leaseToken");form.Add(new StringContent(result.Version),"engineVersion");form.Add(new StringContent(result.Coverage),"coverage");form.Add(new StringContent(result.Json),"report","report.json");
                 try{using var complete=await api.PostAsync($"api/security-worker/complete/{job.Id}",form,work.Token);ScannerHttp.RequireSuccess(complete,"ProjectTracking report completion");break;}catch(HttpRequestException error)when(attempt<2&&ScannerHttp.IsTransient(error)){await Task.Delay(2000,work.Token);}

@@ -5,11 +5,12 @@
 <div class="security-center">
 <header class="index-hero security-hero"><div><small>SECURITY SCAN #@Model.Scan.Id</small><h1>@Model.System.Name</h1><p>@Model.Project.ProjectDisplayName<br />Version @Model.Version.VersionName / Build @Model.Version.BuildNumber · @Model.Version.Environment</p></div><a class="btn btn-outline-light" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId">กลับศูนย์สแกน</a></header>
 @if(TempData["Success"] is string success){<div class="alert alert-success">@success</div>}@if(TempData["Error"] is string error){<div class="alert alert-danger">@error</div>}
-<section class="security-card"><div class="security-card-head"><h2>@SecurityValues.StatusLabel(Model.Scan.Status)</h2><div class="security-inline"><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id">รีเฟรชสถานะ</a>@if(Model.CanManage&&(Model.Scan.Status is "Queued" or "Running")){<form asp-action="Cancel" method="post"><input type="hidden" name="id" value="@Model.Scan.Id" /><button type="submit" class="btn btn-outline-danger">ยกเลิกรอบนี้</button></form>}</div></div>
-<p>@Model.Scan.Engine @Model.Scan.EngineVersion · @Model.Scan.Mode<br />@Model.Scan.Coverage</p>@if(Model.Scan.Error!=null){<div class="alert alert-danger">@Model.Scan.Error</div>}
-<p>เริ่ม: @Model.Scan.StartedAt?.ToString("yyyy-MM-dd HH:mm") · สิ้นสุด: @Model.Scan.FinishedAt?.ToString("yyyy-MM-dd HH:mm") (UTC)<br />เป้าหมาย: @Model.Scan.TargetUrl</p>
+<section class="security-card"><div class="security-card-head"><h2 data-scan-status>@SecurityValues.StatusLabel(Model.Scan.Status)</h2><div class="security-inline"><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id">รีเฟรชสถานะ</a>@if(Model.CanManage&&(Model.Scan.Status is "Queued" or "Running")){<form asp-action="Cancel" method="post" data-scan-cancel><input type="hidden" name="id" value="@Model.Scan.Id" /><button type="submit" class="btn btn-outline-danger">ยกเลิกรอบนี้</button></form>}</div></div>
+@await Html.PartialAsync("_Progress",ProjectTracking.ViewModels.Security.ScanProgressPage.From(Model.Scan,Model.Progress))
+<p>@Model.Scan.Engine @Model.Scan.EngineVersion · @Model.Scan.Mode<br />@Model.Scan.Coverage</p><div class="alert alert-danger" data-scan-error hidden="@(Model.Scan.Error==null)">@Model.Scan.Error</div>
+<p>เริ่ม: <span data-scan-started>@Model.Scan.StartedAt?.ToString("yyyy-MM-dd HH:mm")</span> · สิ้นสุด: <span data-scan-finished>@Model.Scan.FinishedAt?.ToString("yyyy-MM-dd HH:mm")</span> (UTC)<br />เป้าหมาย: @Model.Scan.TargetUrl</p>
 @if(Model.Scan.Status=="Completed"){<div class="security-inline"><a class="btn btn-primary" asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="json">ดาวน์โหลด JSON ต้นฉบับ</a><a class="btn btn-outline-primary" asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="pdf">ดาวน์โหลดรายงาน PDF</a></div>}
-@if(Model.Scan.Status is "Queued" or "Running"){<p>งานทำบนเครื่องสแกนแยก สามารถปิดหน้านี้แล้วกลับมาตรวจภายหลังได้</p>}
+@if(Model.Scan.Status is "Queued" or "Running"){<p data-scan-running-note>งานทำบนเครื่องสแกนแยก สามารถปิดหน้านี้แล้วกลับมาตรวจภายหลังได้</p>}
 </section>
 @if(Model.Scan.Status=="Completed"){
 <div class="security-summary">@foreach(var severity in new[]{"Critical","High","Medium","Low","Info"}){<div><strong>@Model.Observations.Count(x=>x.Severity==severity)</strong> @severity</div>}</div>
@@ -31,3 +32,5 @@
 @if(Model.Observations.Count==0){<div class="alert alert-info">รอบนี้เครื่องมือไม่รายงานประเด็นในขอบเขตที่ตรวจ ไม่ได้ยืนยันว่าระบบปราศจากช่องโหว่</div>}
 }
 </div>
+
+@section Scripts { <script src="~/js/security-scan-progress.js" asp-append-version="true" defer></script> }

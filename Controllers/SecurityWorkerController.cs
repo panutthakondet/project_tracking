@@ -7,11 +7,15 @@ namespace ProjectTracking.Controllers;
 [AllowAnonymous,SecurityWorkerKey,Route("api/security-worker")]
 public class SecurityWorkerController(SecurityScanService scans,AppDbContext db,SecurityStorage storage):Controller
 {
-    public record LeaseRequest(string LeaseToken,string? Error=null);
+    public record LeaseRequest(string LeaseToken,string? Error=null,ScanProgressUpdate? Progress=null);
     [HttpPost("claim")]
     public async Task<IActionResult> Claim(CancellationToken ct){var job=await scans.ClaimAsync(ct);return job==null?NoContent():Json(job);}
     [HttpPost("heartbeat/{id:long}")]
-    public async Task<IActionResult> Heartbeat(long id,[FromBody]LeaseRequest request,CancellationToken ct)=>await scans.HeartbeatAsync(id,request.LeaseToken,ct)?NoContent():Conflict();
+    public async Task<IActionResult> Heartbeat(long id,[FromBody]LeaseRequest request,CancellationToken ct)
+    {
+        if(request.Progress!=null&&!SecurityProgress.IsValid(request.Progress))return BadRequest();
+        return await scans.HeartbeatAsync(id,request.LeaseToken,ct,request.Progress)?NoContent():Conflict();
+    }
     [HttpGet("artifact/{id:long}")]
     public async Task<IActionResult> Artifact(long id,CancellationToken ct)
     {

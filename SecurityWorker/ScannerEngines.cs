@@ -1,11 +1,10 @@
 using System.Net.Http.Json;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ProjectTracking.Services.Security;
 namespace ProjectTracking.SecurityWorker;
 public record EngineResult(string Json,string Version,string Coverage);
-public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,string> setting)
+public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,string> setting,Action<ScanProgressUpdate>? reportProgress=null)
 {
     async Task<JsonElement> Zap(string component,string type,string method,Dictionary<string,string>? args,CancellationToken ct)
     {
@@ -22,10 +21,11 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     static string Value(JsonElement e,string key)=>e.GetProperty(key).ToString();
     async Task Wait(string engine,string id,CancellationToken ct)
     {
-        while(true){var status=await Zap(engine,"view","status",new(){["scanId"]=id},ct);if(Value(status,"status")=="100")return;await Task.Delay(1500,ct);}
+        while(true){var status=await Zap(engine,"view","status",new(){["scanId"]=id},ct);if(int.TryParse(Value(status,"status"),out var percent))reportProgress?.Invoke(new(engine=="spider"?"Crawling":"ActiveScanning",Math.Clamp(percent,0,100)));if(Value(status,"status")=="100")return;await Task.Delay(1500,ct);}
     }
     public async Task<EngineResult> Web(SecurityJob job,CancellationToken ct)
     {
+        reportProgress?.Invoke(new("Preparing"));
         var target=await TargetPolicy.ValidateAsync(job.TargetUrl??"",setting("SECURITY_ALLOWED_HOSTS"),setting("SECURITY_ALLOW_PRIVATE_TARGETS")=="true",ct);
         if(job.Mode=="Active"&&(job.Environment!="UAT"||setting("SECURITY_ALLOW_ACTIVE")!="true"))throw new InvalidOperationException("Active scans require UAT and explicit worker configuration");
         var name="security-"+job.Id+"-"+job.LeaseToken[..8];string? context=null,spider=null,active=null;
@@ -40,6 +40,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             await Zap("core","action","setMode",new(){["mode"]="protected"},ct);
             string? user=null;
             if(job.RequiresLogin){
+                reportProgress?.Invoke(new("Authenticating"));
                 if(string.IsNullOrWhiteSpace(job.AuthProfile)||!Regex.IsMatch(job.AuthProfile,@"^[A-Za-z0-9_-]+$"))throw new InvalidOperationException("Invalid login profile");
                 var path=Path.Combine(setting("SECURITY_AUTH_PROFILES_PATH"),job.AuthProfile+".json");
                 using var profile=JsonDocument.Parse(await File.ReadAllTextAsync(path,ct));var p=profile.RootElement;
@@ -58,13 +59,17 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             await Zap("spider","action","setOptionPostForm",new(){["Boolean"]=job.Mode=="Active"?"true":"false"},ct);
             var spiderArgs=new Dictionary<string,string>{["url"]=target.AbsoluteUri,["recurse"]="true",["subtreeOnly"]="true"};
             if(user!=null){spiderArgs["contextId"]=context;spiderArgs["userId"]=user;}else spiderArgs["contextName"]=name;
+            reportProgress?.Invoke(new("Crawling"));
             spider=Value(await Zap("spider","action",user==null?"scan":"scanAsUser",spiderArgs,ct),"scan");await Wait("spider",spider,ct);
             var crawled=await Zap("spider","view","results",new(){["scanId"]=spider},ct);if(crawled.GetProperty("results").GetArrayLength()==0)throw new InvalidOperationException("Crawler found no URLs; check target connectivity and scope");
             if(job.Mode=="Active"){
+                reportProgress?.Invoke(new("ActiveScanning"));
                 var args=new Dictionary<string,string>{["url"]=target.AbsoluteUri,["contextId"]=context,["recurse"]="true",["inScopeOnly"]="true"};if(user!=null)args["userId"]=user;
                 active=Value(await Zap("ascan","action",user==null?"scan":"scanAsUser",args,ct),"scan");await Wait("ascan",active,ct);
             }
+            reportProgress?.Invoke(new("PassiveChecks"));
             while(Value(await Zap("pscan","view","recordsToScan",null,ct),"recordsToScan")!="0")await Task.Delay(1000,ct);
+            reportProgress?.Invoke(new("FetchingReport"));
             var alerts=new List<JsonElement>();
             for(var start=0;;start+=500){var page=await Zap("alert","view","alerts",new(){["baseurl"]=target.AbsoluteUri,["start"]=start.ToString(),["count"]="500"},ct);var rows=page.GetProperty("alerts").EnumerateArray().ToArray();alerts.AddRange(rows);if(alerts.Count>10000)throw new InvalidOperationException("Report exceeds supported finding count");if(rows.Length<500)break;}
             var version=Value(await Zap("core","view","version",null,ct),"version");
@@ -76,14 +81,16 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     }
     public async Task<EngineResult> Mobile(SecurityJob job,string file,CancellationToken ct)
     {
-        using var content=new MultipartFormDataContent();await using var stream=File.OpenRead(file);
-        var application=new StreamContent(stream);
-        application.Headers.ContentType=new MediaTypeHeaderValue(job.Kind=="Android"?"application/vnd.android.package-archive":"application/octet-stream");
+        reportProgress?.Invoke(new("Uploading",0,0,new FileInfo(file).Length));
+        using var content=new MultipartFormDataContent();
+        var application=ScanUploadContent.Create(file,job.Kind=="Android"?"application/vnd.android.package-archive":"application/octet-stream",reportProgress);
         content.Add(application,"file",job.Kind=="Android"?"application.apk":"application.ipa");
         using var upload=await mobsf.PostAsync("api/v1/upload",content,ct);ScannerHttp.RequireSuccess(upload,"MobSF upload");var info=await upload.Content.ReadFromJsonAsync<JsonElement>(ct);var hash=Value(info,"hash");
         var args=new Dictionary<string,string>{["hash"]=hash,["scan_type"]=Value(info,"scan_type"),["file_name"]=Value(info,"file_name"),["re_scan"]="0"};
+        reportProgress?.Invoke(new("Analyzing"));
         using var scan=await mobsf.PostAsync("api/v1/scan",new FormUrlEncodedContent(args),ct);ScannerHttp.RequireSuccess(scan,"MobSF static analysis");
         var scanResult=await scan.Content.ReadFromJsonAsync<JsonElement>(ct);if(scanResult.TryGetProperty("error",out _))throw new InvalidOperationException("MobSF scan failed");
+        reportProgress?.Invoke(new("FetchingReport"));
         using var report=await mobsf.PostAsync("api/v1/report_json",new FormUrlEncodedContent(new Dictionary<string,string>{["hash"]=hash}),ct);ScannerHttp.RequireSuccess(report,"MobSF JSON report");var json=await report.Content.ReadAsStringAsync(ct);
         using var parsed=JsonDocument.Parse(json);if(parsed.RootElement.TryGetProperty("error",out _))throw new InvalidOperationException("MobSF report failed");
         var version=parsed.RootElement.TryGetProperty("mobsf_version",out var v)?v.ToString():"MobSF / "+setting("MOBSF_IMAGE_VERSION");

@@ -13,7 +13,7 @@
 
 ## 1. เตรียม IIS และฐานข้อมูล
 
-สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 9 ตารางใหม่ `security_*` ไม่มี ALTER/DROP ตารางเดิม
+สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 10 ตารางใหม่ `security_*` ไม่มี ALTER/DROP ตารางเดิม
 
 ค่าเริ่มต้นไม่สร้างตารางอัตโนมัติ ตั้ง `SECURITY_AUTO_CREATE_SCHEMA=false` บน IIS หากติดตั้ง schema เอง หรือใช้ `true` เพื่อให้แอปสร้างตารางใหม่ตอนเริ่ม (ต้องมีสิทธิ์ CREATE TABLE) ไม่ควรใช้การสร้าง schema อัตโนมัติแทนกระบวนการ deploy ที่ตรวจสอบแล้ว
 
@@ -115,3 +115,14 @@ python3 tests/Security/mobsf-healthcheck.test.py
 การผ่าน test ไม่ได้แทนการทดสอบเครื่องมือจริงหลังติดตั้ง Docker: รอบสแกนจริงและการยืนยัน authenticated coverage ต้องทำใน UAT ของคุณ
 
 เอกสาร API ที่ใช้อ้างอิง: [ZAP API](https://www.zaproxy.org/docs/api/), [MobSF Docker](https://github.com/MobSF/docs/blob/master/running_mobsf_docker.md), [MobSF Configuration](https://github.com/MobSF/docs/blob/master/configurations.md)
+
+
+### อัปเดตระบบเดิมเพื่อแสดงความคืบหน้าสแกน
+
+ระบบที่สร้าง 9 ตารางไว้แล้ว: สำรองฐานข้อมูล เลือกฐานข้อมูล ProjectTracking ใน MySQL Workbench แล้วรัน `deploy/security/progress-schema.sql` ก่อน deploy เว็บรุ่นนี้ สคริปต์สร้างเฉพาะ `security_scan_progress` ไม่แก้ตารางสแกนหรือรายงานเดิม ระบบใหม่ติดตั้งด้วย `schema.sql` ได้ตามปกติ
+
+อัปเดตเว็บ IIS และ build Worker รุ่นนี้ด้วย หลังรอบที่กำลังสแกนอยู่สิ้นสุดแล้วจึง restart Worker เพื่อไม่ขัดจังหวะงานเดิม Worker เก่ายังต่ออายุ lease ได้ แต่จะยังไม่มีรายละเอียดขั้นตอน หน้าเว็บจะแสดงหลอดแบบไม่ระบุเปอร์เซ็นต์ระหว่างรอข้อมูล
+
+หน้า Scan อัปเดตสถานะอัตโนมัติทุก 3 วินาที หยุด polling เมื่อซ่อนหน้า และแสดงเวลาที่ใช้กับการติดต่อล่าสุดจาก Worker การดาวน์โหลด/อัปโหลดแสดงเปอร์เซ็นต์และจำนวนไบต์จริง ส่วน ZAP แสดงเปอร์เซ็นต์สำรวจ/Active ที่เครื่องมือรายงาน MobSF ระหว่างวิเคราะห์ใช้หลอดเคลื่อนไหวโดยไม่สร้างเปอร์เซ็นต์รวมขึ้นเอง เมื่อบันทึกรายงานสำเร็จเท่านั้นจะแสดงครบ 100% และโหลดหน้ารายงานหนึ่งครั้ง
+
+Progress ส่งผ่าน heartbeat ที่ตรวจ worker key และ lease เดิม Endpoint สำหรับหน้าเว็บตรวจสิทธิ์โครงการ และไม่ส่ง lease token หรือกุญแจของเครื่องสแกนให้เบราว์เซอร์

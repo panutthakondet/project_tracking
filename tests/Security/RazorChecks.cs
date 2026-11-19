@@ -23,12 +23,13 @@ public static class RazorChecks
   var index=new SecurityProjectPage{Project=project,Systems=[system],Versions=[version],Scans=[scan],CanManage=true,WorkerConfigured=true};
   var detail=new SecurityScanPage{Project=project,System=system,Version=version,Scan=scan,Observations=[new(){Id=1,ScanId=1,FindingId=1,Title="ตรวจพบหัวข้อความปลอดภัยที่ยังไม่ได้ตั้งค่า",Severity="Medium",RuleId="100",Location="https://uat.example.com/account",Description="รายละเอียดจากผลตรวจ",Remediation="เพิ่มหัวข้อ HTTP ตามคำแนะนำของเครื่องมือ"}],Findings=[new(){Id=1,SystemId=1,Title="Missing header"}],CanManage=true,CanCreateIssue=true,Employees=[new(){EmpId=1,EmpName="พนักงานทดสอบ UI"}]};
   var output=Path.Combine(Path.GetTempPath(),"security-ui-preview");Directory.CreateDirectory(output);
-  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail)}){
+  var running=new SecurityScanPage{Project=project,System=system,Version=version,Scan=new SecurityScan{Id=3,VersionId=1,Engine="MobSF",Status="Running",StartedAt=DateTime.UtcNow.AddMinutes(-3)},Progress=new SecurityScanProgress{ScanId=3,Stage="Analyzing",UpdatedAt=DateTime.UtcNow},CanManage=true};
+  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail),("Scan-running",running)}){
    using var scope=app.Services.CreateScope();var http=new DefaultHttpContext{RequestServices=scope.ServiceProvider};http.Request.Scheme="http";http.Request.Host=new HostString("127.0.0.1",8766);
    var route=new RouteData();route.Routers.Add(new PreviewRouter());route.Values["controller"]="SecurityScans";route.Values["action"]=pair.Item1;
    var action=new ActionContext(http,route,new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
    Console.WriteLine("Razor: resolving view "+pair.Item1);
-   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,$"/Views/SecurityScans/{pair.Item1}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
+   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,$"/Views/SecurityScans/{(pair.Item1=="Index"?"Index":"Scan")}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
    using var writer=new StringWriter();var data=new ViewDataDictionary(new EmptyModelMetadataProvider(),new ModelStateDictionary()){Model=pair.Item2};
    var temp=new TempDataDictionary(http,scope.ServiceProvider.GetRequiredService<ITempDataProvider>());
    Console.WriteLine("Razor: rendering "+pair.Item1);

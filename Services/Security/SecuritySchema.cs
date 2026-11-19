@@ -10,7 +10,7 @@ public static class SecuritySchema
         foreach(var entity in db.Model.GetEntityTypes().Where(e=>e.GetTableName()?.StartsWith("security_",StringComparison.Ordinal)==true)){
             var name=entity.GetTableName()!;var store=StoreObjectIdentifier.Table(name,null);
             var columns=entity.GetProperties().Select(p=>$"`{p.GetColumnName(store)}` {p.GetRelationalTypeMapping().StoreType} {(p.IsNullable?"NULL":"NOT NULL")}{(p.Name=="Id"?" AUTO_INCREMENT":"")}").ToList();
-            columns.Add("PRIMARY KEY (`Id`)");var index=0;
+            columns.Add($"PRIMARY KEY ({string.Join(",",entity.FindPrimaryKey()!.Properties.Select(p=>$"`{p.GetColumnName(store)}`"))})");var index=0;
             foreach(var ix in entity.GetIndexes())columns.Add($"{(ix.IsUnique?"UNIQUE ":"")}KEY `ix_{name}_{index++}` ({string.Join(",",ix.Properties.Select(p=>$"`{p.GetColumnName(store)}`"))})");
             yield return $"CREATE TABLE IF NOT EXISTS `{name}` ({string.Join(",",columns)}) CHARACTER SET utf8mb4;";
         }
