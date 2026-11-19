@@ -21,7 +21,18 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
         if(e.ValueKind==JsonValueKind.Object){if(e.TryGetProperty(key,out var v)&&v.ToString().Equals("true",StringComparison.OrdinalIgnoreCase))return true;return e.EnumerateObject().Any(p=>ContainsTrue(p.Value,key));}
         return e.ValueKind==JsonValueKind.Array&&e.EnumerateArray().Any(v=>ContainsTrue(v,key));
     }
-    static string Value(JsonElement e,string key)=>e.GetProperty(key).ToString();
+    static string Value(JsonElement e,string key)
+    {
+        if(e.ValueKind==JsonValueKind.Object&&e.TryGetProperty(key,out var value))return value.ToString();
+        throw new InvalidOperationException("Scanner API response is missing expected field: "+key);
+    }
+    static string ScanId(JsonElement response,string engine,bool authenticated)
+    {
+        // ZAP Spider names the result after the action: scanAsUser for authenticated jobs.
+        foreach(var key in authenticated?new[]{"scanAsUser","scan"}:new[]{"scan"})
+            if(response.ValueKind==JsonValueKind.Object&&response.TryGetProperty(key,out var value)&&int.TryParse(value.ToString(),out var id)&&id>=0)return id.ToString();
+        throw new InvalidOperationException("ZAP "+engine+" start returned no valid scan ID");
+    }
     async Task Wait(string engine,string id,CancellationToken ct)
     {
         while(true){var status=await Zap(engine,"view","status",new(){["scanId"]=id},ct);if(int.TryParse(Value(status,"status"),out var percent))reportProgress?.Invoke(new(engine=="spider"?"Crawling":"ActiveScanning",Math.Clamp(percent,0,100)));if(Value(status,"status")=="100")return;await Task.Delay(1500,ct);}
@@ -81,12 +92,12 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             var spiderArgs=new Dictionary<string,string>{["url"]=target.AbsoluteUri,["recurse"]="true",["subtreeOnly"]="true"};
             if(user!=null){spiderArgs["contextId"]=context;spiderArgs["userId"]=user;}else spiderArgs["contextName"]=name;
             reportProgress?.Invoke(new("Crawling"));
-            spider=Value(await Zap("spider","action",user==null?"scan":"scanAsUser",spiderArgs,ct),"scan");await Wait("spider",spider,ct);
+            spider=ScanId(await Zap("spider","action",user==null?"scan":"scanAsUser",spiderArgs,ct),"spider",user!=null);await Wait("spider",spider,ct);
             var crawled=await Zap("spider","view","results",new(){["scanId"]=spider},ct);if(crawled.GetProperty("results").GetArrayLength()==0)throw new InvalidOperationException("Crawler found no URLs; check target connectivity and scope");
             if(job.Mode=="Active"){
                 reportProgress?.Invoke(new("ActiveScanning"));
                 var args=new Dictionary<string,string>{["url"]=target.AbsoluteUri,["contextId"]=context,["recurse"]="true",["inScopeOnly"]="true"};if(user!=null)args["userId"]=user;
-                active=Value(await Zap("ascan","action",user==null?"scan":"scanAsUser",args,ct),"scan");await Wait("ascan",active,ct);
+                active=ScanId(await Zap("ascan","action",user==null?"scan":"scanAsUser",args,ct),"active scan",user!=null);await Wait("ascan",active,ct);
             }
             reportProgress?.Invoke(new("PassiveChecks"));
             while(Value(await Zap("pscan","view","recordsToScan",null,ct),"recordsToScan")!="0")await Task.Delay(1000,ct);

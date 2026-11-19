@@ -41,6 +41,16 @@ public static class EngineChecks
    if(!rejected||handler.Paths.Count(p=>p.Contains("spider/action/scanAsUser"))!=before)throw new Exception("Unverified JSON login started crawling");
   }
   Console.WriteLine("PASS JSON login uses native context Bearer session; missing, empty, invalid and unauthorized tokens stop before crawling");
+  handler.AuthResponse=Response("""{"token":"fixture.jwt.token"}""");
+  handler.ScanResult="{\"scan\":\"2\"}";
+  await webAuthenticated.Web(jsonJob,default);
+  foreach(var invalidResult in new[]{"{}","{\"scanAsUser\":\"not-an-id\"}","{\"scanAsUser\":-1}"}){
+   handler.ScanResult=invalidResult;var rejected=false;
+   try{await webAuthenticated.Web(jsonJob,default);}catch(InvalidOperationException e)when(e.Message=="ZAP spider start returned no valid scan ID"){rejected=true;}
+   if(!rejected)throw new Exception("Invalid scan response was accepted");
+  }
+  handler.ScanResult="{\"scanAsUser\":\"1\"}";
+  Console.WriteLine("PASS authenticated spider reads native scanAsUser ID and legacy scan ID; malformed IDs fail safely");
   handler.AuthResponse=null;
   var file=Path.GetTempFileName();try{
    await File.WriteAllTextAsync(file,"fixture");var mobile=await engines.Mobile(job with{Engine="MobSF",Kind="Android",Mode="Static"},file,default);
@@ -68,6 +78,7 @@ public static class EngineChecks
   public bool EmbeddedCredentialsSeen{get;set;}
   public string? AuthResponse{get;set;}
   public bool JsonConfigured,HeaderConfigured;
+  public string ScanResult="{\"scanAsUser\":\"1\"}";
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
    var path=request.RequestUri!.AbsolutePath;Paths.Add(path);
@@ -98,7 +109,7 @@ public static class EngineChecks
    if(path==FailPath)return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("fixture-private-response")});
    var json=path switch{
     "/JSON/context/action/newContext/"=>"{\"contextId\":\"1\"}",
-    "/JSON/spider/action/scanAsUser/"=>"{\"scan\":\"1\"}",
+    "/JSON/spider/action/scanAsUser/"=>ScanResult,
     "/JSON/spider/action/scan/"=>"{\"scan\":\"1\"}",
     "/JSON/spider/view/results/"=>"{\"results\":[\"https://93.184.216.34/\"]}",
     "/JSON/spider/view/status/"=>"{\"status\":\"100\"}",
