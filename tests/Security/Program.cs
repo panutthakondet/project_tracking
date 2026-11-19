@@ -12,6 +12,10 @@ using System.Net;
 using System.Text;
 void Check(bool ok,string label){if(!ok)throw new Exception(label);Console.WriteLine("PASS "+label);}
 async Task Reject(Func<Task> action,string label){try{await action();}catch(InvalidOperationException){Check(true,label);return;}throw new Exception(label);}
+var markdownItems=Enumerable.Range(1,51).Select(i=>new SecurityScanFinding{Id=i,Title=$"ผลตรวจ {i}",Severity=i==51?"High":"Low",Evidence="```\n<script>alert(1)</script>\n```",Remediation="แก้ไขให้ปลอดภัย"}).ToList();
+var markdown=SecurityMarkdownReport.Create(new SecurityScan{Id=99,Engine="MobSF",Mode="Static"},new SecurityVersion{VersionName="1.0",Environment="UAT"},new SecuritySystem{Name="แอปทดสอบ"},"โครงการทดสอบ",markdownItems);
+Check(markdown.Contains("51 รายการ")&&markdown.IndexOf("ผลตรวจ 51",StringComparison.Ordinal)<markdown.IndexOf("ผลตรวจ 1\n",StringComparison.Ordinal)&&markdown.Contains("ผลตรวจ 50")&&markdown.Contains("แก้ไขให้ปลอดภัย"),"Markdown exports all findings beyond a page with severity ordering and Thai text");
+Check(markdown.Contains("````text\n```\n<script>")&&!markdown.Contains("LeaseToken"),"Markdown fences scanner content safely without worker credentials");
 const string report="""{"alerts":[{"pluginId":"100","alert":"Missing header","risk":"Medium","url":"https://uat.example.com/account","description":"<p>Missing protection</p>","solution":"Set header","evidence":"sample"}]}""";
 var root=Path.Combine(Path.GetTempPath(),"security-tests-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
 try{
