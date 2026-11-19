@@ -75,6 +75,7 @@ await File.WriteAllTextAsync("deploy/security/progress-schema.sql","-- Select th
 
 await ProgressChecks.Run(db,service,version.Id);
 PermissionChecks.Run();
+await ArtifactChecks.Run(db,service,storage);
 await EngineChecks.Run();
 await ReadinessChecks.Run();
 await RazorChecks.Run();

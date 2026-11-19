@@ -22,7 +22,16 @@ public class SecurityWorkerController(SecurityScanService scans,AppDbContext db,
         if(!await scans.HasLeaseAsync(id,Request.Headers["X-Scan-Lease"].ToString(),ct))return NotFound();
         var versionId=await db.SecurityScanRows.Where(x=>x.Id==id).Select(x=>x.VersionId).SingleAsync(ct);
         var file=await db.SecurityArtifactRows.AsNoTracking().SingleOrDefaultAsync(x=>x.VersionId==versionId,ct);if(file==null)return NotFound();
-        return PhysicalFile(storage.PathFor(file.StorageKey),"application/octet-stream",file.OriginalName);
+        // Open before returning the result: missing files must not fall through to
+        // the interactive HTML error/login route during result execution.
+        try {
+            var stream=new FileStream(storage.PathFor(file.StorageKey),FileMode.Open,FileAccess.Read,FileShare.Read,81920,true);
+            return File(stream,"application/octet-stream",file.OriginalName);
+        }
+        catch(Exception error) when(error is FileNotFoundException or DirectoryNotFoundException) {
+            Response.Headers["X-Security-Error"]="ARTIFACT_FILE_MISSING";
+            return NotFound(new{code="ARTIFACT_FILE_MISSING",error="ไม่พบไฟล์แอปบน Server กรุณากู้คืนไฟล์เดิมหรือเพิ่มเวอร์ชันพร้อมอัปโหลดไฟล์อีกครั้ง"});
+        }
     }
     [HttpPost("complete/{id:long}"),RequestSizeLimit(54525952),RequestFormLimits(MultipartBodyLengthLimit=54525952)]
     public async Task<IActionResult> Complete(long id,string leaseToken,string engineVersion,string coverage,IFormFile report,CancellationToken ct)
