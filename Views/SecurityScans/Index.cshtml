@@ -2,7 +2,7 @@
 @using ProjectTracking.Services.Security
 @{ViewData["Title"]="ตรวจความปลอดภัยโครงการ";}
 @section Styles { <link rel="stylesheet" href="~/css/security-center.css" asp-append-version="true" /> }
-<div class="security-center">
+<div class="security-center security-workspace" data-project-id="@Model.Project.ProjectId">
     <header class="index-hero">
         <div class="index-hero__content">
             <span class="index-eyebrow">Project Security Center</span>
@@ -35,7 +35,9 @@
         var host=!mobile&&Uri.TryCreate(system.TargetUrl,UriKind.Absolute,out var target)?target.IdnHost.TrimEnd('.').ToLowerInvariant():null;
         var approval=Model.HostApprovals.FirstOrDefault(x=>x.Host==host);
         var hostApproved=mobile||approval?.IsApproved==true;
-        <section class="security-card security-system"><header class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><span class="security-chip">@system.Kind</span> <span class="security-target">@system.TargetUrl</span>@if(system.RequiresLogin){<span> · ต้อง Login (@system.AuthProfile)</span>}</div></div><span class="security-chip">@versions.Count เวอร์ชัน</span></header>
+        var latestScan=Model.Scans.FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
+        <details class="security-card security-system" name="security-system" data-system-id="@system.Id"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><span class="security-chip">@system.Kind</span> <span class="security-target">@system.TargetUrl</span>@if(system.RequiresLogin){<span> · ต้อง Login (@system.AuthProfile)</span>}</div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
+        @if(latestScan!=null){<div class="security-latest-scan"><span>ผลตรวจล่าสุด #@latestScan.Id · @latestScan.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span><a class="btn btn-outline-primary btn-sm" asp-action="Scan" asp-route-id="@latestScan.Id">ดูผลล่าสุด</a></div>}
         @if(!mobile){
             <div class="security-host-approval">
                 <div><strong>@(host??"ยังไม่ได้ระบุโดเมน")</strong><span class="security-status">@(hostApproved?"อนุมัติให้สแกนแล้ว":"รออนุมัติโดเมน")</span><p>อนุมัติเฉพาะโดเมนนี้ในโครงการนี้ ไม่รวมโดเมนย่อยหรือเว็บไซต์ที่ Redirect ไป</p>@if(!hostApproved&&!Model.CanApproveHosts){<small>ให้ผู้มีสิทธิ์ “อนุมัติและถอนโดเมน” อนุมัติก่อนเพิ่มเข้าคิว</small>}</div>
@@ -50,9 +52,11 @@
         @if(versions.Count==0){<div class="security-empty"><strong>ยังไม่มีเวอร์ชัน</strong><p>เพิ่มเวอร์ชันแรกเพื่อเริ่มต้นตรวจระบบนี้</p></div>}
         @foreach(var version in versions){
             var artifact=Model.Artifacts.FirstOrDefault(x=>x.VersionId==version.Id);
+            <details class="security-version-entry" open="@(version.Id==versions[0].Id)">
+                <summary class="security-version-toggle"><strong>Version @version.VersionName</strong><span class="security-chip">@version.Environment</span>@if(version.Id==versions[0].Id){<small>ล่าสุด</small>}</summary>
             <article class="security-version">
                 <div class="security-version-info">
-                    <div class="security-version-heading"><h3>Version @version.VersionName</h3><span class="security-chip">@version.Environment</span></div>
+
                     @if(!string.IsNullOrWhiteSpace(version.BuildNumber)){<p class="security-muted">Build @version.BuildNumber</p>}
                     @if(!string.IsNullOrWhiteSpace(version.GitCommit)){<p class="security-hash">Commit @version.GitCommit</p>}
                     @if(!string.IsNullOrWhiteSpace(version.ChangeNotes)){<p class="security-text">@version.ChangeNotes</p>}
@@ -63,12 +67,20 @@
                     <select id="scan-mode-@version.Id" class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select>
                     <button class="btn btn-primary" type="submit" disabled="@(!hostApproved)" title="@(hostApproved?"เพิ่มเข้าคิวสแกน":"ต้องอนุมัติโดเมนก่อนสั่งสแกน")">เพิ่มเข้าคิวสแกน</button>
                 </form>}
-            </article>
+            </article></details>
         }
-        </div></section>
+        </div></details>
     }
-    <section id="security-history" class="security-card"><div class="security-card-head"><h2>ประวัติรอบสแกน</h2><span class="security-chip">@Model.Scans.Count รอบ</span></div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
-    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a></td></tr>}
+    <details id="security-history" class="security-card security-history"><summary class="security-history-heading"><strong>ประวัติรอบสแกน</strong><span class="security-chip">@Model.Scans.Count รอบ</span><span class="security-expand-hint">เปิดดูประวัติ</span></summary>
+    <div class="security-history-filters" data-history-controls hidden>
+        <label>ค้นหา<input type="search" class="form-control" data-history-search placeholder="ชื่อระบบ เวอร์ชัน หรือเลขรอบ" /></label>
+        <label>สถานะ<select class="form-select" data-history-status><option value="">ทุกสถานะ</option>@foreach(var state in new[]{"Queued","Running","Processing","Completed","Failed","Cancelled"}){<option value="@state">@SecurityValues.StatusLabel(state)</option>}</select></label>
+    </div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
+    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status"><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a></td></tr>}
     @if(Model.Scans.Count==0){<tr><td colspan="6"><div class="security-empty">ยังไม่มีประวัติสแกน เลือกเวอร์ชันด้านบนเพื่อเพิ่มเข้าคิว</div></td></tr>}
-    </tbody></table></div></section>
+    </tbody></table></div>
+    <div class="security-history-pages" data-history-controls hidden><span data-history-count role="status" aria-live="polite"></span><div><button type="button" class="btn btn-outline-primary btn-sm" data-history-prev>ก่อนหน้า</button><button type="button" class="btn btn-outline-primary btn-sm" data-history-next>ถัดไป</button></div></div>
+    </details>
 </div>
+
+@section Scripts { <script src="~/js/security-workspace.js" asp-append-version="true" defer></script> }
