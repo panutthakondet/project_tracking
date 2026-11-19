@@ -32,7 +32,17 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        return View(new SecurityProjectPage{CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured});
+        var page=new SecurityProjectPage{CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
+        Response.Headers.CacheControl="no-store";
+        if(page.CanManage){
+            foreach(var system in systems.Where(x=>!SecurityValues.IsMobile(x.Kind)&&SecurityLoginStore.IsManaged(x.AuthProfile))){
+                try{
+                    var login=await loginStore.ReadAsync(system.Id,system.AuthProfile!,system.TargetUrl,ct);
+                    page.LoginSettings[system.Id]=new SecurityLoginSettings{LoginUrl=login.LoginUrl,Username=login.Username,LoggedInRegex=login.LoggedInRegex,RequestData=login.RequestData};
+                }catch(InvalidOperationException){page.UnreadableLoginSettings.Add(system.Id);}
+            }
+        }
+        return View(page);
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> SaveLogin(long systemId,bool enabled,string? loginUrl,string? username,string? password,string? loggedInRegex,string? requestData,CancellationToken ct)
@@ -47,7 +57,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
                 profile=await loginStore.SaveAsync(system.Id,new SecurityLoginCredentials{
                     LoginUrl=loginUrl?.Trim()??"",Username=username??"",Password=password??"",LoggedInRegex=loggedInRegex??"",
                     RequestData=string.IsNullOrWhiteSpace(requestData)?"username={%username%}&password={%password%}":requestData
-                },system.TargetUrl,ct);
+                },system.TargetUrl,ct,system.AuthProfile);
             }
             system.RequiresLogin=enabled;system.AuthProfile=profile;
             await db.SaveChangesAsync(ct);

@@ -11,6 +11,8 @@ public class SecurityProjectPage
     public List<SecurityScan> Scans { get; set; }=[];
     public bool CanManage { get; set; }
     public bool WorkerConfigured { get; set; }
+    public Dictionary<long,SecurityLoginSettings> LoginSettings { get; set; }=[];
+    public HashSet<long> UnreadableLoginSettings { get; set; }=[];
 }
 public class SecurityScanPage
 {
@@ -36,4 +38,13 @@ public class SecurityScanPage
     public List<SecurityScanFinding>? BaselineFindings { get; set; }
     public bool CanManage { get; set; }
     public bool CanCreateIssue { get; set; }
+}
+
+// Deliberately excludes Password: this is the only login data sent to Razor.
+public sealed class SecurityLoginSettings
+{
+    public string LoginUrl { get; set; }="";
+    public string Username { get; set; }="";
+    public string LoggedInRegex { get; set; }="";
+    public string RequestData { get; set; }="";
 }

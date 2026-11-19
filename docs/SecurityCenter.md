@@ -82,7 +82,7 @@ MobSF เก็บข้อมูลใน volume `mobsf-data`; จำกัด�
 
 ### ตั้งค่า Login จากหน้า SecurityScans (แนะนำ)
 
-เปิดระบบเว็บไซต์ → ตั้งค่า Login → เลือก “Login ก่อนสแกน” แล้วกรอก URL ที่รับฟอร์ม Login, Username, Password และข้อความตรวจสอบหลัง Login สำเร็จ หากชื่อช่องไม่ใช่ username/password ให้เปิด “ตั้งค่าขั้นสูง” และเปลี่ยน requestData โดยคง {%username%}/{%password%} ไว้ ตั้งค่าได้เฉพาะผู้มี SecurityScans.Edit และสิทธิ์ในโครงการนั้น หน้าเว็บไม่ส่งรหัสผ่านเดิมกลับมา การเปลี่ยนข้อมูลต้องกรอกใหม่ให้ครบ หรือเอาเครื่องหมาย Login ก่อนสแกนออกแล้วบันทึกเพื่อปิด
+เปิดระบบเว็บไซต์ → ตั้งค่า Login → เลือก “Login ก่อนสแกน” แล้วกรอก URL ที่รับฟอร์ม Login, Username, Password และข้อความตรวจสอบหลัง Login สำเร็จ หากชื่อช่องไม่ใช่ username/password ให้เปิด “ตั้งค่าขั้นสูง” และเปลี่ยน requestData โดยคง {%username%}/{%password%} ไว้ ตั้งค่าได้เฉพาะผู้มี SecurityScans.Edit และสิทธิ์ในโครงการนั้น หน้าเว็บแสดง URL, Username, login indicator และ requestData เดิมให้ผู้มีสิทธิ์แก้ไข โดยไม่ส่งรหัสผ่านเดิมกลับมา หากเว้นช่อง Password ว่างจะใช้รหัสเดิมจากไฟล์เข้ารหัส การตั้งค่าครั้งแรกหรือเมื่ออ่านไฟล์เดิมไม่ได้ต้องกรอกรหัสใหม่ หรือเอาเครื่องหมาย Login ก่อนสแกนออกแล้วบันทึกเพื่อปิด
 
 บัญชีถูกเข้ารหัสด้วย ASP.NET Data Protection แยก purpose ตาม system ID เก็บไฟล์ .login แบบ immutable ใน SECURITY_STORAGE_PATH นอก wwwroot ฐานข้อมูลเก็บเฉพาะชื่ออ้างอิง ไม่เก็บรหัสผ่าน plaintext ต้องสำรองทั้ง storage และ C:\inetpub\keys\ProjectTracking ที่เป็น Data Protection key ring ห้ามลบไฟล์ .login ของโปรไฟล์เก่าระหว่างมีงานในคิว เพราะแต่ละรอบอ้างอิงข้อมูลชุดเดิม
 

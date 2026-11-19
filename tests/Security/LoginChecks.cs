@@ -23,6 +23,11 @@ public static class LoginChecks
         Check(!bytes.Contains(login.Password)&&!bytes.Contains(login.Username),"login credentials are encrypted at rest");
         var reopened=await new SecurityLoginStore(storage,protection).ReadAsync(1,first,"https://uat.example.com/",default);
         Check(reopened.Password==login.Password&&reopened.LoggedInRegex==login.LoggedInRegex,"encrypted credentials round-trip with the same key ring");
+        var update=new SecurityLoginCredentials{LoginUrl=login.LoginUrl,Username="edited-user",Password="",LoggedInRegex="Sign out"};
+        var retained=await store.SaveAsync(1,update,"https://uat.example.com/",default,first);
+        var retainedLogin=await store.ReadAsync(1,retained,"https://uat.example.com/",default);
+        Check(retainedLogin.Password=="fixture-secret"&&retainedLogin.Username=="edited-user","empty password retains the encrypted password while editing other settings");
+        Check(typeof(ProjectTracking.ViewModels.Security.SecurityLoginSettings).GetProperty("Password")==null,"login display model cannot carry passwords into Razor");
         await Reject(()=>store.ReadAsync(2,first,"https://uat.example.com/",default),"another system cannot decrypt a copied profile reference");
         await Reject(()=>store.ReadAsync(1,first,"https://other.example.com/",default),"credentials cannot be sent to a different origin");
         await Reject(()=>store.ReadAsync(1,"../profile","https://uat.example.com/",default),"profile paths reject traversal");

@@ -1,0 +1,11 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const events={};
+const enabled={checked:true,addEventListener:(event,handler)=>events[event]=handler};
+const fields=[false,false,true].map(optional=>({dataset:{loginOptionalPassword:String(optional)},value:'saved-setting',hasAttribute:()=>true}));
+const form={querySelector:()=>enabled,querySelectorAll:()=>fields};
+const root={dataset:{projectId:'1'},querySelector:()=>null,querySelectorAll:selector=>selector==='[data-login-form]'?[form]:[]};
+vm.runInNewContext(fs.readFileSync('wwwroot/js/security-workspace.js','utf8'),{document:{querySelector:()=>root},sessionStorage:{getItem:()=>null}});
+assert(fields[0].required&&fields[1].required);assert.equal(fields[2].required,false);
+enabled.checked=false;events.change();assert(fields.every(field=>field.disabled&&!field.required));
+enabled.checked=true;events.change();assert(fields.every(field=>!field.disabled&&field.value==='saved-setting'));assert.equal(fields[2].required,false);
+console.log('PASS saved login settings remain editable with optional password and enable/disable validation');

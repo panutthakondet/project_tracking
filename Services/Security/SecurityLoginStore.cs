@@ -25,8 +25,10 @@ public sealed class SecurityLoginStore(SecurityStorage storage, IDataProtectionP
         catch (ArgumentException) { throw new InvalidOperationException("รูปแบบข้อความตรวจสอบ Login ไม่ถูกต้อง"); }
     }
     private IDataProtector Protector(long systemId) => protection.CreateProtector("SecurityLogin.v1", systemId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-    public async Task<string> SaveAsync(long systemId, SecurityLoginCredentials login, string? targetUrl, CancellationToken ct)
+    public async Task<string> SaveAsync(long systemId, SecurityLoginCredentials login, string? targetUrl, CancellationToken ct, string? existingProfile = null)
     {
+        if (string.IsNullOrEmpty(login.Password) && IsManaged(existingProfile))
+            login.Password = (await ReadAsync(systemId, existingProfile!, targetUrl, ct)).Password;
         Validate(login, targetUrl);
         var encrypted = Protector(systemId).Protect(JsonSerializer.Serialize(login));
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes(encrypted));

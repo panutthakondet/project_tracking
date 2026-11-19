@@ -8,9 +8,9 @@
     root.querySelectorAll('[data-login-form]').forEach(form=>{
         const enabled=form.querySelector('[data-login-enabled]');
         if(!enabled)return;
-        const sync=()=>form.querySelectorAll('[data-login-required], [name="requestData"]').forEach(field=>{
+        const sync=()=>form.querySelectorAll('[data-login-required], [data-login-password], [name="requestData"]').forEach(field=>{
             field.disabled=!enabled.checked;
-            field.required=enabled.checked&&field.hasAttribute('data-login-required');
+            field.required=enabled.checked&&field.hasAttribute('data-login-required')&&field.dataset.loginOptionalPassword!=='true';
         });
         enabled.addEventListener('change',sync);sync();
     });
