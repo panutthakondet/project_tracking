@@ -6,13 +6,31 @@
         if(target&&target.tagName==='DETAILS')target.open=true;
     }));
     root.querySelectorAll('[data-login-form]').forEach(form=>{
-        const enabled=form.querySelector('[data-login-enabled]');
-        if(!enabled)return;
-        const sync=()=>form.querySelectorAll('[data-login-required], [data-login-password], [name="requestData"]').forEach(field=>{
-            field.disabled=!enabled.checked;
-            field.required=enabled.checked&&field.hasAttribute('data-login-required')&&field.dataset.loginOptionalPassword!=='true';
+        const enabled=form.querySelector('[data-login-enabled]'),type=form.querySelector('[data-login-type]');
+        if(!enabled||!type)return;
+        const body=form.querySelector('[name="requestData"]');
+        const defaults={Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        let previous=type.value;
+        const sync=()=>{
+            form.querySelectorAll('[data-login-kind]').forEach(group=>{group.hidden=group.dataset.loginKind!==type.value;});
+            form.querySelectorAll('input:not([type="hidden"]):not([data-login-enabled]),select,textarea').forEach(field=>{
+                const group=field.closest('[data-login-kind]');
+                field.disabled=!enabled.checked||!!group?.hidden;
+                field.required=!field.disabled&&field.hasAttribute('data-login-required')&&field.dataset.loginOptionalPassword!=='true';
+            });
+            const preset=form.querySelector('[data-login-member-preset]');if(preset)preset.disabled=!enabled.checked;
+        };
+        enabled.addEventListener('change',sync);
+        type.addEventListener('change',()=>{if(body&&body.value===defaults[previous])body.value=defaults[type.value];previous=type.value;sync();});
+        form.querySelector('[data-login-member-preset]')?.addEventListener('click',()=>{
+            let origin;try{origin=new URL(form.dataset.targetUrl).origin;}catch{return;}
+            type.value='JsonBearer';previous='JsonBearer';
+            form.querySelector('[name="loginUrl"]').value=origin+'/api/member/auth/login';
+            form.querySelector('[name="scanStartUrl"]').value=origin+'/member/';
+            form.querySelector('[name="tokenPath"]').value='token';body.value=defaults.JsonBearer;
+            sync();
         });
-        enabled.addEventListener('change',sync);sync();
+        sync();
     });
     const storageKey='security-system-open:'+root.dataset.projectId;
     const systems=Array.from(root.querySelectorAll('[data-system-id]'));

@@ -3,6 +3,9 @@ public record SecurityJob(long Id,string LeaseToken,string Kind,string Engine,st
 // Class rather than record: incidental ToString() must not print credentials.
 public sealed class SecurityLoginCredentials
 {
+    public string AuthenticationType { get; set; } = "Form";
+    public string TokenPath { get; set; } = "token";
+    public string? ScanStartUrl { get; set; }
     public string LoginUrl { get; set; } = "";
     public string RequestData { get; set; } = "username={%username%}&password={%password%}";
     public string LoggedInRegex { get; set; } = "";

@@ -15,10 +15,24 @@ public sealed class SecurityLoginStore(SecurityStorage storage, IDataProtectionP
         var url = SecurityScanService.ValidateUrl(login.LoginUrl);
         if (target.GetLeftPart(UriPartial.Authority) != url.GetLeftPart(UriPartial.Authority))
             throw new InvalidOperationException("URL Login ต้องใช้โดเมน พอร์ต และ HTTP/HTTPS เดียวกับ URL ระบบ");
+        if (login.AuthenticationType is not ("Form" or "JsonBearer"))
+            throw new InvalidOperationException("รูปแบบ Login ไม่ถูกต้อง");
+        if (!string.IsNullOrWhiteSpace(login.ScanStartUrl) && SecurityScanService.ValidateUrl(login.ScanStartUrl).GetLeftPart(UriPartial.Authority) != target.GetLeftPart(UriPartial.Authority))
+            throw new InvalidOperationException("URL เริ่มตรวจต้องอยู่บนเว็บไซต์เดียวกับระบบ");
+        if (login.AuthenticationType == "JsonBearer")
+        {
+            if (!Regex.IsMatch(login.TokenPath, @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$") || login.TokenPath.Length > 120)
+                throw new InvalidOperationException("ชื่อ Token ใช้ชื่อฟิลด์ JSON เช่น token หรือ data.access_token");
+            try {
+                using var payload = JsonDocument.Parse(login.RequestData);
+                if (payload.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException();
+            } catch (JsonException) { throw new InvalidOperationException("ข้อมูล Login แบบ JSON ต้องเป็น JSON object ที่ถูกต้อง"); }
+        }
         if (string.IsNullOrWhiteSpace(login.Username) || login.Username.Length > 255 || string.IsNullOrEmpty(login.Password) || login.Password.Length > 2000)
             throw new InvalidOperationException("กรอก Username และ Password ของบัญชีทดสอบให้ครบ");
         if (login.RequestData.Length > 4000 || !login.RequestData.Contains("{%username%}") || !login.RequestData.Contains("{%password%}"))
             throw new InvalidOperationException("ข้อมูลฟอร์มต้องมี {%username%} และ {%password%}");
+        if (login.AuthenticationType == "JsonBearer") return;
         if (string.IsNullOrWhiteSpace(login.LoggedInRegex) || login.LoggedInRegex.Length > 500)
             throw new InvalidOperationException("ระบุข้อความตรวจสอบหลัง Login สำเร็จ ไม่เกิน 500 ตัวอักษร");
         try { _ = new Regex(login.LoggedInRegex, RegexOptions.None, TimeSpan.FromSeconds(1)); }

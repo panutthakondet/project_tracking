@@ -33,6 +33,17 @@ public static class LoginChecks
         await Reject(()=>store.ReadAsync(1,"../profile","https://uat.example.com/",default),"profile paths reject traversal");
         await Reject(()=>new SecurityLoginStore(storage,new EphemeralDataProtectionProvider()).ReadAsync(1,first,"https://uat.example.com/",default),"lost keys fail closed without credential disclosure");
 
+        var jsonLogin=new SecurityLoginCredentials{AuthenticationType="JsonBearer",LoginUrl="https://uat.example.com/api/login",ScanStartUrl="https://uat.example.com/member/",TokenPath="data.token",Username="test",Password="fixture-secret",RequestData="""{"membership_no":"{%username%}","mem_password":"{%password%}"}"""};
+        var jsonProfile=await store.SaveAsync(3,jsonLogin,"https://uat.example.com/",default);
+        var jsonReopened=await store.ReadAsync(3,jsonProfile,"https://uat.example.com/",default);
+        Check(jsonReopened.AuthenticationType=="JsonBearer"&&jsonReopened.TokenPath=="data.token"&&jsonReopened.ScanStartUrl==jsonLogin.ScanStartUrl,"JSON login settings round-trip encrypted without a form indicator");
+        jsonLogin.ScanStartUrl="https://other.example.com/";
+        await Reject(()=>store.SaveAsync(3,jsonLogin,"https://uat.example.com/",default),"JSON crawl start cannot send credentials to another origin");
+        jsonLogin.ScanStartUrl=null;jsonLogin.TokenPath="token\r\nHeader";
+        await Reject(()=>store.SaveAsync(3,jsonLogin,"https://uat.example.com/",default),"JSON token path rejects header injection");
+        jsonLogin.TokenPath="token";jsonLogin.RequestData="not json";
+        await Reject(()=>store.SaveAsync(3,jsonLogin,"https://uat.example.com/",default),"invalid JSON body is rejected before queueing");
+
         using var connection=new SqliteConnection("DataSource=:memory:");await connection.OpenAsync();
         await using var db=new TestDb(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options);
         await db.Database.EnsureCreatedAsync();

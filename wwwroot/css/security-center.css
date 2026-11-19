@@ -98,3 +98,5 @@ html body main .security-center :is(.security-chip,.security-status,.security-se
 .security-login-advanced>label{display:grid;gap:8px}
 .security-login-form .security-system-form-actions{gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between}
 @media(max-width:600px){.security-center .security-login-form{grid-template-columns:minmax(0,1fr)}}
+
+.security-login-preset{display:grid;gap:8px;align-content:start}.security-login-preset .btn{justify-self:start}.security-login-form .security-login-advanced textarea{font-family:ui-monospace,monospace;font-size:13px;line-height:1.6}

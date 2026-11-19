@@ -9,7 +9,10 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     async Task<JsonElement> Zap(string component,string type,string method,Dictionary<string,string>? args,CancellationToken ct)
     {
         args??=new();args["apikey"]=setting("ZAP_API_KEY");
-        using var response=await zap.GetAsync($"JSON/{component}/{type}/{method}/?"+string.Join("&",args.Select(p=>Uri.EscapeDataString(p.Key)+"="+Uri.EscapeDataString(p.Value))),ct);
+        var sensitive=type=="action"&&(component is "authentication" or "users" or "sessionManagement");
+        using var response=sensitive
+            ? await zap.PostAsync($"JSON/{component}/{type}/{method}/",new FormUrlEncodedContent(args),ct)
+            : await zap.GetAsync($"JSON/{component}/{type}/{method}/?"+string.Join("&",args.Select(p=>Uri.EscapeDataString(p.Key)+"="+Uri.EscapeDataString(p.Value))),ct);
         ScannerHttp.RequireSuccess(response,"ZAP "+component+"/"+method);var result=await response.Content.ReadFromJsonAsync<JsonElement>(ct);
         if(result.TryGetProperty("code",out _))throw new InvalidOperationException("ZAP API rejected the request");return result;
     }
@@ -27,6 +30,23 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
     {
         reportProgress?.Invoke(new("Preparing"));
         var target=await TargetPolicy.ValidateAsync(job.TargetUrl??"",job.ApprovedHosts==null?setting("SECURITY_ALLOWED_HOSTS"):string.Join(",",job.ApprovedHosts),setting("SECURITY_ALLOW_PRIVATE_TARGETS")=="true",ct);
+        SecurityLoginCredentials? loginProfile=null;
+        if(job.RequiresLogin){
+            if(string.IsNullOrWhiteSpace(job.AuthProfile)||!Regex.IsMatch(job.AuthProfile,@"^[A-Za-z0-9_-]+$"))throw new InvalidOperationException("Invalid login profile");
+            loginProfile=job.Login??JsonSerializer.Deserialize<SecurityLoginCredentials>(await File.ReadAllTextAsync(Path.Combine(setting("SECURITY_AUTH_PROFILES_PATH"),job.AuthProfile+".json"),ct),new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            if(loginProfile==null||loginProfile.AuthenticationType is not ("Form" or "JsonBearer"))throw new InvalidOperationException("Unsupported login type");
+            var origin=target.GetLeftPart(UriPartial.Authority);
+            if(!Uri.TryCreate(loginProfile.LoginUrl,UriKind.Absolute,out var loginUrl)||loginUrl.GetLeftPart(UriPartial.Authority)!=origin||loginUrl.UserInfo!=""||loginUrl.Fragment!="")throw new InvalidOperationException("Login URL must use the approved origin");
+            if(loginProfile.AuthenticationType=="JsonBearer"){
+                if(!JsonLoginVerification.ValidPath(loginProfile.TokenPath))throw new InvalidOperationException("Invalid JSON token field");
+                try{using var payload=JsonDocument.Parse(loginProfile.RequestData);if(payload.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();}
+                catch(JsonException){throw new InvalidOperationException("JSON Login requires a JSON request body");}
+                if(!string.IsNullOrWhiteSpace(loginProfile.ScanStartUrl)){
+                    if(!Uri.TryCreate(loginProfile.ScanStartUrl,UriKind.Absolute,out var start)||start.GetLeftPart(UriPartial.Authority)!=origin)throw new InvalidOperationException("Scan start must use the approved origin");
+                    target=await TargetPolicy.ValidateAsync(start.AbsoluteUri,job.ApprovedHosts==null?setting("SECURITY_ALLOWED_HOSTS"):string.Join(",",job.ApprovedHosts),setting("SECURITY_ALLOW_PRIVATE_TARGETS")=="true",ct);
+                }
+            }
+        }
         if(job.Mode=="Active"&&(job.Environment!="UAT"||setting("SECURITY_ALLOW_ACTIVE")!="true"))throw new InvalidOperationException("Active scans require UAT and explicit worker configuration");
         var name="security-"+job.Id+"-"+job.LeaseToken[..8];string? context=null,spider=null,active=null;
         try{
@@ -35,27 +55,26 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             context=Value(await Zap("context","action","newContext",new(){["contextName"]=name},ct),"contextId");
             var scope=Regex.Escape(target.GetLeftPart(UriPartial.Authority))+Regex.Escape(target.AbsolutePath.TrimEnd('/'))+@"(?:/.*|\?.*|$)";
             await Zap("context","action","includeInContext",new(){["contextName"]=name,["regex"]=scope},ct);
+            if(loginProfile!=null)await Zap("context","action","includeInContext",new(){["contextName"]=name,["regex"]="^"+Regex.Escape(loginProfile.LoginUrl)+"$"},ct);
             await Zap("context","action","excludeFromContext",new(){["contextName"]=name,["regex"]=@"(?i).*\b(logout|signout|delete|remove)\b.*"},ct);
             await Zap("context","action","setContextInScope",new(){["contextName"]=name,["booleanInScope"]="true"},ct);
             await Zap("core","action","setMode",new(){["mode"]="protect"},ct);
             string? user=null;
             if(job.RequiresLogin){
                 reportProgress?.Invoke(new("Authenticating"));
-                if(string.IsNullOrWhiteSpace(job.AuthProfile)||!Regex.IsMatch(job.AuthProfile,@"^[A-Za-z0-9_-]+$"))throw new InvalidOperationException("Invalid login profile");
-                using var profile=job.Login!=null
-                    ? JsonDocument.Parse(JsonSerializer.Serialize(job.Login,new JsonSerializerOptions(JsonSerializerDefaults.Web)))
-                    : JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(setting("SECURITY_AUTH_PROFILES_PATH"),job.AuthProfile+".json"),ct));
-                var p=profile.RootElement;
-                var login=new Uri(Value(p,"loginUrl"));if(login.GetLeftPart(UriPartial.Authority)!=target.GetLeftPart(UriPartial.Authority))throw new InvalidOperationException("Login URL must use the approved origin");
-                var loggedIn=Value(p,"loggedInRegex");if(string.IsNullOrWhiteSpace(loggedIn))throw new InvalidOperationException("Login verification is required");
-                var config="loginUrl="+Uri.EscapeDataString(login.AbsoluteUri)+"&loginRequestData="+Uri.EscapeDataString(Value(p,"requestData"));
-                await Zap("authentication","action","setAuthenticationMethod",new(){["contextId"]=context,["authMethodName"]="formBasedAuthentication",["authMethodConfigParams"]=config},ct);
+                var profile=loginProfile!;
+                var jsonBearer=profile.AuthenticationType=="JsonBearer";
+                var loggedIn=jsonBearer?JsonLoginVerification.Indicator(profile.TokenPath):profile.LoggedInRegex;
+                if(string.IsNullOrWhiteSpace(loggedIn))throw new InvalidOperationException("Login verification is required");
+                var config="loginUrl="+Uri.EscapeDataString(profile.LoginUrl)+"&loginRequestData="+Uri.EscapeDataString(profile.RequestData);
+                await Zap("authentication","action","setAuthenticationMethod",new(){["contextId"]=context,["authMethodName"]=jsonBearer?"jsonBasedAuthentication":"formBasedAuthentication",["authMethodConfigParams"]=config},ct);
+                if(jsonBearer)await Zap("sessionManagement","action","setSessionManagementMethod",new(){["contextId"]=context,["methodName"]="headerBasedSessionManagement",["methodConfigParams"]="headers="+Uri.EscapeDataString("Authorization:Bearer {%json:"+profile.TokenPath+"%}")},ct);
                 await Zap("authentication","action","setLoggedInIndicator",new(){["contextId"]=context,["loggedInIndicatorRegex"]=loggedIn},ct);
                 user=Value(await Zap("users","action","newUser",new(){["contextId"]=context,["name"]="scanner"},ct),"userId");
-                await Zap("users","action","setAuthenticationCredentials",new(){["contextId"]=context,["userId"]=user,["authCredentialsConfigParams"]="username="+Uri.EscapeDataString(Value(p,"username"))+"&password="+Uri.EscapeDataString(Value(p,"password"))},ct);
+                await Zap("users","action","setAuthenticationCredentials",new(){["contextId"]=context,["userId"]=user,["authCredentialsConfigParams"]="username="+Uri.EscapeDataString(profile.Username)+"&password="+Uri.EscapeDataString(profile.Password)},ct);
                 await Zap("users","action","setUserEnabled",new(){["contextId"]=context,["userId"]=user,["enabled"]="true"},ct);
                 var auth=await Zap("users","action","authenticateAsUser",new(){["contextId"]=context,["userId"]=user},ct);
-                if(!ContainsTrue(auth,"authSuccessful"))throw new InvalidOperationException("Authenticated coverage could not be verified");
+                if(!ContainsTrue(auth,"authSuccessful")||(jsonBearer&&!JsonLoginVerification.HasIssuedToken(auth,profile.TokenPath)))throw new InvalidOperationException(jsonBearer?"JSON Login failed: no verified token was issued. Check API Login URL, JSON field names and test credentials.":"Form Login failed: authenticated response could not be verified. Check form URL, field names and login indicator.");
             }
             await Zap("spider","action","setOptionProcessForm",new(){["Boolean"]=job.Mode=="Active"?"true":"false"},ct);
             await Zap("spider","action","setOptionPostForm",new(){["Boolean"]=job.Mode=="Active"?"true":"false"},ct);
@@ -74,7 +93,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             reportProgress?.Invoke(new("FetchingReport"));
             var collected=await ZapAlertCollector.CollectAsync((start,token)=>Zap("alert","view","alerts",new(){["baseurl"]=target.AbsoluteUri,["start"]=start.ToString(),["count"]="500"},token),ct);
             var version=Value(await Zap("core","view","version",null,ct),"version");
-            return new(collected.Json,version,$"ZAP {job.Mode}; {collected.Count} raw alerts collected in full; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
+            return new(collected.Json,version,$"ZAP {job.Mode}; {collected.Count} raw alerts collected in full; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(loginProfile?.AuthenticationType=="JsonBearer"?"JSON login verified; context-scoped Bearer session enabled. SPA/browser-only routes still require a browser-based scan. ":user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
         }finally{
             using var cleanup=new CancellationTokenSource(TimeSpan.FromSeconds(15));
             try{if(spider!=null)await Zap("spider","action","stop",new(){["scanId"]=spider},cleanup.Token);if(active!=null)await Zap("ascan","action","stop",new(){["scanId"]=active},cleanup.Token);if(context!=null)await Zap("context","action","removeContext",new(){["contextName"]=name},cleanup.Token);}catch{Console.Error.WriteLine("Scanner cleanup failed; restart ZAP before the next run.");}

@@ -29,6 +29,19 @@ public static class EngineChecks
   await webAuthenticated.Web(job with{RequiresLogin=true,AuthProfile="web-"+new string('a',32),Login=webLogin},default);
   if(!handler.EmbeddedCredentialsSeen)throw new Exception("Embedded credentials were not passed to ZAP");
   Console.WriteLine("PASS web-managed credentials authenticate through ZAP without a local profile file");
+  var jsonLogin=new SecurityLoginCredentials{AuthenticationType="JsonBearer",LoginUrl="https://93.184.216.34/api/member/auth/login",ScanStartUrl="https://93.184.216.34/member/",Username="fixture",Password="fixture",RequestData="""{"membership_no":"{%username%}","mem_password":"{%password%}"}"""};
+  string Response(string body,string status="200 OK")=>System.Text.Json.JsonSerializer.Serialize(new{authSuccessful="true",responseHeader="HTTP/1.1 "+status+"\r\n",responseBody=body});
+  handler.AuthResponse=Response("""{"token":"fixture.jwt.token"}""");
+  var jsonJob=job with{RequiresLogin=true,AuthProfile="web-"+new string('b',32),Login=jsonLogin};
+  var verified=await webAuthenticated.Web(jsonJob,default);
+  if(!handler.JsonConfigured||!handler.HeaderConfigured||!verified.Coverage.Contains("JSON login verified"))throw new Exception("JSON Bearer session not configured");
+  foreach(var invalid in new[]{Response("{}"),Response("""{"token":""}"""),Response("""{"token":"fixture"}""","401 Unauthorized"),Response("not JSON"),Response("""{"token":"bad token"}""")}){
+   handler.AuthResponse=invalid;var before=handler.Paths.Count(p=>p.Contains("spider/action/scanAsUser"));
+   var rejected=false;try{await webAuthenticated.Web(jsonJob,default);}catch(InvalidOperationException){rejected=true;}
+   if(!rejected||handler.Paths.Count(p=>p.Contains("spider/action/scanAsUser"))!=before)throw new Exception("Unverified JSON login started crawling");
+  }
+  Console.WriteLine("PASS JSON login uses native context Bearer session; missing, empty, invalid and unauthorized tokens stop before crawling");
+  handler.AuthResponse=null;
   var file=Path.GetTempFileName();try{
    await File.WriteAllTextAsync(file,"fixture");var mobile=await engines.Mobile(job with{Engine="MobSF",Kind="Android",Mode="Static"},file,default);
    if(SecurityReportParser.Parse("MobSF",mobile.Json).Count!=0||!handler.Paths.Any(p=>p.Contains("api/v1/scan")))throw new Exception("MobSF workflow incorrect");
@@ -53,6 +66,8 @@ public static class EngineChecks
   public string? FailPath{get;set;}
   public bool AuthSuccess{get;set;}
   public bool EmbeddedCredentialsSeen{get;set;}
+  public string? AuthResponse{get;set;}
+  public bool JsonConfigured,HeaderConfigured;
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
    var path=request.RequestUri!.AbsolutePath;Paths.Add(path);
@@ -61,8 +76,17 @@ public static class EngineChecks
     if(query["mode"]!="protect")return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("{\"code\":\"illegal_parameter\"}")});
    }
    if(path=="/JSON/users/action/setAuthenticationCredentials/"){
-    var credentials=System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query)["authCredentialsConfigParams"];
+    if(request.Method!=HttpMethod.Post || request.RequestUri.Query.Contains("password"))throw new Exception("Credentials must use POST");
+    var credentials=System.Web.HttpUtility.ParseQueryString(request.Content!.ReadAsStringAsync(ct).GetAwaiter().GetResult())["authCredentialsConfigParams"];
     EmbeddedCredentialsSeen=credentials=="username=embedded-test&password=embedded-secret";
+   }
+   if(path=="/JSON/authentication/action/setAuthenticationMethod/"){
+    var data=System.Web.HttpUtility.ParseQueryString(request.Content!.ReadAsStringAsync(ct).GetAwaiter().GetResult());
+    JsonConfigured=data["authMethodName"]=="jsonBasedAuthentication" && System.Web.HttpUtility.ParseQueryString(data["authMethodConfigParams"]!)["loginRequestData"]!.Contains("membership_no");
+   }
+   if(path=="/JSON/sessionManagement/action/setSessionManagementMethod/"){
+    var data=System.Web.HttpUtility.ParseQueryString(request.Content!.ReadAsStringAsync(ct).GetAwaiter().GetResult());
+    HeaderConfigured=data["methodName"]=="headerBasedSessionManagement"&&System.Web.HttpUtility.ParseQueryString(data["methodConfigParams"]!)["headers"]=="Authorization:Bearer {%json:token%}";
    }
    if(path=="/api/v1/upload") {
     var form=request.Content as MultipartFormDataContent??throw new Exception("Expected multipart upload");
@@ -81,7 +105,7 @@ public static class EngineChecks
     "/JSON/pscan/view/recordsToScan/"=>"{\"recordsToScan\":\"0\"}",
     "/JSON/alert/view/alerts/"=>"{\"alerts\":[]}",
     "/JSON/users/action/newUser/"=>"{\"userId\":\"1\"}",
-    "/JSON/users/action/authenticateAsUser/"=>AuthSuccess?"{\"authSuccessful\":\"true\"}":"{\"authSuccessful\":\"false\"}",
+    "/JSON/users/action/authenticateAsUser/"=>AuthResponse??(AuthSuccess?"{\"authSuccessful\":\"true\"}":"{\"authSuccessful\":\"false\"}"),
     "/JSON/core/view/version/"=>"{\"version\":\"fake\"}",
     "/api/v1/upload"=>"{\"hash\":\"abc\",\"scan_type\":\"apk\",\"file_name\":\"application.apk\"}",
     "/api/v1/report_json"=>"{\"code_analysis\":{\"findings\":{}},\"mobsf_version\":\"fake\"}",

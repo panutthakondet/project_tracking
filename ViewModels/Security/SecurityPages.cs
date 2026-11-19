@@ -43,6 +43,9 @@ public class SecurityScanPage
 // Deliberately excludes Password: this is the only login data sent to Razor.
 public sealed class SecurityLoginSettings
 {
+    public string AuthenticationType { get; set; }="Form";
+    public string TokenPath { get; set; }="token";
+    public string? ScanStartUrl { get; set; }
     public string LoginUrl { get; set; }="";
     public string Username { get; set; }="";
     public string LoggedInRegex { get; set; }="";

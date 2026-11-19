@@ -38,14 +38,14 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             foreach(var system in systems.Where(x=>!SecurityValues.IsMobile(x.Kind)&&SecurityLoginStore.IsManaged(x.AuthProfile))){
                 try{
                     var login=await loginStore.ReadAsync(system.Id,system.AuthProfile!,system.TargetUrl,ct);
-                    page.LoginSettings[system.Id]=new SecurityLoginSettings{LoginUrl=login.LoginUrl,Username=login.Username,LoggedInRegex=login.LoggedInRegex,RequestData=login.RequestData};
+                    page.LoginSettings[system.Id]=new SecurityLoginSettings{AuthenticationType=login.AuthenticationType,TokenPath=login.TokenPath,ScanStartUrl=login.ScanStartUrl,LoginUrl=login.LoginUrl,Username=login.Username,LoggedInRegex=login.LoggedInRegex,RequestData=login.RequestData};
                 }catch(InvalidOperationException){page.UnreadableLoginSettings.Add(system.Id);}
             }
         }
         return View(page);
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
-    public async Task<IActionResult> SaveLogin(long systemId,bool enabled,string? loginUrl,string? username,string? password,string? loggedInRegex,string? requestData,CancellationToken ct)
+    public async Task<IActionResult> SaveLogin(long systemId,bool enabled,string? loginUrl,string? username,string? password,string? loggedInRegex,string? requestData,CancellationToken ct,string authenticationType="Form",string tokenPath="token",string? scanStartUrl=null)
     {
         Response.Headers.CacheControl="no-store";
         var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);
@@ -55,6 +55,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         try{
             if(enabled){
                 profile=await loginStore.SaveAsync(system.Id,new SecurityLoginCredentials{
+                    AuthenticationType=authenticationType,TokenPath=tokenPath,ScanStartUrl=scanStartUrl?.Trim(),
                     LoginUrl=loginUrl?.Trim()??"",Username=username??"",Password=password??"",LoggedInRegex=loggedInRegex??"",
                     RequestData=string.IsNullOrWhiteSpace(requestData)?"username={%username%}&password={%password%}":requestData
                 },system.TargetUrl,ct,system.AuthProfile);

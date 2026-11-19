@@ -188,3 +188,21 @@ Worker ดึง alerts เป็นหน้า หน้าละ 500 รา�
 การรวมซ้ำยังใช้ fingerprint เดิม (เครื่องมือ/กฎ/ตำแหน่ง/ชื่อพารามิเตอร์) โดยทำก่อนตรวจเพดานประเด็นไม่ซ้ำ JSON เก็บรายการดิบครบตามที่เครื่องมือส่ง หน้ารายละเอียดแบ่งหน้าละ 50 ประเด็น ยอด severity และการเปรียบเทียบรอบคำนวณจากทั้งรอบ ไม่ใช่เฉพาะหน้าที่กำลังดู การดาวน์โหลดรายงานใช้ข้อมูลทั้งรอบตามเดิม
 
 อัปเดตรุ่นนี้ให้ deploy เว็บ Windows ก่อน แล้ว build/recreate Worker ใหม่หลังไม่มีงานสแกนกำลังทำ ไม่ต้องแก้ตารางฐานข้อมูลหรือ `.env`
+
+### Login แบบ JSON + Bearer Token (Web Member)
+
+อัปเดตเว็บ Windows และ build/recreate Worker รุ่นนี้ทั้งคู่ ไม่ต้องเพิ่มตารางหรือเปลี่ยนกุญแจเดิม รอให้งานที่กำลังทำเสร็จก่อน recreate Worker
+
+หากเว็บไซต์ส่ง JSON ไป API แล้วเก็บ token ให้เลือก “JSON Login + Bearer Token” แทน Form Login ในตั้งค่า Login กด “ใช้ค่าตัวอย่าง Web Member” เพื่อเติมค่าบน origin ของระบบ:
+- URL Login: /api/member/auth/login
+- ข้อมูล JSON: {"membership_no":"{%username%}","mem_password":"{%password%}"}
+- ชื่อ Token: token (รองรับชื่อซ้อน เช่น data.access_token)
+- URL เริ่มตรวจ: /member/
+
+กรอกบัญชีทดสอบใน Username/Password แล้วบันทึก หากมีรหัสเดิมและไม่ได้เปลี่ยน ให้เว้น Password ว่างได้ ค่าตัวอย่างต้องปรับให้ตรง API ของระบบจริง ไม่ได้รองรับทุกเว็บไซต์โดยอัตโนมัติ ข้อมูลถูกเข้ารหัสใน storage เดิม และส่งให้ Worker เฉพาะเมื่อรับงานผ่าน API ที่ตรวจ key/lease
+
+Worker ใช้ ZAP JSON authentication และ Header Based Session Management ภายใน context เดียวกัน ส่ง Authorization: Bearer จาก token ที่ได้จริง ตรวจ HTTP สำเร็จและ token ก่อนเริ่ม crawl หากไม่ได้ token จะหยุด ไม่สแกนแบบไม่ล็อกอินแทน คำขอตั้งค่า authentication/session/credentials ใช้ POST เพื่อไม่ให้รหัสผ่านอยู่ใน query string
+
+ต้องมี ZAP Authentication Helper ที่รองรับ Header Based Session Management API (ZAP 2.16.1 ขึ้นไป) ดู https://www.zaproxy.org/docs/desktop/addons/authentication-helper/session-header/ หาก ZAP ปฏิเสธ method ต้องอัปเดต scanner ก่อนเริ่มรอบใหม่
+
+ขอบเขต: การยืนยันว่าได้รับ token ยังไม่เท่ากับตรวจครบทุกหน้าที่ต้องล็อกอิน Traditional Spider ไม่รัน JavaScript ของ SPA และไม่อ่าน localStorage แบบ browser จึงอาจค้นพบหน้า/API ได้น้อย ต้องตรวจรายงาน coverage และใช้ browser-based scan เพิ่มสำหรับเส้นทางเหล่านั้น รุ่นนี้ไม่ข้าม CAPTCHA, OTP หรือ MFA
