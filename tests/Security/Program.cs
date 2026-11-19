@@ -63,6 +63,7 @@ Check(SecurityReportParser.Parse("MobSF","""{"code_analysis":{"findings":{"rule"
 await Reject(()=>Task.Run(()=>SecurityReportParser.Parse("MobSF","{\"error\":\"failed\"}")),"engine error cannot become a clean report");
 Check(TargetPolicy.Forbidden(IPAddress.Parse("169.254.169.254"),true)&&TargetPolicy.Forbidden(IPAddress.Loopback,true)&&TargetPolicy.Forbidden(IPAddress.Parse("10.0.0.1"),false)&&!TargetPolicy.Forbidden(IPAddress.Parse("10.0.0.1"),true),"network policy blocks metadata and requires private target opt-in");
 await Reject(()=>TargetPolicy.ValidateAsync("https://unapproved.example/","approved.example",false,default),"unapproved target fails before DNS or network scan");
+await Reject(()=>TargetPolicy.ValidateAsync("https://93.184.216.34/","",false,default),"mobile-only configuration with an empty allowlist rejects every web target");
 using var fake=new HttpClient(new FakeEngine()){BaseAddress=new Uri("http://zap/")};var engines=new ScannerEngines(fake,fake,_=>"");
 await Reject(()=>engines.Web(new(1,"lease","WebInformation","ZAP","Passive","1",null,"UAT","https://unapproved.example/",false,null,null,null),default),"scanner refuses unapproved jobs");
 await using var mysql=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseMySql("Server=localhost;Database=unused;User=unused",new MySqlServerVersion(new Version(8,0,36))).Options);

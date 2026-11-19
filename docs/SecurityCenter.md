@@ -47,7 +47,7 @@ openssl rand -hex 32
 - `SECURITY_APP_URL`: HTTPS URL ของ IIS (รวม path base ถ้ามี) ห้าม localhost ของ container
 - `SECURITY_WORKER_KEY`: ค่าเดียวกับ IIS
 - `ZAP_API_KEY`, `MOBSF_API_KEY`: key สุ่มแยกกัน
-- `SECURITY_ALLOWED_HOSTS`: โฮสต์ที่โครงการได้รับอนุญาตให้ทดสอบ คั่นด้วย comma เช่น `uat.example.com,member-uat.example.com` ไม่ใช้ wildcard
+- `SECURITY_ALLOWED_HOSTS`: โฮสต์ที่โครงการได้รับอนุญาตให้ทดสอบ คั่นด้วย comma เช่น `uat.example.com,member-uat.example.com` ไม่ใช้ wildcard เว้นว่างได้หากเริ่มด้วย APK/IPA เท่านั้น เมื่อว่าง Worker จะปฏิเสธการสแกนเว็บทุก Host ก่อนเรียก DNS โดยยังรับงาน MobSF ได้
 - `SECURITY_ALLOW_PRIVATE_TARGETS=true` เฉพาะเมื่อ UAT อยู่เครือข่ายภายใน (ยังบล็อก loopback/link-local/metadata)
 - `SECURITY_ALLOW_ACTIVE=true` เฉพาะเมื่อต้องการ Active Scan บน UAT; ฝั่งแอปและ worker บล็อก Production อยู่แล้ว
 - Pin `ZAP_IMAGE` และ `MOBSF_IMAGE` เป็น tag/digest ที่ทดสอบแล้วก่อนใช้งานจริง ค่า stable/latest ในตัวอย่างใช้สำหรับเริ่มติดตั้ง
