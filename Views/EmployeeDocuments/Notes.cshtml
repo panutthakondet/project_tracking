@@ -218,7 +218,9 @@
         display: block;
         margin-bottom: 8px;
         padding: 14px 15px;
-        border: 1px solid transparent;
+        border: 1px solid var(--notes-border);
+        background: var(--notes-bg);
+        background: color-mix(in srgb, var(--notes-accent) 5%, var(--notes-bg));
         border-radius: 14px;
         color: var(--notes-text);
         text-decoration: none;
@@ -226,8 +228,9 @@
     }
 
     .employee-note-link:hover {
-        border-color: var(--notes-border);
+        border-color: var(--notes-accent);
         background: var(--notes-bg);
+        background: color-mix(in srgb, var(--notes-accent) 9%, var(--notes-bg));
         color: var(--notes-text);
         transform: translateY(-1px);
     }
@@ -235,6 +238,7 @@
     .employee-note-link.is-active {
         border-color: var(--notes-accent);
         background: var(--notes-bg);
+        background: color-mix(in srgb, var(--notes-accent) 13%, var(--notes-bg));
         box-shadow: none;
     }
 
