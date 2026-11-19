@@ -41,6 +41,13 @@
     };
 }
 
+<script>
+    // Restore before rendering the workspace so note navigation keeps the same layout.
+    try {
+        document.body.classList.toggle('employee-notes-expanded', sessionStorage.getItem('employee-notes-expanded') === 'true');
+    } catch { /* Keep the normal layout when browser storage is unavailable. */ }
+</script>
+
 <style>
     .employee-note-success-toast {
         position: fixed;
@@ -611,6 +618,11 @@
         <main class="employee-note-editor">
             @if (Model.SelectedNote == null)
             {
+                <div class="employee-note-toolbar">
+                    <div class="employee-note-toolbar-right">
+                        <button type="button" id="employeeNoteExpand" class="btn btn-outline-secondary employee-note-expand" title="ขยายพื้นที่บันทึกเต็มจอ" aria-label="ขยายพื้นที่บันทึกเต็มจอ" aria-controls="employeeNotesWorkspace" aria-pressed="false"><svg class="employee-note-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" /></svg></button>
+                    </div>
+                </div>
                 <div class="employee-note-empty-editor">
                     <div>
                         <div style="font-size:3rem">✍️</div>
@@ -773,16 +785,18 @@
             document.body.classList.toggle('employee-notes-expanded', expanded);
             if (!expandButton) return;
             expandButton.setAttribute('aria-pressed', String(expanded));
-            const label = expanded ? 'ย่อพื้นที่บันทึกกลับ (Esc)' : 'ขยายพื้นที่บันทึกเต็มจอ';
+            const label = expanded ? 'ย่อพื้นที่บันทึกกลับ' : 'ขยายพื้นที่บันทึกเต็มจอ';
             expandButton.title = label;
             expandButton.setAttribute('aria-label', label);
             expandButton.querySelector('path').setAttribute('d', expanded
                 ? 'M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5'
                 : 'M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5');
         };
-        expandButton?.addEventListener('click', () => setExpanded(!document.body.classList.contains('employee-notes-expanded')));
-        document.addEventListener('keydown', event => {
-            if (event.key === 'Escape' && !document.querySelector('dialog[open]')) setExpanded(false);
+        setExpanded(document.body.classList.contains('employee-notes-expanded'));
+        expandButton?.addEventListener('click', () => {
+            const expanded = !document.body.classList.contains('employee-notes-expanded');
+            setExpanded(expanded);
+            try { sessionStorage.setItem('employee-notes-expanded', String(expanded)); } catch { }
         });
         const successMessage = document.getElementById('employeeNoteSuccess');
         if (successMessage) setTimeout(() => {
