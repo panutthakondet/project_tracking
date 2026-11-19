@@ -212,7 +212,7 @@
     .employee-note-group { min-width: 0; }
     .employee-note-group > summary { display:flex; justify-content:space-between; gap:8px; padding:10px 12px; margin:4px 0 8px; cursor:pointer; font-weight:700; border-inline-start:4px solid var(--notes-accent); border-radius:8px; background:var(--notes-soft); background:color-mix(in srgb, var(--notes-accent) 12%, var(--notes-bg)); color:var(--notes-text); }
     .employee-note-group > summary span { display:grid; place-items:center; min-width:24px; padding:1px 6px; border-radius:12px; background:var(--notes-bg); color:var(--notes-text); font-size:.8rem; }
-    .employee-note-group-field { flex-shrink:0; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:8px; width:100%; max-width:480px; margin:0 0 10px; padding:0; font-size:.8rem; }
+    .employee-note-group-field { flex:1 1 260px; min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:8px; width:100%; max-width:400px; margin:0; padding:0; font-size:.8rem; }
     .employee-note-group-field .form-control { min-height:32px; height:32px; padding:4px 10px; border-radius:8px; font-size:.8rem; }
     @@media(max-width: 768px) { .employee-note-group { flex:0 0 260px; overflow-y:auto; } }
     .employee-notes-list {
@@ -637,6 +637,12 @@
                     <div class="employee-note-toolbar-left" aria-label="เลือก Emoji">
                         <button type="button" id="employeeEmojiToggle" class="employee-emoji-toggle" aria-expanded="false" aria-controls="employeeEmojiQuick"><span class="employee-emoji-toggle-arrow" aria-hidden="true">▸</span> 😀 Emoji <span class="employee-emoji-collapse-hint" aria-hidden="true"></span></button>
                         <button type="button" id="employeeNoteHelpOpen" class="employee-note-help-button" title="คู่มือการใช้งาน" aria-label="คู่มือการใช้งาน" aria-haspopup="dialog" aria-controls="employeeNoteHelpDialog">คู่มือการใช้งาน</button>
+                        <label class="employee-note-group-field" for="employeeNoteGroup">กลุ่มบันทึก
+                            <input id="employeeNoteGroup" class="form-control" name="groupName" form="employeeNoteSaveForm" list="employeeNoteGroups" value="@Model.SelectedNote.GroupName" maxlength="100" placeholder="เลือกกลุ่มเดิม หรือพิมพ์ชื่อกลุ่มใหม่" disabled="@editorDisabled" />
+                            <datalist id="employeeNoteGroups">
+                                @foreach(var groupName in Model.Notes.Where(x => !string.IsNullOrWhiteSpace(x.GroupName)).Select(x => x.GroupName).Distinct().OrderBy(x => x)) { <option value="@groupName"></option> }
+                            </datalist>
+                        </label>
                         <div id="employeeEmojiQuick" class="employee-emoji-quick" hidden data-user-id="@Context.Session.GetInt32("UserId")">
                             @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
                             {
@@ -681,12 +687,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
                     <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
-                    <label class="employee-note-group-field" for="employeeNoteGroup">กลุ่มบันทึก
-                        <input id="employeeNoteGroup" class="form-control" name="groupName" list="employeeNoteGroups" value="@Model.SelectedNote.GroupName" maxlength="100" placeholder="เลือกกลุ่มเดิม หรือพิมพ์ชื่อกลุ่มใหม่" disabled="@editorDisabled" />
-                        <datalist id="employeeNoteGroups">
-                            @foreach(var groupName in Model.Notes.Where(x => !string.IsNullOrWhiteSpace(x.GroupName)).Select(x => x.GroupName).Distinct().OrderBy(x => x)) { <option value="@groupName"></option> }
-                        </datalist>
-                    </label>
+
                     <input id="employeeNoteTitle"
                            name="title"
                            value="@Model.SelectedNote.Title"
