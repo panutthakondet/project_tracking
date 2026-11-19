@@ -37,7 +37,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             await Zap("context","action","includeInContext",new(){["contextName"]=name,["regex"]=scope},ct);
             await Zap("context","action","excludeFromContext",new(){["contextName"]=name,["regex"]=@"(?i).*\b(logout|signout|delete|remove)\b.*"},ct);
             await Zap("context","action","setContextInScope",new(){["contextName"]=name,["booleanInScope"]="true"},ct);
-            await Zap("core","action","setMode",new(){["mode"]="protected"},ct);
+            await Zap("core","action","setMode",new(){["mode"]="protect"},ct);
             string? user=null;
             if(job.RequiresLogin){
                 reportProgress?.Invoke(new("Authenticating"));

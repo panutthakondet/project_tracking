@@ -44,7 +44,11 @@ public static class EngineChecks
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
    var path=request.RequestUri!.AbsolutePath;Paths.Add(path);
-   if(path=="/api/v1/upload"){
+   if(path=="/JSON/core/action/setMode/"){
+    var query=System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query);
+    if(query["mode"]!="protect")return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest){Content=new StringContent("{\"code\":\"illegal_parameter\"}")});
+   }
+   if(path=="/api/v1/upload") {
     var form=request.Content as MultipartFormDataContent??throw new Exception("Expected multipart upload");
     var part=form.Single(p=>p.Headers.ContentDisposition?.Name?.Trim('"')=="file");
     var name=part.Headers.ContentDisposition!.FileName?.Trim('"');
