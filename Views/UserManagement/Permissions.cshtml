@@ -267,6 +267,10 @@
                             <span class="permission-group-key">@groupKey</span>
                         </label>
 
+                        @if (groupKey == "SecurityScans")
+                        {
+                            <p class="small px-3 pt-3 mb-0">เลือก “เข้าใช้งานและดูรายงาน” ก่อนเพิ่มสิทธิ์อื่น หากต้องตรวจโครงการที่ไม่ได้อยู่ในทีม ให้เลือก “เข้าถึงทุกโครงการ” เพิ่มด้วย</p>
+                        }
                         <div class="permission-list">
                             @foreach (var item in group.Items)
                             {

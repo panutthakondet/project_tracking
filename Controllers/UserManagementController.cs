@@ -804,6 +804,7 @@ namespace ProjectTracking.Controllers
             {
                 "Home" => 10,
                 "Projects" => 20,
+                "SecurityScans" => 22,
                 "ProjectStatus" => 25,
                 "RequirementBoard" => 15,
                 "ProjectDocuments" => 30,
@@ -888,6 +889,11 @@ namespace ProjectTracking.Controllers
         {
             if (string.IsNullOrWhiteSpace(key)) return key;
 
+            if (key == "SecurityScans.Index") return "ตรวจความปลอดภัยโครงการ - เข้าใช้งานและดูรายงาน";
+            if (key == "SecurityScans.Edit") return "ตรวจความปลอดภัยโครงการ - จัดการระบบ เวอร์ชัน สั่งสแกน และติดตามผล";
+            if (key == "SecurityScans.CreateIssues") return "ตรวจความปลอดภัยโครงการ - สร้างและเชื่อม Issues (ต้องมีสิทธิ์สร้างปัญหาโครงการด้วย)";
+            if (key == "SecurityScans.ViewAllProjects") return "ตรวจความปลอดภัยโครงการ - เข้าถึงทุกโครงการ รวมโครงการที่ไม่ได้อยู่ในทีม";
+
             var parts = key.Split('.');
             if (parts.Length < 2) return key;
 
@@ -900,6 +906,7 @@ namespace ProjectTracking.Controllers
                 "Employees" => "พนักงาน",
                 "EmployeeDocuments" => "เอกสารพนักงาน",
                 "Projects" => "โครงการ",
+                "SecurityScans" => "ตรวจความปลอดภัยโครงการ",
                 "ProjectStatus" => "สถานะโครงการ",
                 "ProjectDocuments" => "เอกสารโครงการ",
                 "ProjectPhases" => "งวดงาน",

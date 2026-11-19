@@ -27,8 +27,8 @@ SECURITY_AUTO_CREATE_SCHEMA=false
 
 ให้ App Pool ของไซต์มีสิทธิ์ Modify เฉพาะโฟลเดอร์เก็บไฟล์นี้ เช่น `IIS AppPool\DefaultAppPool` ตาม App Pool ที่ไซต์ใช้จริง อย่าเพิ่ม Virtual Directory ชี้ไปยัง storage และอย่าเก็บใต้ wwwroot หรือโฟลเดอร์ uploads ที่เปิดผ่านเว็บ สำรองทั้งฐานข้อมูลและโฟลเดอร์ storage ควบคู่กัน
 
-ผู้ใช้ต้อง Login และมี `Projects.Index` พร้อมเป็น BA/PM/สมาชิกทีมของโครงการ หรือ ADMIN
-เพิ่มระบบ/เวอร์ชัน/สแกน/ติดตามต้องมี `Projects.Edit`; สร้างและเชื่อม Issues ต้องมี `ProjectIssues.Create` ด้วย
+ผู้ใช้ต้อง Login และมี `SecurityScans.Index` พร้อมเป็น BA/PM/สมาชิกทีมของโครงการ หรือได้รับ `SecurityScans.ViewAllProjects`; ADMIN ผ่านทั้งหมด
+เพิ่มระบบ/เวอร์ชัน/สแกน/ติดตามต้องมี `SecurityScans.Edit`; สร้างและเชื่อม Issues ต้องมี `SecurityScans.CreateIssues` และ `ProjectIssues.Create` ด้วย
 
 ## 2. ติดตั้งเครื่องสแกนด้วย Docker
 
@@ -126,3 +126,14 @@ python3 tests/Security/mobsf-healthcheck.test.py
 หน้า Scan อัปเดตสถานะอัตโนมัติทุก 3 วินาที หยุด polling เมื่อซ่อนหน้า และแสดงเวลาที่ใช้กับการติดต่อล่าสุดจาก Worker การดาวน์โหลด/อัปโหลดแสดงเปอร์เซ็นต์และจำนวนไบต์จริง ส่วน ZAP แสดงเปอร์เซ็นต์สำรวจ/Active ที่เครื่องมือรายงาน MobSF ระหว่างวิเคราะห์ใช้หลอดเคลื่อนไหวโดยไม่สร้างเปอร์เซ็นต์รวมขึ้นเอง เมื่อบันทึกรายงานสำเร็จเท่านั้นจะแสดงครบ 100% และโหลดหน้ารายงานหนึ่งครั้ง
 
 Progress ส่งผ่าน heartbeat ที่ตรวจ worker key และ lease เดิม Endpoint สำหรับหน้าเว็บตรวจสิทธิ์โครงการ และไม่ส่ง lease token หรือกุญแจของเครื่องสแกนให้เบราว์เซอร์
+
+
+### สิทธิ์ผู้ใช้ SecurityScans
+
+กำหนดใน UserManagement/Permissions หมวด “ตรวจความปลอดภัยโครงการ”:
+- `SecurityScans.Index`: เข้าใช้งาน ดูความคืบหน้า และดาวน์โหลดรายงาน
+- `SecurityScans.Edit`: จัดการระบบ/เวอร์ชัน สั่งสแกน ยกเลิก และติดตามผล ต้องเปิด Index ด้วย
+- `SecurityScans.CreateIssues`: สร้าง/เชื่อม Issues ต้องเปิด Index และ `ProjectIssues.Create` ด้วย
+- `SecurityScans.ViewAllProjects`: อนุญาตข้ามขอบเขตทีมโครงการ ต้องเปิด Index ด้วย ไม่เพิ่มสิทธิ์แก้ไขหรือสั่งสแกนเอง
+
+หากไม่เปิด ViewAllProjects จะเข้าถึงได้เฉพาะโครงการที่เป็น BA, PM หรือสมาชิกทีมตามเดิม ADMIN ผ่านสิทธิ์ทั้งหมด การเพิ่มสิทธิ์ใหม่ไม่คัดลอกสิทธิ์ Projects.Edit อัตโนมัติ หลังบันทึกให้บัญชีเป้าหมายออกจากระบบและเข้าใหม่เพื่อโหลดสิทธิ์ใน session ไม่ต้องเพิ่มตารางฐานข้อมูล

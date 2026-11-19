@@ -8,7 +8,7 @@ using ProjectTracking.ViewModels.Security;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 namespace ProjectTracking.Controllers;
-[RequireMenu("Projects.Index")]
+[RequireMenu("SecurityScans.Index")]
 public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env):BaseController
 {
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
@@ -18,7 +18,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         var project=await db.Projects.Include(p=>p.Coop).Include(p=>p.TeamMembers).AsNoTracking().SingleOrDefaultAsync(p=>p.ProjectId==id,ct);
         if(project==null)return null;
-        if(string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase))return project;
+        if(string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||Can("SecurityScans.ViewAllProjects"))return project;
         var employee=await EmployeeId(ct);
         return employee.HasValue&&(project.BaEmpId==employee||project.PmEmpId==employee||project.TeamMembers.Any(m=>m.EmpId==employee))?project:null;
     }
@@ -32,9 +32,9 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        return View(new SecurityProjectPage{Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("Projects.Edit"),WorkerConfigured=scans.WorkerConfigured});
+        return View(new SecurityProjectPage{Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("Projects.Edit")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct)
     {
         if(await AllowedProject(projectId,ct)==null)return NotFound();
@@ -47,7 +47,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
         return RedirectToAction(nameof(Index),new{projectId});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("Projects.Edit"),RequestSizeLimit(268435456),RequestFormLimits(MultipartBodyLengthLimit=268435456)]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit"),RequestSizeLimit(268435456),RequestFormLimits(MultipartBodyLengthLimit=268435456)]
     public async Task<IActionResult> AddVersion(long systemId,string versionName,string? buildNumber,string? gitCommit,string environment,string? changeNotes,IFormFile? application,CancellationToken ct)
     {
         var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
@@ -68,7 +68,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         finally{if(!committed&&key!=null)storage.Delete(key);}
         return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("Projects.Edit")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> Queue(long versionId,string mode,string requestKey,CancellationToken ct)
     {
         var version=await db.SecurityVersionRows.FindAsync([versionId],ct);if(version==null)return NotFound();var system=await db.SecuritySystemRows.FindAsync([version.SystemId],ct);if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
@@ -79,7 +79,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var scope=await Scope(id,ct);if(scope==null)return NotFound();var (scan,version,system,project)=scope.Value;
         var observations=await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==id).ToListAsync(ct);var fids=observations.Select(x=>x.FindingId).ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
         var baselines=await db.SecurityScanRows.AsNoTracking().Where(x=>versions.Contains(x.VersionId)&&x.Id!=id&&x.Status=="Completed"&&x.Engine==scan.Engine&&x.Mode==scan.Mode&&x.TargetUrl==scan.TargetUrl&&x.RequiresLogin==scan.RequiresLogin&&x.AuthProfile==scan.AuthProfile).OrderByDescending(x=>x.CreatedAt).Take(50).ToListAsync(ct);
-        return View(new SecurityScanPage{Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).ToListAsync(ct):null,CanManage=Can("Projects.Edit"),CanCreateIssue=Can("ProjectIssues.Create")});
+        return View(new SecurityScanPage{Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
     }
     [HttpGet,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Progress(long id,CancellationToken ct)
@@ -88,12 +88,12 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct);
         return Json(ScanProgressPage.From(scope.Value.Scan,progress));
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("Projects.Edit")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> Cancel(long id,CancellationToken ct)
     {
         if(await Scope(id,ct)==null)return NotFound();await db.SecurityScanRows.Where(x=>x.Id==id&&(x.Status=="Queued"||x.Status=="Running")).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Cancelled").SetProperty(x=>x.FinishedAt,DateTime.UtcNow),ct);return RedirectToAction(nameof(Scan),new{id});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("ProjectIssues.Create")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.CreateIssues"),RequireMenu("ProjectIssues.Create")]
     public async Task<IActionResult> CreateIssues(long scanId,long[] observationIds,int employeeId,DateTime startDate,DateTime endDate,CancellationToken ct)
     {
         if(await Scope(scanId,ct)==null)return NotFound();
@@ -101,7 +101,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         try{if(startDate==default||endDate==default)throw new InvalidOperationException("กรุณาระบุวันเริ่มและกำหนดส่ง");var creator=await EmployeeId(ct);foreach(var id in ids)await scans.CreateIssueAsync(id,employeeId,startDate,endDate,UserId,creator,ct);TempData["Success"]="สร้างหรือเปิดการเชื่อม Issue แล้ว";}catch(InvalidOperationException e){TempData["Error"]=e.Message;}
         return RedirectToAction(nameof(Scan),new{id=scanId});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("Projects.Edit")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> Review(long observationId,string status,string note,int? assignedEmpId,DateTime? dueDate,CancellationToken ct)
     {
         var observation=await db.SecurityScanFindingRows.FindAsync([observationId],ct);if(observation==null||await Scope(observation.ScanId,ct)==null)return NotFound();
@@ -110,7 +110,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var finding=await db.SecurityFindingRows.SingleAsync(x=>x.Id==observation.FindingId,ct);finding.ReviewStatus=status;finding.AssignedEmpId=assignedEmpId;finding.DueDate=dueDate;
         db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status=status,Note=note,CreatedBy=UserId});await db.SaveChangesAsync(ct);return RedirectToAction(nameof(Scan),new{id=observation.ScanId});
     }
-    [HttpPost,ValidateAntiForgeryToken,RequireMenu("ProjectIssues.Create")]
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.CreateIssues"),RequireMenu("ProjectIssues.Create")]
     public async Task<IActionResult> LinkIssue(long observationId,int issueId,CancellationToken ct)
     {
         var observation=await db.SecurityScanFindingRows.FindAsync([observationId],ct);if(observation==null)return NotFound();var scope=await Scope(observation.ScanId,ct);if(scope==null)return NotFound();

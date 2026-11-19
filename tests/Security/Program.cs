@@ -74,6 +74,7 @@ Check(progressDdl.Contains("PRIMARY KEY (`ScanId`)")&&!progressDdl.Contains("AUT
 await File.WriteAllTextAsync("deploy/security/progress-schema.sql","-- Select the existing ProjectTracking database before running. Creates one new table only.\n"+progressDdl+"\n");
 
 await ProgressChecks.Run(db,service,version.Id);
+PermissionChecks.Run();
 await EngineChecks.Run();
 await ReadinessChecks.Run();
 await RazorChecks.Run();

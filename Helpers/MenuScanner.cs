@@ -29,6 +29,8 @@ namespace ProjectTracking.Helpers
                             .Where(m => !m.IsSpecialName)
                             .SelectMany(m => m.GetCustomAttributes<RequireMenuAttribute>(inherit: true))))
                 .Select(attr => attr.Key?.Trim())
+                // Explicit optional scope grant; discovered action permissions remain automatic.
+                .Concat(new[] { "SecurityScans.ViewAllProjects" })
                 .Where(key => !string.IsNullOrWhiteSpace(key))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(key => key)
