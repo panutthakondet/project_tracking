@@ -79,6 +79,7 @@ await HostApprovalChecks.Run(db,service);
 await ProgressChecks.Run(db,service,version.Id);
 PermissionChecks.Run();
 await ArtifactChecks.Run(db,service,storage);
+await LargeReportChecks.Run();
 await EngineChecks.Run();
 await ReadinessChecks.Run();
 await RazorChecks.Run();

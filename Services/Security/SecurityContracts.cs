@@ -25,3 +25,9 @@ public static class SecurityValues
     public static string StatusLabel(string status)=>status switch{"Queued"=>"รอสแกน","Running"=>"กำลังสแกน","Processing"=>"กำลังเก็บรายงาน","Completed"=>"เสร็จสิ้น","Failed"=>"ไม่สำเร็จ","Cancelled"=>"ยกเลิก","Open"=>"ยังไม่แก้ไข","InProgress"=>"กำลังแก้ไข","FixedPendingVerification"=>"แก้ไขแล้ว รอตรวจยืนยัน","VerifiedFixed"=>"ตรวจยืนยันแล้ว","FalsePositive"=>"ผลตรวจคลาดเคลื่อน","AcceptedRisk"=>"ยอมรับความเสี่ยง",_=>status};
     public static string Cut(string? value,int length)=>string.IsNullOrEmpty(value)?"":value.Length<=length?value:value[..length];
 }
+public static class SecurityReportLimits
+{
+    public const int MaxRawFindings=100000;
+    public const int MaxUniqueFindings=50000;
+    public const int MaxReportBytes=50*1024*1024;
+}

@@ -1,0 +1,8 @@
+@model ProjectTracking.ViewModels.Security.SecurityScanPage
+@if(Model.PageCount>1){
+<nav class="security-card security-inline" aria-label="หน้ารายการผลตรวจ">
+    <span>หน้า @Model.PageNumber / @Model.PageCount · ทั้งหมด @Model.TotalObservations.ToString("N0") ประเด็น · หน้าละ @Model.PageSize รายการ</span>
+    @if(Model.PageNumber>1){<a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id" asp-route-page="@(Model.PageNumber-1)" asp-route-baselineId="@Model.BaselineId" asp-fragment="security-findings">ก่อนหน้า</a>}
+    @if(Model.PageNumber<Model.PageCount){<a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id" asp-route-page="@(Model.PageNumber+1)" asp-route-baselineId="@Model.BaselineId" asp-fragment="security-findings">ถัดไป</a>}
+</nav>
+}

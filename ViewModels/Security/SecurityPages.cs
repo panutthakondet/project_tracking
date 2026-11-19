@@ -14,6 +14,13 @@ public class SecurityProjectPage
 }
 public class SecurityScanPage
 {
+    public int TotalObservations { get; set; }
+    public int PageNumber { get; set; }=1;
+    public int PageSize { get; set; }=50;
+    public int PageCount => Math.Max(1,(int)Math.Ceiling(TotalObservations/(double)PageSize));
+    public long? BaselineId { get; set; }
+    public Dictionary<string,int> SeverityCounts { get; set; }=[];
+    public List<long> AllFindingIds { get; set; }=[];
     public SecurityScanProgress? Progress { get; set; }
     public Project Project { get; set; }=null!;
     public SecuritySystem System { get; set; }=null!;

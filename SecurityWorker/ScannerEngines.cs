@@ -70,10 +70,9 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             reportProgress?.Invoke(new("PassiveChecks"));
             while(Value(await Zap("pscan","view","recordsToScan",null,ct),"recordsToScan")!="0")await Task.Delay(1000,ct);
             reportProgress?.Invoke(new("FetchingReport"));
-            var alerts=new List<JsonElement>();
-            for(var start=0;;start+=500){var page=await Zap("alert","view","alerts",new(){["baseurl"]=target.AbsoluteUri,["start"]=start.ToString(),["count"]="500"},ct);var rows=page.GetProperty("alerts").EnumerateArray().ToArray();alerts.AddRange(rows);if(alerts.Count>10000)throw new InvalidOperationException("Report exceeds supported finding count");if(rows.Length<500)break;}
+            var collected=await ZapAlertCollector.CollectAsync((start,token)=>Zap("alert","view","alerts",new(){["baseurl"]=target.AbsoluteUri,["start"]=start.ToString(),["count"]="500"},token),ct);
             var version=Value(await Zap("core","view","version",null,ct),"version");
-            return new(JsonSerializer.Serialize(new{alerts}),version,$"ZAP {job.Mode}; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
+            return new(collected.Json,version,$"ZAP {job.Mode}; {collected.Count} raw alerts collected in full; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
         }finally{
             using var cleanup=new CancellationTokenSource(TimeSpan.FromSeconds(15));
             try{if(spider!=null)await Zap("spider","action","stop",new(){["scanId"]=spider},cleanup.Token);if(active!=null)await Zap("ascan","action","stop",new(){["scanId"]=active},cleanup.Token);if(context!=null)await Zap("context","action","removeContext",new(){["contextName"]=name},cleanup.Token);}catch{Console.Error.WriteLine("Scanner cleanup failed; restart ZAP before the next run.");}

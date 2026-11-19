@@ -15,8 +15,16 @@ public static class SecurityReportParser
     }
     public static List<ScanObservation> Parse(string engine,string json)
     {
+        if(Encoding.UTF8.GetByteCount(json)>SecurityReportLimits.MaxReportBytes)throw new InvalidOperationException("รายงานมีขนาดเกิน 50 MB กรุณาลดขอบเขตการสแกน");
         using var doc=JsonDocument.Parse(json,new JsonDocumentOptions{MaxDepth=64});var root=doc.RootElement;var result=new List<ScanObservation>();
-        void Add(ScanObservation observation){if(result.Count>=10000)throw new InvalidOperationException("รายงานมีประเด็นมากเกิน 10,000 รายการ");result.Add(observation);}
+        var fingerprints=new HashSet<string>(StringComparer.Ordinal);var rawCount=0;
+        void Add(ScanObservation observation){
+            if(++rawCount>SecurityReportLimits.MaxRawFindings)throw new InvalidOperationException("รายงานมีรายการดิบเกิน 100,000 รายการ กรุณาลดขอบเขตการสแกน");
+            var normalized=observation with{RuleId=SecurityValues.Cut(observation.RuleId,200),Title=SecurityValues.Cut(observation.Title,500),Location=SecurityValues.Cut(observation.Location,4000),Cwe=SecurityValues.Cut(observation.Cwe,100),Description=SecurityValues.Cut(observation.Description,50000),Evidence=SecurityValues.Cut(observation.Evidence,50000),Remediation=SecurityValues.Cut(observation.Remediation,50000),References=SecurityValues.Cut(observation.References,20000)};
+            if(!fingerprints.Add(Fingerprint(engine,normalized)))return;
+            if(result.Count>=SecurityReportLimits.MaxUniqueFindings)throw new InvalidOperationException("รายงานมีประเด็นไม่ซ้ำเกิน 50,000 รายการ กรุณาลดขอบเขตการสแกน");
+            result.Add(normalized);
+        }
         if(engine=="ZAP"){
             if(root.ValueKind!=JsonValueKind.Object||!root.TryGetProperty("alerts",out var alerts)||alerts.ValueKind!=JsonValueKind.Array)throw new InvalidOperationException("รูปแบบรายงาน ZAP ไม่ถูกต้อง");
             foreach(var alert in alerts.EnumerateArray()){
@@ -50,6 +58,6 @@ public static class SecurityReportParser
             }
             if(!recognized)throw new InvalidOperationException("รายงาน MobSF ไม่มีส่วนผลวิเคราะห์ที่รองรับ ไม่สามารถสรุปว่าไม่พบช่องโหว่ได้");
         }else throw new InvalidOperationException("ไม่รองรับเครื่องมือสแกนนี้");
-        return result.Select(o=>o with{RuleId=SecurityValues.Cut(o.RuleId,200),Title=SecurityValues.Cut(o.Title,500),Location=SecurityValues.Cut(o.Location,4000),Cwe=SecurityValues.Cut(o.Cwe,100),Description=SecurityValues.Cut(o.Description,50000),Evidence=SecurityValues.Cut(o.Evidence,50000),Remediation=SecurityValues.Cut(o.Remediation,50000),References=SecurityValues.Cut(o.References,20000)}).GroupBy(o=>Fingerprint(engine,o)).Select(g=>g.First()).ToList();
+        return result;
     }
 }
