@@ -25,6 +25,10 @@ if (File.Exists(envPath))
     Env.Load(envPath);
 }
 
+ProjectTracking.Services.Security.SecurityServerSettings.Load(builder.Configuration,
+    Environment.GetEnvironmentVariable("PROJECTTRACKING_SERVER_CONFIG_FILE")
+    ?? (OperatingSystem.IsWindows() ? ProjectTracking.Services.Security.SecurityServerSettings.DefaultPath : null));
+
 // ==================================================
 // ENV HELPERS
 // ==================================================

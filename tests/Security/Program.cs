@@ -19,6 +19,17 @@ Check(markdown.Contains("````text\n```\n<script>")&&!markdown.Contains("LeaseTok
 const string report="""{"alerts":[{"pluginId":"100","alert":"Missing header","risk":"Medium","url":"https://uat.example.com/account","description":"<p>Missing protection</p>","solution":"Set header","evidence":"sample"}]}""";
 var root=Path.Combine(Path.GetTempPath(),"security-tests-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
 try{
+var persistentSettings=Path.Combine(root,"server-settings.json");
+await File.WriteAllTextAsync(persistentSettings,System.Text.Json.JsonSerializer.Serialize(new Dictionary<string,string>{{"SECURITY_WORKER_KEY",new string('a',64)},{"SECURITY_STORAGE_PATH",Path.Combine(root,"private")},{"SECURITY_AUTO_CREATE_SCHEMA","false"},{"ConnectionStrings:DefaultConnection","must-not-import"}}));
+var persistentConfig=new ConfigurationManager();
+SecurityServerSettings.Load(persistentConfig,persistentSettings);
+Check(persistentConfig["SECURITY_STORAGE_PATH"]==Path.Combine(root,"private")&&persistentConfig["ConnectionStrings:DefaultConnection"]==null,"persistent server file imports scanner settings only");
+var republishedConfig=new ConfigurationManager();
+SecurityServerSettings.Load(republishedConfig,persistentSettings);
+Check(republishedConfig["SECURITY_WORKER_KEY"]==persistentConfig["SECURITY_WORKER_KEY"]&&File.Exists(persistentSettings),"fresh published configuration retains the same external worker key");
+SecurityServerSettings.Load(new ConfigurationManager(),Path.Combine(root,"absent.json"));
+await File.WriteAllTextAsync(persistentSettings,"{invalid-json");
+await Reject(()=>Task.Run(()=>SecurityServerSettings.Load(new ConfigurationManager(),persistentSettings)),"malformed persistent settings fail closed");
 var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"SECURITY_WORKER_KEY",new string('x',48)},{"SECURITY_STORAGE_PATH",Path.Combine(root,"private")}}).Build();
 var storage=new SecurityStorage(config,new TestEnvironment(root));
 using(var services=new Microsoft.Extensions.DependencyInjection.ServiceCollection().AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(config).BuildServiceProvider()){

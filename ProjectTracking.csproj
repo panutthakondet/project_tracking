@@ -13,6 +13,8 @@
     <Content Remove="SecurityWorker/**" />
     <Content Remove="deploy/security/**" />
     <Content Remove="App_Data/Security/**" />
+    <Content Remove="**/server-settings.json" />
+    <None Remove="**/server-settings.json" />
     <None Remove="App_Data/Security/**" />
     <None Remove="deploy/security/**" />
     <None Remove="SecurityWorker/**" />

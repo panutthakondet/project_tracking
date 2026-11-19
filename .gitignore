@@ -29,3 +29,6 @@ C:/inetpub/
 
 # project security scanner storage
 App_Data/Security/
+
+# Server-only scanner credentials (never publish or commit)
+server-settings.json

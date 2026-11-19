@@ -25,6 +25,20 @@ SECURITY_STORAGE_PATH=C:\inetpub\security-data\ProjectTracking
 SECURITY_AUTO_CREATE_SCHEMA=false
 ```
 
+### เก็บค่าบน Windows ให้รอดจากการ Deploy
+
+แอปรุ่นใหม่อ่าน `C:\inetpub\security-data\ProjectTracking\server-settings.json` โดยอัตโนมัติ ไฟล์นี้อยู่นอกโฟลเดอร์ Publish และเก็บเฉพาะ `SECURITY_WORKER_KEY`, `SECURITY_STORAGE_PATH`, `SECURITY_AUTO_CREATE_SCHEMA` ค่า Environment Variables เดิมของ IIS ยังมีลำดับความสำคัญสูงกว่า จึงใช้งานกับการติดตั้งเดิมได้
+
+ย้ายครั้งเดียว: คัดลอก `deploy/windows/Save-SecurityServerSettings.ps1` ไป Windows แล้วรัน PowerShell แบบ Administrator ก่อน Deploy ครั้งถัดไป:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Save-SecurityServerSettings.ps1
+```
+
+สคริปต์อ่านค่าจาก web.config เดิม หากไม่มี key จะใช้ไฟล์ `C:\inetpub\security-data\ProjectTracking\iis-worker-key.txt` เดิม ไม่สุ่มคีย์ใหม่ ไม่พิมพ์คีย์ และไม่เขียนทับ server-settings.json ที่มีอยู่ ตั้งสิทธิ์ไฟล์ให้ Administrators/SYSTEM และ App Pool ที่ระบุเท่านั้น (ค่าเริ่มต้น DefaultAppPool) จากนั้น Deploy เว็บรุ่นใหม่และ Recycle App Pool หนึ่งครั้ง ไม่ต้องเปลี่ยน Ubuntu หรือฐานข้อมูล
+
+หลังจากนี้ Publish ทับ web.config ได้ตามปกติ แต่ต้องไม่ลบโฟลเดอร์ security-data และควรสำรองไฟล์ตั้งค่านี้ควบคู่ข้อมูลสแกน หากใช้เส้นทางอื่น ตั้ง `PROJECTTRACKING_SERVER_CONFIG_FILE` เป็น path แบบ absolute ของไฟล์บนเครื่องเซิร์ฟเวอร์ ไม่เก็บไฟล์จริงใน Git หรือส่งคีย์ในแชต
+
 ให้ App Pool ของไซต์มีสิทธิ์ Modify เฉพาะโฟลเดอร์เก็บไฟล์นี้ เช่น `IIS AppPool\DefaultAppPool` ตาม App Pool ที่ไซต์ใช้จริง อย่าเพิ่ม Virtual Directory ชี้ไปยัง storage และอย่าเก็บใต้ wwwroot หรือโฟลเดอร์ uploads ที่เปิดผ่านเว็บ สำรองทั้งฐานข้อมูลและโฟลเดอร์ storage ควบคู่กัน
 
 ผู้ใช้ต้อง Login และมี `SecurityScans.Index` พร้อมเป็น BA/PM/สมาชิกทีมของโครงการ หรือได้รับ `SecurityScans.ViewAllProjects`; ADMIN ผ่านทั้งหมด
