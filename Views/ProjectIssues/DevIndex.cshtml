@@ -81,6 +81,20 @@
 
     .dev-filter-card,
     .dev-issue-card,
+    /* Override the shared fixed-width action buttons for longer scan links. */
+    .dev-issue-page .dev-actions { min-width: 0; max-width: 100%; gap: 8px; }
+    .dev-issue-page .dev-actions .btn {
+        flex: 0 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 100%;
+        height: auto !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        text-align: center;
+        padding: .5rem .8rem !important;
+    }
+
     .dev-empty-card {
         background: #fff;
         border: 1px solid #d8e3ef;
@@ -285,6 +299,20 @@
         justify-content: flex-end;
         gap: 8px;
         flex-wrap: wrap;
+    }
+
+    /* Override the shared fixed-width action buttons for longer scan links. */
+    .dev-issue-page .dev-actions { min-width: 0; max-width: 100%; gap: 8px; }
+    .dev-issue-page .dev-actions .btn {
+        flex: 0 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 100%;
+        height: auto !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        text-align: center;
+        padding: .5rem .8rem !important;
     }
 
     .dev-empty-card {
