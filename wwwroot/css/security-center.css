@@ -100,3 +100,21 @@ html body main .security-center :is(.security-chip,.security-status,.security-se
 @media(max-width:600px){.security-center .security-login-form{grid-template-columns:minmax(0,1fr)}}
 
 .security-login-preset{display:grid;gap:8px;align-content:start}.security-login-preset .btn{justify-self:start}.security-login-form .security-login-advanced textarea{font-family:ui-monospace,monospace;font-size:13px;line-height:1.6}
+
+/* Only linked findings receive Issue workflow colours; severity remains independent. */
+.security-finding.is-issue-linked[data-issue-state="OPEN"]{--finding-issue-color:var(--pt-chart-primary,#2996F3)}
+.security-finding.is-issue-linked[data-issue-state="WIP"]{--finding-issue-color:var(--pt-chart-warning,#FF9F1C)}
+.security-finding.is-issue-linked[data-issue-state="FIXED"]{--finding-issue-color:var(--pt-chart-info,#13D6C9)}
+.security-finding.is-issue-linked[data-issue-state="FAIL"]{--finding-issue-color:var(--pt-chart-danger,#F55262)}
+.security-finding.is-issue-linked[data-issue-state="PASS"]{--finding-issue-color:var(--pt-chart-success,#70E000)}
+.security-finding.is-issue-linked[data-issue-state="REJECT"]{--finding-issue-color:var(--pt-chart-alt,#9945FF)}
+.security-center .security-finding.is-issue-linked{
+    border-color:color-mix(in srgb,var(--finding-issue-color) 65%,var(--pt-border-strong,#b8c7db));
+    border-inline-start:6px solid var(--finding-issue-color);
+    background:color-mix(in srgb,var(--finding-issue-color) 8%,var(--pt-surface,#fff));
+}
+.security-finding-state{display:grid;gap:4px;flex-shrink:0;max-width:100%;overflow-wrap:anywhere}
+.security-finding-state>span{font-weight:700}
+.security-finding-state small{font-size:12px;color:var(--pt-surface-contrast-muted,#47515c)}
+.security-finding.is-issue-linked .security-finding-state>span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px;background:var(--finding-issue-color);border:1px solid currentColor}
+@media(max-width:720px){.security-finding-state{flex-shrink:1}}
