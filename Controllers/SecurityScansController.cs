@@ -9,7 +9,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 namespace ProjectTracking.Controllers;
 [RequireMenu("SecurityScans.Index")]
-public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env,SecurityLoginStore loginStore):BaseController
+public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env,SecurityLoginStore loginStore,ILogger<SecurityScansController>? logger=null):BaseController
 {
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
     private bool Can(string key)=>string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||(HttpContext.Session.GetString("Menus")??"").Split(',').Any(x=>x.Trim().Equals(key,StringComparison.OrdinalIgnoreCase));
@@ -134,7 +134,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var allFindingIds=await observationQuery.Select(x=>x.FindingId).ToListAsync(ct);
         var observations=await observationQuery.OrderByDescending(x=>x.Severity=="Critical"?5:x.Severity=="High"?4:x.Severity=="Medium"?3:x.Severity=="Low"?2:1).ThenBy(x=>x.Title).ThenBy(x=>x.Id).Skip((pageNumber-1)*pageSize).Take(pageSize).ToListAsync(ct);var fids=observations.Select(x=>x.FindingId).ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
         var baselines=await db.SecurityScanRows.AsNoTracking().Where(x=>versions.Contains(x.VersionId)&&x.Id!=id&&x.Status=="Completed"&&x.Engine==scan.Engine&&x.Mode==scan.Mode&&x.TargetUrl==scan.TargetUrl&&x.RequiresLogin==scan.RequiresLogin&&x.AuthProfile==scan.AuthProfile).OrderByDescending(x=>x.CreatedAt).Take(50).ToListAsync(ct);
-        return View(new SecurityScanPage{TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
+        return View(new SecurityScanPage{TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
     }
     [HttpGet,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Progress(long id,CancellationToken ct)
@@ -152,8 +152,21 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     public async Task<IActionResult> CreateIssues(long scanId,long[] observationIds,int employeeId,DateTime startDate,DateTime endDate,CancellationToken ct)
     {
         if(await Scope(scanId,ct)==null)return NotFound();
-        var ids=observationIds.Distinct().Take(51).ToArray();if(ids.Length==0||ids.Length>50||await db.SecurityScanFindingRows.CountAsync(x=>x.ScanId==scanId&&ids.Contains(x.Id),ct)!=ids.Length)return BadRequest();
-        try{if(startDate==default||endDate==default)throw new InvalidOperationException("กรุณาระบุวันเริ่มและกำหนดส่ง");var creator=await EmployeeId(ct);foreach(var id in ids)await scans.CreateIssueAsync(id,employeeId,startDate,endDate,UserId,creator,ct);TempData["Success"]="สร้างหรือเปิดการเชื่อม Issue แล้ว";}catch(InvalidOperationException e){TempData["Error"]=e.Message;}
+        var ids=observationIds.Distinct().Take(51).ToArray();
+        var completed=0;
+        try{
+            if(ids.Length==0)throw new InvalidOperationException("กรุณาเลือกรายการผลสแกนอย่างน้อย 1 รายการก่อนสร้าง Issue");
+            if(ids.Length>50)throw new InvalidOperationException("เลือกสร้าง Issue ได้ครั้งละไม่เกิน 50 รายการ");
+            if(await db.SecurityScanFindingRows.CountAsync(x=>x.ScanId==scanId&&ids.Contains(x.Id),ct)!=ids.Length)return BadRequest();
+            if(startDate==default||endDate==default)throw new InvalidOperationException("กรุณาระบุวันเริ่มและกำหนดส่ง");
+            var creator=await EmployeeId(ct);
+            foreach(var id in ids){await scans.CreateIssueAsync(id,employeeId,startDate,endDate,UserId,creator,ct);completed++;}
+            TempData["Success"]=$"สร้างหรือเชื่อม Issue สำเร็จ {completed} รายการ";
+        }catch(InvalidOperationException e){TempData["Error"]=$"ดำเนินการสำเร็จแล้ว {completed} รายการ · "+e.Message;}
+        catch(DbUpdateException error){
+            logger?.LogError(error,"Security scan {ScanId} Issue conversion failed after {Completed} items. Reference {TraceId}",scanId,completed,HttpContext.TraceIdentifier);
+            TempData["Error"]=$"บันทึก Issue ไม่สำเร็จจากฐานข้อมูล (สำเร็จแล้ว {completed} รายการ) กรุณาตรวจ Log ของเว็บ อ้างอิง {HttpContext.TraceIdentifier}";
+        }
         return RedirectToAction(nameof(Scan),new{id=scanId});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]

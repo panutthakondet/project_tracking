@@ -61,6 +61,14 @@ var employee=new Employee{EmpName="Tester",PositionId=1,DepartmentId=1};db.Emplo
 var observation=await db.SecurityScanFindingRows.OrderBy(x=>x.Id).FirstAsync();
 var issue=await service.CreateIssueAsync(observation.Id,employee.EmpId,DateTime.Today,DateTime.Today.AddDays(1),1,employee.EmpId,default);
 Check(issue==await service.CreateIssueAsync(observation.Id,employee.EmpId,DateTime.Today,DateTime.Today.AddDays(1),1,employee.EmpId,default)&&await db.ProjectIssues.CountAsync()==1&&await db.ProjectIssueStatusHistories.CountAsync()==1,"issue conversion deduplicates and records initial history");
+var staleLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.FindingId==finding.Id);
+staleLink.IssueId=int.MaxValue;await db.SaveChangesAsync();
+observation.Evidence=string.Concat(Enumerable.Repeat("หลักฐาน🔒",20000));await db.SaveChangesAsync();
+var recoveredIssueId=await service.CreateIssueAsync(observation.Id,employee.EmpId,DateTime.Today,DateTime.Today.AddDays(1),1,employee.EmpId,default);
+var recoveredIssue=await db.ProjectIssues.SingleAsync(x=>x.IssueId==recoveredIssueId);
+Check(recoveredIssueId!=int.MaxValue&&(await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.FindingId==finding.Id)).IssueId==recoveredIssueId,"deleted or missing linked Issue can be recreated and linked to a persisted record");
+Check(Encoding.UTF8.GetByteCount(recoveredIssue.IssueDetail!)<=60000&&recoveredIssue.IssueDetail!.Contains("/SecurityScans/Scan/")&&recoveredIssue.IssueDetail.Contains("ข้อความย่อ")&&!recoveredIssue.IssueDetail.Contains('\uFFFD'),"large Thai/emoji scan evidence fits MySQL TEXT without broken Unicode and links to the complete report");
+Check(SecurityScanService.IssueDetailsForStorage("short details",1)=="short details","normal Issue details remain unchanged");
 finding.ReviewStatus="FixedPendingVerification";await db.SaveChangesAsync();
 
 await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var empty=await service.ClaimAsync(default);await service.CompleteAsync(empty!.Id,empty.LeaseToken,"{\"alerts\":[]}",new("test","test"),default);

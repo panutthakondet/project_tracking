@@ -134,6 +134,19 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);
         }catch{storage.Delete(file.Key);throw;}
     }
+    public static string IssueDetailsForStorage(string details,long scanId)
+    {
+        // Existing ProjectIssues.IssueDetail is MySQL TEXT: reserve room below its 65,535-byte limit.
+        const int limit=60000;
+        if(Encoding.UTF8.GetByteCount(details)<=limit)return details;
+        var suffix=$"\n\n[รายละเอียดใน Issue เป็นข้อความย่อ เนื่องจากผลสแกนมีขนาดใหญ่ ดูรายละเอียด หลักฐาน และรายงานฉบับเต็มที่ /SecurityScans/Scan/{scanId}]";
+        var budget=limit-Encoding.UTF8.GetByteCount(suffix);var length=0;var used=0;
+        foreach(var rune in details.EnumerateRunes()){
+            if(used+rune.Utf8SequenceLength>budget)break;
+            used+=rune.Utf8SequenceLength;length+=rune.Utf16SequenceLength;
+        }
+        return details[..length]+suffix;
+    }
     public async Task<int> CreateIssueAsync(long observationId,int employeeId,DateTime start,DateTime end,int userId,int? creatorEmpId,CancellationToken ct)
     {
         if(end.Date<start.Date)throw new InvalidOperationException("กำหนดส่งต้องไม่ก่อนวันเริ่ม");
@@ -142,10 +155,20 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         await using var tx=await db.Database.BeginTransactionAsync(ct);
         // Atomic guard serializes duplicate Issue creation for this finding.
         await db.SecurityFindingRows.Where(x=>x.Id==finding.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);
-        var old=await db.SecurityFindingIssueLinkRows.SingleOrDefaultAsync(x=>x.FindingId==finding.Id,ct);if(old!=null){await tx.CommitAsync(ct);return old.IssueId;}
+        var old=await db.SecurityFindingIssueLinkRows.SingleOrDefaultAsync(x=>x.FindingId==finding.Id,ct);
+        if(old!=null){
+            var linkedProject=await db.ProjectIssues.Where(x=>x.IssueId==old.IssueId).Select(x=>(int?)x.ProjectId).SingleOrDefaultAsync(ct);
+            var sourceProject=await db.SecuritySystemRows.Where(x=>x.Id==finding.SystemId).Select(x=>x.ProjectId).SingleAsync(ct);
+            if(linkedProject.HasValue){
+                if(linkedProject!=sourceProject)throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
+                await tx.CommitAsync(ct);return old.IssueId;
+            }
+            // A deleted Issue must not permanently prevent this finding from creating another one.
+            db.SecurityFindingIssueLinkRows.Remove(old);await db.SaveChangesAsync(ct);
+        }
         var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==finding.SystemId,ct);var scan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==scan.VersionId,ct);
         var details=$"Security scan #{scan.Id} / {scan.Engine}\nระบบ: {system.Name} / {version.Environment}\nVersion: {version.VersionName} Build: {version.BuildNumber}\nความเสี่ยง: {observation.Severity} / CWE: {observation.Cwe}\nตำแหน่ง: {observation.Location}\n\nรายละเอียด:\n{observation.Description}\n\nหลักฐาน:\n{observation.Evidence}\n\nแนวทางแก้ไขจากเครื่องมือ:\n{observation.Remediation}\n\nอ้างอิง:\n{observation.References}\n\nผลสแกน: /SecurityScans/Scan/{scan.Id}";
-        var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=SecurityValues.Cut("[Security / "+observation.Severity+"] "+observation.Title,500),IssueDetail=details,AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
+        var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=SecurityValues.Cut("[Security / "+observation.Severity+"] "+observation.Title,500),IssueDetail=IssueDetailsForStorage(details,scan.Id),AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
         db.ProjectIssues.Add(issue);await db.SaveChangesAsync(ct);
         db.ProjectIssueStatusHistories.Add(new(){IssueId=issue.IssueId,NewStatus="OPEN",ChangedByEmpId=creatorEmpId??employeeId,ChangedAt=issue.CreatedAt});
         db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});finding.AssignedEmpId=employeeId;finding.DueDate=end.Date;finding.ReviewStatus="InProgress";
