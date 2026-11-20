@@ -9,6 +9,10 @@ public static class SecurityIssueWorkflow
     public static string? FromBaStatus(string status) => status switch { "PASS"=>"VerifiedFixed", "REJECT"=>"AcceptedRisk", "FAIL"=>"InProgress", _=>null };
     public static string? FromDevStatus(string status) => status=="FIXED"?"FixedPendingVerification":null;
 
+    public static string CurrentReviewStatus(ProjectIssue issue) => issue.IssueStatus switch {
+        "PASS"=>"VerifiedFixed", "REJECT"=>"AcceptedRisk", _=>issue.DevStatus=="FIXED"?"FixedPendingVerification":"InProgress"
+    };
+
     // Source links store finding IDs, so return the latest completed scan containing a linked finding.
     public static async Task<Dictionary<int,long>> ScanLinksAsync(AppDbContext db,int projectId,int[] issueIds)
     {
@@ -32,10 +36,12 @@ public static class SecurityIssueWorkflow
             where system.ProjectId==issue.ProjectId&&db.SecurityFindingIssueLinkRows.Any(l=>l.FindingId==finding.Id&&l.IssueId==issue.IssueId)
             select finding).ToListAsync();
         foreach(var finding in findings){
-            if(finding.ReviewStatus==status)continue;
+            if(finding.ReviewStatus==status&&finding.AssignedEmpId==issue.AssignTo&&finding.DueDate==issue.EndDate)continue;
             finding.ReviewStatus=status;
+            finding.AssignedEmpId=issue.AssignTo;
+            finding.DueDate=issue.EndDate;
             db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status=status,CreatedBy=userId,
-                Note=$"อัปเดตจาก Issue #{issue.IssueId}: IssueStatus={issue.IssueStatus}, DevStatus={issue.DevStatus}"});
+                Note=$"อัปเดตจาก Issue #{issue.IssueId}: IssueStatus={issue.IssueStatus}, DevStatus={issue.DevStatus}, ผู้รับผิดชอบ #{issue.AssignTo}, วันเริ่ม {issue.StartDate:yyyy-MM-dd}, กำหนดส่ง {issue.EndDate:yyyy-MM-dd}"});
         }
     }
 }

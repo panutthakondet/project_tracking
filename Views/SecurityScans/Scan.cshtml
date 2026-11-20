@@ -31,12 +31,24 @@
 @await Html.PartialAsync("_FindingPagination",Model)
 @foreach(var item in Model.Observations.OrderByDescending(x=>SecurityValues.Rank(x.Severity)).ThenBy(x=>x.Title)){
  var finding=Model.Findings.Single(x=>x.Id==item.FindingId);var link=Model.Links.FirstOrDefault(x=>x.FindingId==finding.Id);
- <article class="security-card security-finding"><header class="security-card-head"><h2>@if(Model.CanCreateIssue){<input type="checkbox" name="observationIds" form="securityIssueBatch" value="@item.Id" aria-label="เลือก @item.Title" />} <span class="security-severity security-severity-@item.Severity.ToLowerInvariant()">@item.Severity</span> @item.Title</h2><span>@SecurityValues.StatusLabel(finding.ReviewStatus)</span></header>
+ var linkedIssue=Model.LinkedIssues.FirstOrDefault(x=>x.IssueId==link?.IssueId);
+ var reviewStatus=linkedIssue==null?finding.ReviewStatus:ProjectTracking.Services.Security.SecurityIssueWorkflow.CurrentReviewStatus(linkedIssue);
+ <article class="security-card security-finding"><header class="security-card-head"><h2>@if(Model.CanCreateIssue){<input type="checkbox" name="observationIds" form="securityIssueBatch" value="@item.Id" aria-label="เลือก @item.Title" />} <span class="security-severity security-severity-@item.Severity.ToLowerInvariant()">@item.Severity</span> @item.Title</h2><span>@SecurityValues.StatusLabel(reviewStatus)</span></header>
  <p><code>@item.RuleId</code> · CWE @item.Cwe<br /><strong>@item.Location</strong></p><p class="security-text">@item.Description</p>
  <details><summary>หลักฐาน</summary><pre>@item.Evidence</pre></details><h3>แนวทางแก้ไขจากเครื่องมือ</h3><p class="security-text">@(string.IsNullOrWhiteSpace(item.Remediation)?"เครื่องมือไม่ได้ให้คำแนะนำเฉพาะ กรุณาตรวจเอกสารอ้างอิงและให้ผู้ตรวจวิเคราะห์เพิ่มเติม":item.Remediation)</p><details><summary>เอกสารอ้างอิง</summary><pre>@item.References</pre></details>
  @if(link!=null){<p><a class="btn btn-outline-primary" asp-controller="ProjectIssues" asp-action="DevDetails" asp-route-id="@link.IssueId">เปิด Issue #@link.IssueId</a></p>}
  @if(Model.CanCreateIssue&&link==null){<details><summary>เชื่อมกับ Issue ที่มีอยู่ในโครงการ</summary><form asp-action="LinkIssue" method="post" data-loading-delay="0" data-loading-message="กำลังเชื่อม Issue…" class="security-inline"><input type="hidden" name="observationId" value="@item.Id" /><select class="form-select" name="issueId" required aria-label="Issue เดิม"><option value="">เลือก Issue</option>@foreach(var issue in Model.ExistingIssues){<option value="@issue.IssueId">#@issue.IssueId @issue.IssueName</option>}</select><button type="submit" class="btn btn-outline-primary">เชื่อม Issue</button></form></details>}
- @if(Model.CanManage){<details><summary>ติดตามและตรวจยืนยันการแก้ไข</summary><form asp-action="Review" method="post" class="security-form"><input type="hidden" name="observationId" value="@item.Id" /><label>สถานะ<select name="status" class="form-select">@foreach(var state in SecurityValues.ReviewStatuses){<option value="@state" selected="@(finding.ReviewStatus==state)">@SecurityValues.StatusLabel(state)</option>}</select></label><label>ผู้รับผิดชอบ<select name="assignedEmpId" class="form-select"><option value="">ยังไม่ระบุ</option>@foreach(var emp in Model.Employees){<option value="@emp.EmpId" selected="@(finding.AssignedEmpId==emp.EmpId)">@emp.EmpName</option>}</select></label><label>กำหนดส่ง<input type="date" name="dueDate" class="form-control" value="@finding.DueDate?.ToString("yyyy-MM-dd")" /></label><label>หมายเหตุ / หลักฐานการตรวจยืนยัน<textarea class="form-control" name="note" maxlength="4000" required></textarea></label><button type="submit" class="btn btn-primary">บันทึกการติดตาม</button></form></details>}
+ <details><summary>ติดตามและตรวจยืนยันการแก้ไข</summary>
+ <p><strong>สถานะ:</strong> @SecurityValues.StatusLabel(reviewStatus)</p>
+ @if(linkedIssue!=null){
+     <p><strong>อ้างอิง:</strong> Issue #@linkedIssue.IssueId · ข้อมูลอัปเดตจาก Issue เท่านั้น</p>
+     <p><strong>ผู้รับผิดชอบ:</strong> @(Model.Employees.FirstOrDefault(x=>x.EmpId==linkedIssue.AssignTo)?.EmpName ?? $"พนักงาน #{linkedIssue.AssignTo}")</p>
+     <p><strong>วันเริ่ม:</strong> @(linkedIssue.StartDate?.ToString("dd/MM/yyyy") ?? "-") · <strong>กำหนดส่ง:</strong> @(linkedIssue.EndDate?.ToString("dd/MM/yyyy") ?? "-")</p>
+     <p><strong>สร้าง Issue:</strong> @linkedIssue.CreatedAt.ToString("dd/MM/yyyy HH:mm") · <strong>อัปเดต Issue ล่าสุด:</strong> @(linkedIssue.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</p>
+     <h3>รายละเอียดการแก้ไขจาก Dev</h3><p class="security-text">@(string.IsNullOrWhiteSpace(linkedIssue.DevDetail)?"ยังไม่มีรายละเอียดการแก้ไข":linkedIssue.DevDetail)</p>
+     <a class="btn btn-outline-primary" asp-controller="ProjectIssues" asp-action="DevDetails" asp-route-id="@linkedIssue.IssueId">ดู / จัดการที่ Issue #@linkedIssue.IssueId</a>
+ }else{<p>ยังไม่ได้เชื่อม Issue กรุณาสร้างหรือเชื่อม Issue เพื่อจัดการการแก้ไขและวันที่</p>}
+ </details>
  <details><summary>ประวัติการติดตาม</summary>@foreach(var history in Model.History.Where(x=>x.FindingId==finding.Id)){<p>@history.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC · ผู้ใช้ #@history.CreatedBy · @SecurityValues.StatusLabel(history.Status)<br />@history.Note</p>}</details>
  </article>
 }

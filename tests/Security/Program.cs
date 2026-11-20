@@ -82,6 +82,12 @@ foreach(var transition in new[]{("FIXED","FixedPendingVerification",true),("PASS
     await SecurityIssueWorkflow.StageStatusAsync(db,recoveredIssue,status!,1);await db.SaveChangesAsync();
     Check(await db.SecurityFindingHistoryRows.CountAsync()==previousHistory+1,"status history is not duplicated for the same state");
 }
+recoveredIssue.EndDate=DateTime.Today.AddDays(14);
+var historyBeforeDates=await db.SecurityFindingHistoryRows.CountAsync();
+await SecurityIssueWorkflow.StageStatusAsync(db,recoveredIssue,SecurityIssueWorkflow.CurrentReviewStatus(recoveredIssue),1);await db.SaveChangesAsync();
+Check((await db.SecurityFindingRows.AsNoTracking().SingleAsync(x=>x.Id==finding.Id)).DueDate==recoveredIssue.EndDate,"Issue date edits update the linked finding even without a status change");
+Check(await db.SecurityFindingHistoryRows.CountAsync()==historyBeforeDates+1,"Issue schedule edits record a tracking history entry");
+Check(SecurityIssueWorkflow.CurrentReviewStatus(new ProjectIssue{IssueStatus="FAIL",DevStatus="FIXED"})=="FixedPendingVerification","Dev resubmission after BA failure shows waiting for verification");
 var unlinkedIssue=new ProjectIssue{IssueId=int.MaxValue,ProjectId=system.ProjectId};
 var beforeUnlinked=await db.SecurityFindingHistoryRows.CountAsync();await SecurityIssueWorkflow.StageStatusAsync(db,unlinkedIssue,"VerifiedFixed",1);await db.SaveChangesAsync();
 Check(await db.SecurityFindingHistoryRows.CountAsync()==beforeUnlinked,"ordinary Issues do not change security findings");

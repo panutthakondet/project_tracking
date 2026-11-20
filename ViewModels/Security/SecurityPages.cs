@@ -33,6 +33,7 @@ public class SecurityScanPage
     public List<SecurityFindingHistory> History { get; set; }=[];
     public List<SecurityFindingIssueLink> Links { get; set; }=[];
     public List<Employee> Employees { get; set; }=[];
+    public List<ProjectIssue> LinkedIssues { get; set; }=[];
     public List<ProjectIssue> ExistingIssues { get; set; }=[];
     public List<SecurityScan> Baselines { get; set; }=[];
     public List<SecurityScanFinding>? BaselineFindings { get; set; }

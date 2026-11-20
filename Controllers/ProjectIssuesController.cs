@@ -476,11 +476,7 @@ namespace ProjectTracking.Controllers
                 });
             }
 
-            if (statusChanged || shouldCountFailRound)
-            {
-                var securityStatus = SecurityIssueWorkflow.FromBaStatus(newStatus);
-                if (securityStatus != null) await SecurityIssueWorkflow.StageStatusAsync(_context, issue, securityStatus, HttpContext.Session.GetInt32("UserId")!.Value);
-            }
+            await SecurityIssueWorkflow.StageStatusAsync(_context, issue, SecurityIssueWorkflow.CurrentReviewStatus(issue), HttpContext.Session.GetInt32("UserId")!.Value);
 
             await _context.SaveChangesAsync();
             // ================= DELETE BEFORE IMAGES =================
@@ -651,8 +647,7 @@ namespace ProjectTracking.Controllers
                 }
             }
 
-            if (newDev == "FIXED" && currentDbDevStatus != "FIXED")
-                await SecurityIssueWorkflow.StageStatusAsync(_context, issue, SecurityIssueWorkflow.FromDevStatus(newDev)!, HttpContext.Session.GetInt32("UserId")!.Value);
+            await SecurityIssueWorkflow.StageStatusAsync(_context, issue, SecurityIssueWorkflow.CurrentReviewStatus(issue), HttpContext.Session.GetInt32("UserId")!.Value);
 
             await _context.SaveChangesAsync();
 
