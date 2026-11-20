@@ -10,6 +10,7 @@
     var issueList = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
     var selectedStatus = ViewBag.SelectedStatus as string ?? "";
     var statusList = ViewBag.StatusList as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var securityScanLinks = ViewBag.SecurityScanLinks as Dictionary<int,long> ?? new();
     var th = new CultureInfo("th-TH");
 
     string DateOrDash(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
@@ -423,6 +424,8 @@
 
                     <div class="dev-issue-side">
                         <div class="dev-actions">
+                            @if (securityScanLinks.TryGetValue(i.IssueId, out var securityScanId))
+                            { <a asp-controller="SecurityScans" asp-action="Scan" asp-route-id="@securityScanId" class="btn btn-sm btn-outline-secondary">กลับไปผลสแกน #@securityScanId</a> }
                             <a asp-controller="ProjectIssues"
                                asp-action="DevDetails"
                                asp-route-id="@i.IssueId"

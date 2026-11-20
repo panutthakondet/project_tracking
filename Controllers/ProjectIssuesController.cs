@@ -5,6 +5,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
 using ProjectTracking.Services;
+using ProjectTracking.Services.Security;
 using System.Globalization;
 
 namespace ProjectTracking.Controllers
@@ -101,6 +102,7 @@ namespace ProjectTracking.Controllers
                 return View(new List<ProjectIssue>());
 
             var issues = await GetIssues(projectId.Value, empName, devStatus: selectedStatus);
+            ViewBag.SecurityScanLinks = await SecurityIssueWorkflow.ScanLinksAsync(_context, projectId.Value, issues.Select(x=>x.IssueId).ToArray());
             return View(issues);
         }
 
@@ -155,6 +157,7 @@ namespace ProjectTracking.Controllers
                 .OrderByDescending(x => x.EntryDate)
                 .ToListAsync();
 
+            ViewBag.SecurityScanLinks = await SecurityIssueWorkflow.ScanLinksAsync(_context, issue.ProjectId, new[]{issue.IssueId});
             return View(issue);
         }
 
@@ -473,6 +476,12 @@ namespace ProjectTracking.Controllers
                 });
             }
 
+            if (statusChanged || shouldCountFailRound)
+            {
+                var securityStatus = SecurityIssueWorkflow.FromBaStatus(newStatus);
+                if (securityStatus != null) await SecurityIssueWorkflow.StageStatusAsync(_context, issue, securityStatus, HttpContext.Session.GetInt32("UserId")!.Value);
+            }
+
             await _context.SaveChangesAsync();
             // ================= DELETE BEFORE IMAGES =================
             if (deleteImageIds != null && deleteImageIds.Count > 0)
@@ -641,6 +650,9 @@ namespace ProjectTracking.Controllers
                     });
                 }
             }
+
+            if (newDev == "FIXED" && currentDbDevStatus != "FIXED")
+                await SecurityIssueWorkflow.StageStatusAsync(_context, issue, SecurityIssueWorkflow.FromDevStatus(newDev)!, HttpContext.Session.GetInt32("UserId")!.Value);
 
             await _context.SaveChangesAsync();
 

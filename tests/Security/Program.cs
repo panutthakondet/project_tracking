@@ -69,6 +69,22 @@ var recoveredIssue=await db.ProjectIssues.SingleAsync(x=>x.IssueId==recoveredIss
 Check(recoveredIssueId!=int.MaxValue&&(await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.FindingId==finding.Id)).IssueId==recoveredIssueId,"deleted or missing linked Issue can be recreated and linked to a persisted record");
 Check(Encoding.UTF8.GetByteCount(recoveredIssue.IssueDetail!)<=60000&&recoveredIssue.IssueDetail!.Contains("/SecurityScans/Scan/")&&recoveredIssue.IssueDetail.Contains("ข้อความย่อ")&&!recoveredIssue.IssueDetail.Contains('\uFFFD'),"large Thai/emoji scan evidence fits MySQL TEXT without broken Unicode and links to the complete report");
 Check(SecurityScanService.IssueDetailsForStorage("short details",1)=="short details","normal Issue details remain unchanged");
+var sourceLinks=await SecurityIssueWorkflow.ScanLinksAsync(db,system.ProjectId,new[]{recoveredIssueId});
+Check(sourceLinks.ContainsKey(recoveredIssueId),"Dev Issue link resolves a completed source scan");
+Check((await SecurityIssueWorkflow.ScanLinksAsync(db,system.ProjectId+999,new[]{recoveredIssueId})).Count==0,"source scan links stay inside the Issue project");
+foreach(var transition in new[]{("FIXED","FixedPendingVerification",true),("PASS","VerifiedFixed",false),("REJECT","AcceptedRisk",false),("FAIL","InProgress",false)}){
+    var status=transition.Item3?SecurityIssueWorkflow.FromDevStatus(transition.Item1):SecurityIssueWorkflow.FromBaStatus(transition.Item1);
+    Check(status==transition.Item2,"Issue status mapping: "+transition.Item1);
+    if(transition.Item3)recoveredIssue.DevStatus=transition.Item1;else recoveredIssue.IssueStatus=transition.Item1;
+    var previousHistory=await db.SecurityFindingHistoryRows.CountAsync();
+    await SecurityIssueWorkflow.StageStatusAsync(db,recoveredIssue,status!,1);await db.SaveChangesAsync();
+    Check((await db.SecurityFindingRows.AsNoTracking().SingleAsync(x=>x.Id==finding.Id)).ReviewStatus==status,"Issue status persists to linked security finding: "+status);
+    await SecurityIssueWorkflow.StageStatusAsync(db,recoveredIssue,status!,1);await db.SaveChangesAsync();
+    Check(await db.SecurityFindingHistoryRows.CountAsync()==previousHistory+1,"status history is not duplicated for the same state");
+}
+var unlinkedIssue=new ProjectIssue{IssueId=int.MaxValue,ProjectId=system.ProjectId};
+var beforeUnlinked=await db.SecurityFindingHistoryRows.CountAsync();await SecurityIssueWorkflow.StageStatusAsync(db,unlinkedIssue,"VerifiedFixed",1);await db.SaveChangesAsync();
+Check(await db.SecurityFindingHistoryRows.CountAsync()==beforeUnlinked,"ordinary Issues do not change security findings");
 finding.ReviewStatus="FixedPendingVerification";await db.SaveChangesAsync();
 
 await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var empty=await service.ClaimAsync(default);await service.CompleteAsync(empty!.Id,empty.LeaseToken,"{\"alerts\":[]}",new("test","test"),default);

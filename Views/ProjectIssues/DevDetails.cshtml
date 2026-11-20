@@ -5,6 +5,7 @@
     ViewData["Title"] = "รายละเอียด Issue (Dev)";
 
     var issue = Model;
+    var securityScanLinks = ViewBag.SecurityScanLinks as Dictionary<int,long> ?? new();
     var beforeImages = issue.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
     var afterImages = issue.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
     var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectIssueGitHistory>
@@ -474,6 +475,8 @@
         </div>
 
         <div class="dev-hero-actions">
+            @if (securityScanLinks.TryGetValue(issue.IssueId, out var securityScanId))
+            { <a asp-controller="SecurityScans" asp-action="Scan" asp-route-id="@securityScanId" class="btn btn-outline-light">กลับไปผลสแกน #@securityScanId</a> }
             <a asp-action="DevIndex"
                asp-route-projectId="@issue.ProjectId"
                class="btn btn-outline-light">
