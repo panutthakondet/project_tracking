@@ -1350,6 +1350,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-phase-actions {
     min-width: 0;
+    width: 100%;
+    max-width: 320px;
+    justify-self: end;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
