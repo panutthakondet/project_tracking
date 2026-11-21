@@ -1712,13 +1712,13 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-phase-actions .project-phase-tile__body { gap: 7px; }
 .project-phase-actions .project-phase-tile__title {
-    font-size: .78rem;
+    font-size: .7rem;
     line-height: 1.2;
     -webkit-line-clamp: 1;
 }
 .project-phase-actions .project-phase-tile__footer {
     padding-left: 29px;
-    font-size: .67rem;
+    font-size: .6rem;
     line-height: 1.2;
     -webkit-line-clamp: 1;
 }
