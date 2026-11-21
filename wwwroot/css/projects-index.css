@@ -1351,10 +1351,10 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-phase-actions {
     min-width: 0;
     width: 100%;
-    max-width: 320px;
+    max-width: 540px;
     justify-self: end;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
     gap: 6px;
 }
@@ -1652,13 +1652,14 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
 /* Keep the longer security action readable alongside the project plan tiles. */
-.project-security-action { grid-column: 1 / -1; }
+.project-security-action { grid-column: auto; }
 
 .project-shortcut-buttons {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     min-width: 0;
+    grid-column: 1 / -1;
 }
 .project-shortcut-buttons--manage {
     border-top: 1px solid var(--project-card-border);
@@ -1678,4 +1679,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-shortcut-buttons .project-delete-form { margin: 0; min-width: 0; }
 .project-shortcut-buttons .project-phase-tile--delete {
     border-color: color-mix(in srgb, var(--pt-danger, #dc3545) 40%, var(--project-card-border));
+}
+
+@media (max-width: 399.98px) {
+    .project-phase-actions,
+    .project-shortcut-buttons { grid-template-columns: minmax(0, 1fr); }
 }
