@@ -1656,7 +1656,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-shortcut-buttons {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
     min-width: 0;
 }
@@ -1665,15 +1665,17 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     padding-top: 8px;
     margin-top: 2px;
 }
-.project-card .project-shortcut-buttons .btn {
-    width: 100% !important;
-    min-width: 0;
-    height: auto;
-    padding: 7px 8px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    font-size: .78rem;
-    line-height: 1.4;
-    border-radius: 9px;
+.project-shortcut-buttons .project-phase-tile {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+}
+.project-shortcut-buttons .project-phase-tile:disabled {
+    opacity: .5;
+    cursor: not-allowed;
 }
 .project-shortcut-buttons .project-delete-form { margin: 0; min-width: 0; }
+.project-shortcut-buttons .project-phase-tile--delete {
+    border-color: color-mix(in srgb, var(--pt-danger, #dc3545) 40%, var(--project-card-border));
+}

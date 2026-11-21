@@ -529,18 +529,28 @@
                        asp-route-id="@p.ProjectId"
                        target="_blank"
                        rel="noopener noreferrer"
-                       class="btn btn-outline-dark btn-sm">
-                        📄 บันทึกภายใน
-                    </a>
+                       class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">บันทึกภายใน</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">ดูบันทึกภายในโครงการ</span>
+                            </a>
 
                     <a asp-controller="ProjectDocuments"
                        asp-action="Index"
                        asp-route-projectId="@p.ProjectId"
                        target="_blank"
                        rel="noopener noreferrer"
-                       class="btn btn-outline-secondary btn-sm">
-                        📂 เอกสาร
-                    </a>
+                       class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--project" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">เอกสาร</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">จัดการเอกสารโครงการ</span>
+                            </a>
 
                     @if (CanMenu("ProjectIssues.Index"))
                     {
@@ -549,15 +559,25 @@
                            asp-route-projectId="@p.ProjectId"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="btn btn-outline-danger btn-sm">
-                            🐞 ปัญหา
-                        </a>
+                           class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ปัญหา</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">ติดตามและจัดการปัญหา</span>
+                            </a>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            🐞 ปัญหา
-                        </button>
+                        <button class="project-phase-tile" disabled>
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ปัญหา</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">ติดตามและจัดการปัญหา</span>
+                            </button>
                     }
 
                     @if (CanMenu("SupportOrders.Index"))
@@ -567,15 +587,25 @@
                            asp-route-projectId="@p.ProjectId"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="btn btn-outline-warning btn-sm">
-                            🛠 สนับสนุน
-                        </a>
+                           class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--remote" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">สนับสนุน</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">จัดการงานสนับสนุน</span>
+                            </a>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            🛠 สนับสนุน
-                        </button>
+                        <button class="project-phase-tile" disabled>
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--remote" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">สนับสนุน</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">จัดการงานสนับสนุน</span>
+                            </button>
                     }
 
                     @if (CanMenu("TestScenarios.Index"))
@@ -585,15 +615,25 @@
                            asp-route-projectId="@p.ProjectId"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="btn btn-outline-primary btn-sm">
-                            🧪 ทดสอบ
-                        </a>
+                           class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ทดสอบ</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">จัดการรายการทดสอบ</span>
+                            </a>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            🧪 ทดสอบ
-                        </button>
+                        <button class="project-phase-tile" disabled>
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ทดสอบ</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">จัดการรายการทดสอบ</span>
+                            </button>
                     }
 
                     @if (!string.IsNullOrEmpty(p.FigmaLink))
@@ -601,9 +641,14 @@
                         <a href="@p.FigmaLink"
                            target="_blank"
                            rel="noopener noreferrer"
-                           class="btn btn-outline-primary btn-sm">
-                            🎨 แบบหน้าจอ
-                        </a>
+                           class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--system" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">แบบหน้าจอ</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">เปิดแบบหน้าจอโครงการ</span>
+                            </a>
                     }
                             </div>
                             <div class="project-shortcut-buttons project-shortcut-buttons--manage">
@@ -611,15 +656,25 @@
                     {
                         <a asp-action="Edit"
                            asp-route-id="@p.ProjectId"
-                           class="btn btn-outline-primary btn-sm">
-                            ✏️ แก้ไข
-                        </a>
+                           class="project-phase-tile">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">แก้ไข</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">แก้ไขข้อมูลโครงการ</span>
+                            </a>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            ✏️ แก้ไข
-                        </button>
+                        <button class="project-phase-tile" disabled>
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">แก้ไข</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">แก้ไขข้อมูลโครงการ</span>
+                            </button>
                     }
 
                     @if (CanMenu("Projects.Delete"))
@@ -631,16 +686,26 @@
                               onsubmit="return confirm('ต้องการลบโครงการนี้หรือไม่?');">
                             @Html.AntiForgeryToken()
                             <button type="submit"
-                                    class="btn btn-outline-danger btn-sm">
-                                🗑 ลบ
+                                    class="project-phase-tile project-phase-tile--delete">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ลบ</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">ลบโครงการนี้</span>
                             </button>
                         </form>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            🗑 ลบ
-                        </button>
+                        <button class="project-phase-tile project-phase-tile--delete" disabled>
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">ลบ</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">ลบโครงการนี้</span>
+                            </button>
                     }
 
                             </div>
