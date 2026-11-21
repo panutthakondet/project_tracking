@@ -1685,3 +1685,26 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     .project-phase-actions,
     .project-shortcut-buttons { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Share the same two-column grid so an odd shortcut does not leave a gap midway. */
+.project-shortcut-buttons:not(.project-shortcut-buttons--manage) {
+    display: contents;
+}
+.project-phase-actions .project-phase-tile {
+    box-sizing: border-box;
+    height: 90px;
+    min-height: 90px;
+}
+.project-phase-actions .project-phase-tile__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: .84rem;
+}
+.project-phase-actions .project-phase-tile__footer {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
