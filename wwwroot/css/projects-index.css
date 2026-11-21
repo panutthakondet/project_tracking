@@ -1351,102 +1351,84 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-phase-actions {
     min-width: 0;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.project-phase-actions.is-single {
     grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 8px;
 }
 
 .project-phase-tile {
-    --pt-local-text: var(--pt-accent-contrast, #ffffff);
-    --pt-local-muted: var(--pt-accent-contrast, #ffffff);
+    --pt-local-text: var(--project-card-text);
+    --pt-local-muted: var(--project-card-muted);
     position: relative;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     min-width: 0;
-    min-height: 88px;
+    min-height: 72px;
+    padding: 10px 14px;
     overflow: hidden;
-    color: var(--pt-accent-contrast, #ffffff) !important;
+    color: var(--project-card-text) !important;
     text-decoration: none !important;
-    background: linear-gradient(145deg, var(--pt-accent, #3195ff), var(--pt-accent-dark, #145edf));
-    border: 1px solid color-mix(in srgb, var(--pt-accent, #3195ff) 78%, #ffffff 22%);
-    border-radius: 16px;
-    box-shadow: 0 12px 24px var(--pt-accent-soft, rgba(37, 138, 244, .22));
-    transition: transform .18s ease, box-shadow .18s ease;
+    background: color-mix(in srgb, var(--pt-accent, #3195ff) 5%, var(--project-card-surface));
+    border: 1px solid var(--project-card-border);
+    border-radius: 12px;
+    transition: background .18s ease, border-color .18s ease;
 }
 
-.project-phase-tile:hover {
-    color: var(--pt-accent-contrast, #ffffff) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 16px 30px var(--pt-accent-glow, rgba(37, 138, 244, .3));
+.project-phase-tile:hover,
+.project-phase-tile:focus-visible {
+    color: var(--project-card-text) !important;
+    background: color-mix(in srgb, var(--pt-accent, #3195ff) 12%, var(--project-card-surface));
+    border-color: var(--pt-accent, #3195ff);
 }
 
 .project-phase-tile__body {
-    position: relative;
     display: flex;
-    flex: 1 1 auto;
-    flex-direction: row;
     align-items: center;
-    padding: 10px 38px 10px 12px;
-    justify-content: flex-start;
-    gap: 8px;
+    padding-right: 26px;
+    gap: 10px;
 }
 
 .project-phase-tile__icon {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--pt-accent-contrast, #ffffff);
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    color: var(--pt-accent-dark, #145edf);
 }
 
+.project-phase-tile__icon svg { display: block; width: 100%; height: 100%; }
+
 .project-phase-tile__title {
-    color: var(--pt-accent-contrast, #ffffff) !important;
-    -webkit-text-fill-color: var(--pt-accent-contrast, #ffffff) !important;
-    font-size: .88rem;
-    font-weight: 800;
-    line-height: 1.2;
+    min-width: 0;
+    color: var(--project-card-text) !important;
+    -webkit-text-fill-color: var(--project-card-text) !important;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 .project-phase-tile__arrow {
     position: absolute;
-    right: 10px;
+    right: 14px;
     top: 50%;
-    width: 24px;
-    height: 24px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--pt-accent-dark, #145edf);
-    background: rgba(255, 255, 255, .72);
-    border-radius: 50%;
-    font-size: 1.4rem;
-    font-weight: 400;
+    color: var(--project-card-muted);
+    font-size: 1.5rem;
+    line-height: 1;
     transform: translateY(-50%);
 }
 
 .project-phase-tile__footer {
-    display: flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 5px 12px;
-    gap: 8px;
-    color: inherit;
-    background: rgba(0, 38, 130, .16);
-    font-size: .74rem;
-    font-weight: 650;
+    margin-top: 3px;
+    padding: 0 26px 0 32px;
+    color: var(--project-card-muted);
+    font-size: .73rem;
+    font-weight: 400;
+    line-height: 1.4;
 }
 
-.project-phase-tile__footer-icon {
-    width: 17px;
-    height: 17px;
-}
+.project-phase-tile__footer-icon { display: none; }
 
 .project-tech-panel {
     display: grid;
@@ -1612,7 +1594,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
     .project-phase-tile {
-        min-height: 88px;
+        min-height: 72px;
     }
 
     .project-tech-column + .project-tech-column {
