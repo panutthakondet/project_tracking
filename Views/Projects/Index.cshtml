@@ -311,7 +311,8 @@
             var canViewProjectPhases = CanMenu("ProjectPhases.Index");
             var canViewPhaseAssigns = CanMenu("PhaseAssigns.Index");
             var canViewPhaseWorkload = CanMenu("PhaseWorkload.Index");
-            var hasProjectOverviewActions = canViewProjectPhases || canViewPhaseWorkload;
+            var canViewSecurityScans = CanMenu("SecurityScans.Index");
+            var hasProjectOverviewActions = canViewProjectPhases || canViewPhaseWorkload || canViewSecurityScans;
             <div class="project-card"
                 style="@((selectedProjectId.HasValue && p.ProjectId != selectedProjectId.Value) || (!selectedProjectId.HasValue && selectedCoopId.HasValue && p.CoopId != selectedCoopId.Value) ? "display:none" : null)"
                  data-project-id="@p.ProjectId"
@@ -458,7 +459,7 @@
 
                     @if (hasProjectOverviewActions)
                     {
-                        <div class="project-phase-actions @(!(canViewProjectPhases && canViewPhaseWorkload) ? "is-single" : "")">
+                        <div class="project-phase-actions @((Convert.ToInt32(canViewProjectPhases) + Convert.ToInt32(canViewPhaseWorkload) + Convert.ToInt32(canViewSecurityScans)) == 1 ? "is-single" : "")">
                             @if (canViewPhaseWorkload)
                             {
                                 <div class="project-phase-action">
@@ -502,6 +503,23 @@
                                         <span class="project-phase-tile__footer">
                                             <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
                                             <span>ไปหน้าจัดการงวดงาน</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            }
+                            @if (canViewSecurityScans)
+                            {
+                                <div class="project-phase-action project-security-action">
+                                    <a asp-controller="SecurityScans" asp-action="Index" asp-route-projectId="@p.ProjectId"
+                                       class="project-phase-tile project-phase-tile--workload" title="ตรวจสอบความปลอดภัยของโครงการ">
+                                        <span class="project-phase-tile__body">
+                                            <span class="project-phase-tile__icon" aria-hidden="true">🛡️</span>
+                                            <span class="project-phase-tile__title">ตรวจสอบความปลอดภัย</span>
+                                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                        </span>
+                                        <span class="project-phase-tile__footer">
+                                            <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                            <span>ไปศูนย์ตรวจสอบความปลอดภัย</span>
                                         </span>
                                     </a>
                                 </div>
@@ -609,10 +627,6 @@
                 }
 
                 <div class="project-actions">
-                    @if (CanMenu("SecurityScans.Index"))
-                    {
-                    <a asp-controller="SecurityScans" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-outline-primary btn-sm">🛡️ ตรวจความปลอดภัย</a>
-                    }
                     <a asp-action="ProductionMemo"
                        asp-route-id="@p.ProjectId"
                        target="_blank"

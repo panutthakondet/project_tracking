@@ -1661,3 +1661,6 @@ main.route-controller-projects .project-card .project-status .project-approval-p
         color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff);
         border:1px solid var(--pt-border,#d8e3ef);
     }
+
+/* Keep the longer security action readable alongside the project plan tiles. */
+.project-security-action { grid-column: 1 / -1; }
