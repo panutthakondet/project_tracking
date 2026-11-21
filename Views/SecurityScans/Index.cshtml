@@ -17,7 +17,7 @@
     @if(TempData["Error"] is string error){<div class="alert alert-danger" role="alert">@error</div>}
     <nav class="security-section-nav" aria-label="ส่วนต่าง ๆ ของศูนย์สแกน"><a href="#security-overview">ภาพรวม</a><a href="#security-systems">ระบบและเวอร์ชัน</a><a href="#security-history">ประวัติสแกน</a></nav>
     <div id="security-overview" class="security-summary"><div><strong>@Model.Systems.Count</strong> ระบบ</div><div><strong>@Model.Versions.Count</strong> เวอร์ชัน</div><div><strong>@Model.Scans.Count(x=>x.Status is "Queued" or "Running")</strong> งานในคิว</div><div><strong>@Model.Scans.Count(x=>x.Status=="Completed")</strong> รอบที่เสร็จแล้ว</div></div>
-    <div id="security-systems" class="security-section-heading"><div><h2>ระบบและเวอร์ชัน</h2><p>จัดเก็บไฟล์แต่ละเวอร์ชัน แล้วเลือกส่งตรวจความปลอดภัย</p></div></div>
+    <div id="security-systems" class="security-systems">
     @if(Model.CanManage){
         <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form security-system-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
             <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
