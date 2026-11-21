@@ -1353,7 +1353,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
-    gap: 8px;
+    gap: 6px;
 }
 
 .project-phase-tile {
@@ -1365,8 +1365,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     flex-direction: column;
     justify-content: center;
     min-width: 0;
-    min-height: 72px;
-    padding: 10px 14px;
+    min-height: 56px;
+    padding: 6px 12px;
     overflow: hidden;
     color: var(--project-card-text) !important;
     text-decoration: none !important;
@@ -1420,7 +1420,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-phase-tile__footer {
-    margin-top: 3px;
+    margin-top: 1px;
     padding: 0 26px 0 32px;
     color: var(--project-card-muted);
     font-size: .73rem;
@@ -1594,7 +1594,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
     .project-phase-tile {
-        min-height: 72px;
+        min-height: 56px;
     }
 
     .project-tech-column + .project-tech-column {
