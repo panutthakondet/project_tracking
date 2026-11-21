@@ -1219,7 +1219,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-summary-panel {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     padding: 18px 20px;
 }
