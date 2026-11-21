@@ -2469,7 +2469,22 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
                  '#f7fee7', '#1d2e0b', '#1d2e0b', '#ffffff', '#18230c', '#63704f', '#1a2e05', NOW(), NOW()),
                 ('graphite-gold', 'Graphite Gold', 1, 0, 1, 120,
                  '#eab308', '#a16207', '#854d0e', '#171717', '#0a0a0a', '#3F3B2D',
-                 '#fafaf5', '#171717', '#171717', '#ffffff', '#18181b', '#71717a', '#422006', NOW(), NOW())
+                 '#fafaf5', '#171717', '#171717', '#ffffff', '#18181b', '#71717a', '#422006', NOW(), NOW()),
+                ('orange-energy', 'Orange Energy · ส้มสด', 1, 0, 1, 130,
+                 '#F97316', '#C2410C', '#9A3412', '#431B0B', '#271006', '#713015',
+                 '#FFF7ED', '#431B0B', '#431B0B', '#FFFFFF', '#29170E', '#785C4A', '#271006', NOW(), NOW()),
+                ('terracotta-studio', 'Terracotta Studio · ส้มอิฐ', 1, 0, 1, 140,
+                 '#B9472B', '#963820', '#762B19', '#3B201A', '#24120E', '#63362B',
+                 '#FCF3EF', '#3B201A', '#3B201A', '#FFFFFF', '#2D1D18', '#796058', '#FFFFFF', NOW(), NOW()),
+                ('teal-harbor', 'Teal Harbor · เขียวน้ำทะเล', 1, 0, 1, 150,
+                 '#0F766E', '#115E59', '#134E4A', '#0B302E', '#061D1C', '#15544F',
+                 '#F0FDFA', '#0B302E', '#0B302E', '#FFFFFF', '#12302D', '#526E69', '#FFFFFF', NOW(), NOW()),
+                ('coffee-house', 'Coffee House · น้ำตาลกาแฟ', 1, 0, 1, 160,
+                 '#8B5E3C', '#70482C', '#573620', '#30231C', '#1D1511', '#564032',
+                 '#FAF6F0', '#30231C', '#30231C', '#FFFFFF', '#30251E', '#77685B', '#FFFFFF', NOW(), NOW()),
+                ('lavender-bloom', 'Lavender Bloom · ลาเวนเดอร์', 1, 0, 1, 170,
+                 '#A78BFA', '#7C3AED', '#6D28D9', '#2D2147', '#1A122C', '#514070',
+                 '#FAF7FF', '#2D2147', '#2D2147', '#FFFFFF', '#291F3D', '#736680', '#241334', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
               `theme_name` = VALUES(`theme_name`),
               `is_system` = VALUES(`is_system`),
