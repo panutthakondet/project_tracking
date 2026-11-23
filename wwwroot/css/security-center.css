@@ -227,3 +227,16 @@ html body main .security-center .security-website-part[data-section]>summary{bor
 @media(max-width:720px){.security-system-tools{margin:10px 14px}.security-management-tools{padding:10px;gap:8px}.security-management-tools>.security-disclosure[open]{grid-column:1/-1}.security-management-tools>.security-disclosure[open]+form{grid-column:2;justify-self:end}}
 
 .security-finding-state .security-open-issue{justify-self:end;white-space:nowrap;margin-top:4px}
+
+/* Finding header: title on the left, two-line status and one action on the right. */
+.security-center .security-finding>.security-card-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 24px;padding-bottom:12px;margin-bottom:12px}
+.security-center .security-finding>.security-card-head>h2{margin:0;min-width:0;line-height:1.45}
+.security-finding>.security-card-head h2 input[type=checkbox]{vertical-align:middle;margin-inline-end:8px}
+.security-finding>.security-card-head .security-finding-state{display:grid;grid-template-columns:auto auto;align-items:center;gap:3px 14px;text-align:start}
+.security-finding>.security-card-head .security-finding-state>span{grid-column:1;grid-row:1;line-height:1.4}
+.security-finding>.security-card-head .security-finding-state>small{grid-column:1;grid-row:2;line-height:1.4}
+.security-finding>.security-card-head .security-open-issue{grid-column:2;grid-row:1/3;margin:0;align-self:center;padding:7px 14px;font-size:14px;line-height:1.5;min-height:36px;white-space:nowrap}
+@media(max-width:900px){
+ .security-center .security-finding>.security-card-head{grid-template-columns:minmax(0,1fr);gap:10px}
+ .security-finding>.security-card-head .security-finding-state{grid-template-columns:minmax(0,1fr) auto;width:100%}
+}
