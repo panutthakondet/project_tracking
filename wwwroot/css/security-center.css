@@ -129,3 +129,31 @@ html body main.route-controller-securityscans.route-action-index .security-works
     color: #17212b;
     --pt-body-bg: #fff;
 }
+
+/* Distinguish system types and summary cards without colouring the whole page. */
+.security-workspace .security-system { --security-card-tone: var(--pt-chart-primary, #2996f3); }
+.security-workspace .security-system[data-system-kind="WebMember"] { --security-card-tone: var(--pt-chart-alt, #9655ff); }
+.security-workspace .security-system[data-system-kind="Android"] { --security-card-tone: var(--pt-chart-success, #16834a); }
+.security-workspace .security-system[data-system-kind="iOS"] { --security-card-tone: var(--pt-chart-info, #0e9393); }
+.security-workspace .security-system {
+    border-color: color-mix(in srgb, var(--security-card-tone) 45%, #fff);
+    border-left: 4px solid var(--security-card-tone);
+}
+.security-workspace .security-system > .security-card-head {
+    background: color-mix(in srgb, var(--security-card-tone) 9%, #fff);
+}
+.security-workspace .security-system .security-system-icon {
+    color: var(--security-card-tone);
+    border-color: color-mix(in srgb, var(--security-card-tone) 35%, #fff);
+    background: #fff;
+}
+.security-workspace .security-summary > div:nth-child(1) { --security-card-tone: var(--pt-chart-primary, #2996f3); }
+.security-workspace .security-summary > div:nth-child(2) { --security-card-tone: var(--pt-chart-alt, #9655ff); }
+.security-workspace .security-summary > div:nth-child(3) { --security-card-tone: var(--pt-chart-warning, #ff9f1c); }
+.security-workspace .security-summary > div:nth-child(4) { --security-card-tone: var(--pt-chart-success, #16834a); }
+.security-workspace .security-summary > div {
+    background: color-mix(in srgb, var(--security-card-tone) 8%, #fff);
+    border-color: color-mix(in srgb, var(--security-card-tone) 35%, #fff);
+    border-top: 3px solid var(--security-card-tone);
+    color: #17212b;
+}
