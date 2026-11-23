@@ -45,16 +45,22 @@
     const prev=history.querySelector('[data-history-prev]'),next=history.querySelector('[data-history-next]');
     const count=history.querySelector('[data-history-count]');if(!search||!status||!prev||!next||!count)return;
     const indexed=rows.map(row=>({row,text:row.textContent.toLocaleLowerCase()}));
-    let page=0;const pageSize=10;
+    let page=0, selectedKind="";const pageSize=10;
+    const kindButtons=Array.from(history.querySelectorAll("[data-history-kind]"));
     function render(){
         const query=search.value.trim().toLocaleLowerCase();
-        const matches=indexed.filter(item=>(!query||item.text.includes(query))&&(!status.value||item.row.dataset.status===status.value));
+        const matches=indexed.filter(item=>(!query||item.text.includes(query))&&(!status.value||item.row.dataset.status===status.value)&&(!selectedKind||item.row.dataset.kind===selectedKind));
         const pages=Math.max(1,Math.ceil(matches.length/pageSize));page=Math.min(page,pages-1);
         rows.forEach(row=>{row.hidden=true;});
         matches.slice(page*pageSize,(page+1)*pageSize).forEach(item=>{item.row.hidden=false;});
         prev.disabled=page===0;next.disabled=page>=pages-1;
         count.textContent=matches.length?'หน้า '+(page+1)+' / '+pages+' · '+matches.length+' รอบ':'ไม่พบรอบสแกนที่ตรงกับการค้นหา';
     }
+    kindButtons.forEach(button=>button.addEventListener('click',()=>{
+        selectedKind=button.dataset.historyKind;
+        kindButtons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+        page=0;render();
+    }));
     search.addEventListener('input',()=>{page=0;render();});status.addEventListener('change',()=>{page=0;render();});
     prev.addEventListener('click',()=>{if(page>0){page--;render();}});next.addEventListener('click',()=>{if(!next.disabled){page++;render();}});
     history.querySelectorAll('[data-history-controls]').forEach(node=>{node.hidden=false;});render();

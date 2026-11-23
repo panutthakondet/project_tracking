@@ -161,3 +161,17 @@ html body main.route-controller-securityscans.route-action-index .security-works
 .security-history-delete { display: inline-block; margin: 4px 0 4px 6px; }
 
 .security-workspace .security-system[data-system-kind="WebAdmin"] { --security-card-tone: var(--pt-chart-warning, #c77710); }
+
+.security-history-types { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.security-history-type {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border: 1px solid var(--pt-border, #c2ccd8); border-radius: 8px;
+    background: var(--pt-surface, #fff); color: var(--pt-surface-contrast, #17212b);
+    font: inherit; font-size: .85rem; cursor: pointer;
+}
+.security-history-type[aria-pressed="true"] {
+    background: var(--pt-accent, #0f766e); color: var(--pt-accent-contrast, #fff);
+    border-color: var(--pt-accent, #0f766e); font-weight: 700;
+}
+.security-history-type span { font-size: .8em; }
+.security-history-type:focus-visible { outline: 2px solid var(--pt-accent, #0f766e); outline-offset: 2px; }

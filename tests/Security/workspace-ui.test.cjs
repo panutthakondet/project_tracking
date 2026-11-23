@@ -1,9 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 function node(extra={}){return {value:'',hidden:false,disabled:false,textContent:'',dataset:{},events:{},addEventListener(type,fn){this.events[type]=fn;},...extra};}
-const rows=Array.from({length:31},(_,i)=>node({textContent:'System release #'+(i+1),dataset:{status:(i+1)%3===0?'Failed':'Completed'}}));
+const rows=Array.from({length:31},(_,i)=>node({textContent:'System release #'+(i+1),dataset:{status:(i+1)%3===0?'Failed':'Completed',kind:i%2?'WebAdmin':'Android'}}));
 const search=node(),status=node(),prev=node(),next=node(),count=node(),controls=[node({hidden:true}),node({hidden:true})];
 const selectors={'[data-history-search]':search,'[data-history-status]':status,'[data-history-prev]':prev,'[data-history-next]':next,'[data-history-count]':count};
-const history=node({open:false,querySelector:s=>selectors[s],querySelectorAll:s=>s==='[data-history-row]'?rows:controls});
+const kinds=['','WebAdmin','Android','iOS'].map(kind=>node({dataset:{historyKind:kind},setAttribute(name,value){this[name]=value;}}));
+const history=node({open:false,querySelector:s=>selectors[s],querySelectorAll:s=>s==='[data-history-row]'?rows:s==='[data-history-kind]'?kinds:controls});
 const root={dataset:{projectId:'1'},querySelector:()=>history,querySelectorAll:()=>[]};
 vm.runInNewContext(fs.readFileSync('wwwroot/js/security-workspace.js','utf8'),{document:{querySelector:()=>root},window:{location:{hash:''}},sessionStorage:{getItem:()=>null}});
 const visible=()=>rows.filter(r=>!r.hidden);
@@ -14,3 +15,9 @@ status.value='Failed';status.events.change();assert.equal(visible().length,0);as
 search.value='';search.events.input();assert.equal(visible().length,10);assert.ok(visible().every(row=>row.dataset.status==='Failed'));assert.equal(next.disabled,true);
 status.value='';status.events.change();next.events.click();next.events.click();next.events.click();assert.equal(visible().length,1);assert.equal(next.disabled,true);
 console.log('PASS compact workspace: ten history rows per page, page navigation, search resets page, status filters, no results and last-page bounds');
+
+kinds[1].events.click();assert.equal(visible().length,10);assert.ok(visible().every(row=>row.dataset.kind==='WebAdmin'));assert.equal(kinds[1]['aria-pressed'],'true');assert.equal(prev.disabled,true);
+status.value='Failed';status.events.change();assert.ok(visible().every(row=>row.dataset.kind==='WebAdmin'&&row.dataset.status==='Failed'));
+kinds[3].events.click();assert.equal(visible().length,0);assert.equal(next.disabled,true);
+status.value='';status.events.change();kinds[0].events.click();assert.equal(visible().length,10);
+console.log('PASS history category buttons combine with status, reset pagination, support empty categories and restore all rows');
