@@ -47,6 +47,7 @@
         var savedLogin=Model.CanManage&&Model.LoginSettings.TryGetValue(system.Id,out var storedLogin)?storedLogin:null;
         var latestScan=runs.Select(x=>x.Scan).FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
         <details class="security-card security-system" name="security-system" data-system-id="@system.Id" data-system-kind="@SecurityValues.Category(system.Kind)"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@SecurityValues.Category(system.Kind)</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
+        <div class="security-management-tools security-system-tools">
         @if(Model.CanManage){<details class="security-disclosure security-edit-system"><summary>แก้ไขระบบ</summary>
             <form asp-action="EditSystem" method="post" asp-route-workflow="@Model.Workflow" class="security-form">
                 <input type="hidden" name="systemId" value="@system.Id" />
@@ -56,6 +57,7 @@
             </form>
         </details>}
         @if(Model.CanDeleteScans){<form asp-action="DeleteSystem" asp-route-workflow="@Model.Workflow" method="post" class="security-delete-system" onsubmit="return confirm('ลบระบบนี้ รวมเวอร์ชัน ไฟล์ Login และประวัติสแกนทั้งหมด? Issue ที่สร้างไว้จะยังคงอยู่ และย้อนกลับไม่ได้');"><input type="hidden" name="systemId" value="@system.Id" /><button type="submit" class="btn btn-outline-danger btn-sm">ลบระบบ</button></form>}
+        </div>
         @{var issueDefaults=Model.IssueDefaults.FirstOrDefault(x=>x.SystemId==system.Id);}
         @if(issueDefaults!=null&&Model.Workflow=="Formal"){
             <dl class="security-assignment-summary">
@@ -86,7 +88,7 @@
             var artifact=Model.Artifacts.FirstOrDefault(x=>x.VersionId==version.Id);
             <details class="security-version-entry" open="@(version.Id==versions[0].Id)">
                 <summary class="security-version-toggle"><strong>Version @version.VersionName</strong><span class="security-chip">@version.Environment</span>@if(version.Id==versions[0].Id){<small>ล่าสุด</small>}</summary>
-            <div class="security-version-tools">
+            <div class="security-management-tools security-version-tools">
             @if(Model.CanManage){<details class="security-disclosure"><summary>แก้ไขเวอร์ชัน</summary>
                 <form asp-action="EditVersion" method="post" asp-route-workflow="@Model.Workflow" class="security-form">
                     <input type="hidden" name="versionId" value="@version.Id" />
