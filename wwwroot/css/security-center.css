@@ -205,3 +205,10 @@ html body main .security-center .security-website-part[data-section]{border-colo
 html body main .security-center .security-website-part[data-section]>summary{border-radius:6px;background:color-mix(in srgb,var(--website-area-color) 10%,var(--pt-surface,#fff));padding:12px;align-items:center}
 
 .security-delete-system{display:flex;justify-content:flex-end;padding:12px 20px 0}
+
+.security-assignment-summary{display:flex;flex-wrap:wrap;gap:12px 28px;margin:14px 22px 18px;padding:14px 18px;background:var(--pt-surface-soft,#f3f6fa);border:1px solid var(--pt-border,#c2ccd8);border-radius:12px;color:var(--pt-surface-contrast,#17212b)}
+.security-assignment-summary>div{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.security-assignment-summary dt{font-size:13px;font-weight:600;color:var(--pt-surface-contrast-muted,#47515c)}
+.security-assignment-summary dd{margin:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.security-assignment-summary time{display:inline-block;font-variant-numeric:tabular-nums}
+@media(max-width:720px){.security-assignment-summary{margin:12px 14px;padding:12px;gap:10px}.security-assignment-summary>div{width:100%}}
