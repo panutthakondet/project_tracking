@@ -10,7 +10,7 @@
         <input type="hidden" name="systemId" value="@Model.System.Id" />
         <input type="hidden" name="section" value="@t.Section" />
         <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
-        <label class="security-website-wide">URL @SecurityValues.SectionLabel(t.Section)<input type="url" name="targetUrl" class="form-control" value="@targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เติม URL เต็มจาก URL หลักให้อัตโนมัติ แก้ไขได้ตามหน้าที่ต้องการสแกน</small></label>
+        <label class="security-website-wide">URL @SecurityValues.SectionLabel(t.Section)<input type="url" name="targetUrl" class="form-control" value="@targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /></label>
         @if(t.Section!="WebInfo"){
         <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" checked="@requires" /> Login ก่อนสแกนส่วนนี้</label>
         <label>วิธี Login<select data-website-login-type name="authenticationType" class="form-select"><option value="Form" selected="@(login?.AuthenticationType=="Form"||login==null&&!member)">Form Login</option><option value="JsonBearer" selected="@(login?.AuthenticationType=="JsonBearer"||login==null&&member)">JSON + Bearer Token</option><option value="JsonCookie" selected="@(login?.AuthenticationType=="JsonCookie")">JSON + Cookie/Session + CSRF</option></select></label>
@@ -20,8 +20,8 @@
         <label data-website-login-kind="Form JsonCookie">ข้อความยืนยันหลัง Login<input name="loggedInRegex" class="form-control" value="@login?.LoggedInRegex" maxlength="500" placeholder="ข้อความเฉพาะหน้าหลัง Login เช่น ออกจากระบบ" /></label>
         <label data-website-login-kind="JsonBearer">ชื่อฟิลด์ Token (JSON)<input name="tokenPath" class="form-control" value="@(login?.TokenPath??"token")" maxlength="120" /></label>
         <label class="security-website-wide">เส้นทางเริ่มตรวจหลัง Login<input name="scanStartPath" class="form-control" value="@SecurityValues.WebsitePath(login?.ScanStartUrl)" maxlength="2000" placeholder="เช่น /member/ หรือ /admin/ หลังเข้าสู่ระบบ" /></label>
-        <label class="security-website-wide">ข้อมูล Request Body<textarea name="requestData" class="form-control" rows="3" maxlength="4000">@(login?.RequestData??(member?"{\"membership_no\":\"{%username%}\",\"mem_password\":\"{%password%}\"}":"username={%username%}&password={%password%}"))</textarea><small>ปรับชื่อช่องให้ตรงกับระบบจริง โดยคง {%username%} และ {%password%} ไว้ Form Login อ่าน _token จากหน้า Login ใหม่อัตโนมัติ ไม่ต้องใส่ค่าคงที่ ส่วน JSON Cookie ใช้ XSRF-TOKEN / X-XSRF-TOKEN; Login แยกแต่ละส่วนและเก็บแบบเข้ารหัส</small></label>
-        }else{<p class="security-website-wide">Web Info สแกนได้โดยไม่ต้อง Login</p>}
+        <label class="security-website-wide">ข้อมูล Request Body<textarea name="requestData" class="form-control" rows="3" maxlength="4000">@(login?.RequestData??(member?"{\"membership_no\":\"{%username%}\",\"mem_password\":\"{%password%}\"}":"username={%username%}&password={%password%}"))</textarea></label>
+        }
         <button type="submit" class="btn btn-primary">บันทึก @SecurityValues.SectionLabel(t.Section)</button>
     </form>
     }else{<p>@t.TargetUrl</p><p>@(t.RequiresLogin?"ตั้งค่าให้ Login ก่อนสแกน":"ตรวจแบบไม่ Login")</p>}
