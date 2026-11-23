@@ -190,4 +190,16 @@ html body main.route-controller-securityscans.route-action-index .security-works
 
 .security-login-help{display:flex;justify-content:flex-end;margin:10px 0}.security-login-help .btn{font-size:.85rem}
 
-.security-workflows{padding:16px;border:1px solid var(--bs-border-color,#ccd7df);border-radius:12px;background:var(--bs-body-bg,#fff);margin-bottom:16px}.security-workflows .btn{margin:0 8px 8px 0}.security-workflows p{margin:0}
+.security-workflows{display:flex;flex-wrap:wrap;gap:10px;padding:12px;border:1px solid var(--pt-border,#ccd7df);border-radius:12px;background:var(--pt-surface,#fff);margin-bottom:16px}
+html body main .security-center .security-workflow-button{display:inline-flex;align-items:center;justify-content:center;flex:0 1 220px;min-height:44px;padding:10px 18px;border:1px solid var(--pt-border-strong,#b8c7db);border-radius:12px;background:var(--pt-surface-soft,#f1f4f8);color:var(--pt-surface-contrast,#17212b);-webkit-text-fill-color:var(--pt-surface-contrast,#17212b);font-size:14px;font-weight:700;line-height:1.5;text-align:center;text-decoration:none;transition:background .15s,border-color .15s}
+html body main .security-center .security-workflow-button[aria-current="page"]{background:var(--pt-accent,#1f4889);border-color:var(--pt-accent,#1f4889);color:var(--pt-accent-contrast,#fff);-webkit-text-fill-color:var(--pt-accent-contrast,#fff)}
+html body main .security-center .security-workflow-button:hover{border-color:var(--pt-accent,#1f4889)}
+.security-workflow-button:focus-visible{outline:2px solid var(--pt-accent,#1f4889);outline-offset:3px}
+@media(max-width:520px){html body main .security-center .security-workflow-button{flex:1 1 140px;padding:10px;font-size:13px}}
+
+/* Distinguish Website areas while retaining the active theme's surface and text. */
+.security-website-part[data-section="WebInfo"]{--website-area-color:var(--pt-chart-primary,#2996f3)}
+.security-website-part[data-section="WebMember"]{--website-area-color:var(--pt-chart-teal,#14b8a6)}
+.security-website-part[data-section="WebAdmin"]{--website-area-color:var(--pt-chart-purple,#9655ff)}
+html body main .security-center .security-website-part[data-section]{border-color:color-mix(in srgb,var(--website-area-color) 45%,var(--pt-border,#c2ccd8));border-left:4px solid var(--website-area-color);background:color-mix(in srgb,var(--website-area-color) 7%,var(--pt-surface,#fff));color:var(--pt-surface-contrast,#17212b)}
+html body main .security-center .security-website-part[data-section]>summary{border-radius:6px;background:color-mix(in srgb,var(--website-area-color) 10%,var(--pt-surface,#fff));padding:12px;align-items:center}
