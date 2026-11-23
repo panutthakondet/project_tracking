@@ -72,16 +72,16 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? projectId, string? empName, string? status)
         {
             (projectId, empName) = ResolveIndexFilters(projectId, empName, FilterProjectIdKey, FilterEmpNameKey);
-            var selectedStatus = ResolveStatusFilter(status, FilterStatusKey, NormalizeIndexIssueStatus);
+            var selectedStatus = ResolveStatusFilter(status, FilterStatusKey, NormalizeListStatus);
 
             await LoadDropdown(projectId, empName);
-            ViewBag.StatusList = BuildStatusFilterList(TesterIssueStatuses, selectedStatus);
+            ViewBag.StatusList = BuildStatusFilterList(TesterIssueStatuses.Concat(ProgrammerDevStatuses), selectedStatus);
             ViewBag.SelectedStatus = selectedStatus;
 
             if (!projectId.HasValue)
                 return View(new List<ProjectIssue>());
 
-            var issues = await GetIssues(projectId.Value, empName, issueStatus: selectedStatus);
+            var issues = await GetIssues(projectId.Value, empName, issueStatus: TesterIssueStatuses.Any(x=>x.Value==selectedStatus)?selectedStatus:null, devStatus: ProgrammerDevStatuses.Any(x=>x.Value==selectedStatus)?selectedStatus:null);
             return View(issues);
         }
 
@@ -92,16 +92,16 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> DevIndex(int? projectId, string? empName, string? status)
         {
             (projectId, empName) = ResolveIndexFilters(projectId, empName, DevFilterProjectIdKey, DevFilterEmpNameKey);
-            var selectedStatus = ResolveStatusFilter(status, DevFilterStatusKey, NormalizeIndexDevStatus);
+            var selectedStatus = ResolveStatusFilter(status, DevFilterStatusKey, NormalizeListStatus);
 
             await LoadDropdown(projectId, empName);
-            ViewBag.StatusList = BuildStatusFilterList(ProgrammerDevStatuses, selectedStatus);
+            ViewBag.StatusList = BuildStatusFilterList(TesterIssueStatuses.Concat(ProgrammerDevStatuses), selectedStatus);
             ViewBag.SelectedStatus = selectedStatus;
 
             if (!projectId.HasValue)
                 return View(new List<ProjectIssue>());
 
-            var issues = await GetIssues(projectId.Value, empName, devStatus: selectedStatus);
+            var issues = await GetIssues(projectId.Value, empName, issueStatus: TesterIssueStatuses.Any(x=>x.Value==selectedStatus)?selectedStatus:null, devStatus: ProgrammerDevStatuses.Any(x=>x.Value==selectedStatus)?selectedStatus:null);
             ViewBag.SecurityScanLinks = await SecurityIssueWorkflow.ScanLinksAsync(_context, projectId.Value, issues.Select(x=>x.IssueId).ToArray());
             return View(issues);
         }
@@ -819,16 +819,10 @@ namespace ProjectTracking.Controllers
             return (projectId, empName);
         }
 
-        private static string NormalizeIndexIssueStatus(string? status)
+        private static string NormalizeListStatus(string? status)
         {
             var value = (status ?? "").Trim().ToUpperInvariant();
-            return TesterIssueStatuses.Any(x => x.Value == value) ? value : "";
-        }
-
-        private static string NormalizeIndexDevStatus(string? status)
-        {
-            var value = (status ?? "").Trim().ToUpperInvariant();
-            return ProgrammerDevStatuses.Any(x => x.Value == value) ? value : "";
+            return TesterIssueStatuses.Concat(ProgrammerDevStatuses).Any(x => x.Value == value) ? value : "";
         }
 
         private string ResolveStatusFilter(
