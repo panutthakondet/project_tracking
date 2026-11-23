@@ -3,6 +3,10 @@ namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
     public Project Project { get; set; }=null!;
+    public List<SecurityWebsiteTarget> WebsiteTargets { get; set; }=[];
+    public List<SecurityWebsiteScanPart> WebsiteScanParts { get; set; }=[];
+    public Dictionary<long,SecurityLoginSettings> WebsiteLoginSettings { get; set; }=[];
+    public HashSet<long> UnreadableWebsiteLogins { get; set; }=[];
     public bool CanDeleteScans { get; set; }
     public bool CanApproveHosts { get; set; }
     public List<SecurityHostApproval> HostApprovals { get; set; }=[];
@@ -17,6 +21,8 @@ public class SecurityProjectPage
 }
 public class SecurityScanPage
 {
+    public SecurityWebsiteScanPart? WebsitePart { get; set; }
+    public List<SecurityWebsiteScanPart> WebsiteBatchParts { get; set; }=[];
     public int TotalObservations { get; set; }
     public int PageNumber { get; set; }=1;
     public int PageSize { get; set; }=50;
@@ -52,4 +58,15 @@ public sealed class SecurityLoginSettings
     public string Username { get; set; }="";
     public string LoggedInRegex { get; set; }="";
     public string RequestData { get; set; }="";
+}
+
+public class SecurityWebsiteTargetForm
+{
+    public SecuritySystem System { get; set; }=null!;
+    public SecurityWebsiteTarget Target { get; set; }=null!;
+    public SecurityLoginSettings? Login { get; set; }
+    public bool CanManage { get; set; }
+    public bool CanApprove { get; set; }
+    public bool Approved { get; set; }
+    public bool Unreadable { get; set; }
 }

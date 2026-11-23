@@ -1,0 +1,32 @@
+@model ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm
+@using ProjectTracking.Services.Security
+@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||t.Section!="WebInfo";}
+<details class="security-website-part">
+    <summary><strong>@SecurityValues.SectionLabel(t.Section)</strong> <span>@(t.Enabled?"เปิดสแกน":"ยังไม่เปิดสแกน")</span></summary>
+    @if(Model.Unreadable){<p class="text-danger">อ่าน Login เดิมไม่ได้ กรุณากรอกและบันทึกข้อมูลใหม่</p>}
+    @if(Model.CanManage){
+    <form asp-action="SaveWebsiteTarget" method="post" class="security-form security-website-form" data-website-login-form>
+        <input type="hidden" name="systemId" value="@Model.System.Id" />
+        <input type="hidden" name="section" value="@t.Section" />
+        <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
+        <label class="security-website-wide">เส้นทาง @SecurityValues.SectionLabel(t.Section)<input name="targetPath" class="form-control" value="@(string.IsNullOrWhiteSpace(t.TargetUrl)?SecurityValues.DefaultWebsitePath(t.Section):SecurityValues.WebsitePath(t.TargetUrl))" maxlength="2000" placeholder="/member/login" /><small>ต่อท้าย URL หลักอัตโนมัติ ไม่ต้องกรอกโดเมนซ้ำ</small></label>
+        <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" checked="@requires" /> Login ก่อนสแกนส่วนนี้</label>
+        <label>วิธี Login<select data-website-login-type name="authenticationType" class="form-select"><option value="Form" selected="@(login?.AuthenticationType=="Form"||login==null&&!member)">Form Login</option><option value="JsonBearer" selected="@(login?.AuthenticationType=="JsonBearer"||login==null&&member)">JSON + Bearer Token</option></select></label>
+        <label class="security-website-wide">เส้นทางรับข้อมูล Login (Form หรือ API)<input name="loginPath" class="form-control" value="@SecurityValues.WebsitePath(login?.LoginUrl)" maxlength="2000" placeholder="เช่น /adminlogon หรือ /api/member/auth/login" /></label>
+        <label>Username<input name="username" class="form-control" value="@login?.Username" maxlength="255" autocomplete="off" /></label>
+        <label>Password<input name="password" data-website-password-saved="@((login!=null).ToString().ToLowerInvariant())" type="password" class="form-control" maxlength="2000" autocomplete="new-password" placeholder="@(login!=null?"เว้นว่างเพื่อใช้รหัสเดิม":"รหัสผ่านบัญชีทดสอบ")" /></label>
+        <label data-website-login-kind="Form">ข้อความยืนยัน Login (Form)<input name="loggedInRegex" class="form-control" value="@login?.LoggedInRegex" maxlength="500" placeholder="เช่น ออกจากระบบ" /></label>
+        <label data-website-login-kind="JsonBearer">ชื่อฟิลด์ Token (JSON)<input name="tokenPath" class="form-control" value="@(login?.TokenPath??"token")" maxlength="120" /></label>
+        <label class="security-website-wide">เส้นทางเริ่มตรวจหลัง Login<input name="scanStartPath" class="form-control" value="@SecurityValues.WebsitePath(login?.ScanStartUrl)" maxlength="2000" placeholder="เช่น /member/ หรือ /admin/ หลังเข้าสู่ระบบ" /></label>
+        <label class="security-website-wide">ข้อมูล Request Body<textarea name="requestData" class="form-control" rows="3" maxlength="4000">@(login?.RequestData??(member?"{\"membership_no\":\"{%username%}\",\"mem_password\":\"{%password%}\"}":"username={%username%}&password={%password%}"))</textarea><small>ปรับชื่อช่องให้ตรงกับระบบจริง โดยคง {%username%} และ {%password%} ไว้ Login แยกกันในแต่ละส่วนและเก็บแบบเข้ารหัส</small></label>
+        <button type="submit" class="btn btn-primary">บันทึก @SecurityValues.SectionLabel(t.Section)</button>
+    </form>
+    }else{<p>@t.TargetUrl</p><p>@(t.RequiresLogin?"ตั้งค่าให้ Login ก่อนสแกน":"ตรวจแบบไม่ Login")</p>}
+    @if(!string.IsNullOrWhiteSpace(t.TargetUrl)){
+        <div class="security-website-approval"><span>@(Model.Approved?"อนุมัติโดเมนแล้ว":"ยังไม่อนุมัติโดเมน")</span>
+        @if(Model.CanApprove){
+            @if(t.Id>0){<form asp-action="ApproveWebsiteTarget" method="post"><input type="hidden" name="targetId" value="@t.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+            else{<form asp-action="ApproveHost" method="post"><input type="hidden" name="systemId" value="@Model.System.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+        }</div>
+    }
+</details>

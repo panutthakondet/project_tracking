@@ -25,12 +25,18 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         row.IsApproved=approved;row.UpdatedBy=userId;row.UpdatedAt=DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
     }
-    public async Task<long> QueueAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct)
+    public async Task<long> QueueAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct,SecurityWebsiteTarget? websiteTarget=null)
     {
         if(!WorkerConfigured)throw new InvalidOperationException("ยังไม่ได้ตั้งค่า SECURITY_WORKER_KEY และเครื่องสแกน กรุณาติดตั้งตามคู่มือก่อน");
         if(!Guid.TryParse(requestKey,out _))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
         var existing=await db.SecurityScanRows.SingleOrDefaultAsync(x=>x.RequestKey==requestKey,ct);if(existing!=null){if(existing.VersionId!=versionId||existing.CreatedBy!=userId)throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return existing.Id;}
         var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==versionId,ct);var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(websiteTarget!=null){
+            if(websiteTarget.SystemId!=system.Id||SecurityValues.IsMobile(system.Kind)||!websiteTarget.Enabled)throw new InvalidOperationException("ส่วนเว็บไซต์ไม่ตรงกับระบบ");
+            system.TargetUrl=websiteTarget.TargetUrl;system.RequiresLogin=websiteTarget.RequiresLogin;system.AuthProfile=websiteTarget.AuthProfile;
+            // Execution settings are snapshots; do not persist these overrides to the parent system.
+            db.Entry(system).State=EntityState.Detached;
+        }
         if(SecurityValues.IsMobile(system.Kind)){
             if(mode!="Static")throw new InvalidOperationException("แอปมือถือรองรับ Static Analysis ในรุ่นนี้");
             if(!await db.SecurityArtifactRows.AnyAsync(x=>x.VersionId==versionId,ct))throw new InvalidOperationException("เวอร์ชันนี้ยังไม่มีไฟล์ APK/IPA");
@@ -50,6 +56,36 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             throw;
         }
     }
+    public async Task<IReadOnlyList<long>> QueueWebsiteAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct)
+    {
+        if(!Guid.TryParse(requestKey,out var batch))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
+        var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==versionId,ct);
+        var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(SecurityValues.IsMobile(system.Kind))throw new InvalidOperationException("ระบบนี้ไม่ใช่ Website");
+        await using var transaction=await db.Database.BeginTransactionAsync(ct);
+        // Serialize requests for this Website before checking batch idempotency.
+        await db.SecuritySystemRows.Where(x=>x.Id==system.Id).ExecuteUpdateAsync(set=>set.SetProperty(x=>x.CreatedBy,x=>x.CreatedBy),ct);
+        var batchKey=batch.ToString();
+        var previous=await (from part in db.SecurityWebsiteScanParts join scan in db.SecurityScanRows on part.ScanId equals scan.Id where part.BatchKey==batchKey select scan).AsNoTracking().ToListAsync(ct);
+        if(previous.Count>0){if(previous.Any(x=>x.VersionId!=versionId||x.CreatedBy!=userId))throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return previous.Select(x=>x.Id).ToArray();}
+        var configured=await db.SecurityWebsiteTargets.AsNoTracking().Where(x=>x.SystemId==system.Id).ToListAsync(ct);
+        var targets=configured.Where(x=>x.Enabled).OrderBy(x=>x.Section).ToList();
+        if(configured.Count==0 && !string.IsNullOrWhiteSpace(system.TargetUrl))targets.Add(new(){SystemId=system.Id,Section=SecurityValues.LegacySection(system.Kind),TargetUrl=system.TargetUrl,Enabled=true,RequiresLogin=system.RequiresLogin,AuthProfile=system.AuthProfile});
+        if(targets.Count==0)throw new InvalidOperationException("เปิดใช้งานและบันทึกอย่างน้อยหนึ่งส่วนของ Website ก่อนสแกน");
+        foreach(var target in targets){
+            if(!SecurityValues.WebsiteSections.Contains(target.Section))throw new InvalidOperationException("ประเภทส่วนเว็บไซต์ไม่ถูกต้อง");
+            if(target.Section!="WebInfo"&&(!target.RequiresLogin||!SecurityLoginStore.IsManaged(target.AuthProfile)))throw new InvalidOperationException($"กรุณาบันทึก Login สำหรับ {SecurityValues.SectionLabel(target.Section)} ก่อนสแกน");
+        }
+        var ids=new List<long>();
+        foreach(var target in targets){
+            var bytes=System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(batchKey+":"+target.Section));
+            var key=new Guid(bytes.AsSpan(0,16)).ToString();
+            var id=await QueueAsync(versionId,mode,key,userId,ct,target);
+            db.SecurityWebsiteScanParts.Add(new(){ScanId=id,BatchKey=batchKey,Section=target.Section});ids.Add(id);
+        }
+        await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);return ids;
+    }
+
     public async Task<SecurityJob?> ClaimAsync(CancellationToken ct)
     {
         var now=DateTime.UtcNow;

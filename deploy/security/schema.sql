@@ -20,3 +20,7 @@ CREATE TABLE IF NOT EXISTS `security_scan_progress` (`ScanId` bigint NOT NULL,`B
 CREATE TABLE IF NOT EXISTS `security_systems` (`Id` bigint NOT NULL AUTO_INCREMENT,`AuthProfile` varchar(80) NULL,`CreatedAt` datetime(6) NOT NULL,`CreatedBy` int NOT NULL,`Kind` varchar(24) NOT NULL,`Name` varchar(160) NOT NULL,`ProjectId` int NOT NULL,`RequiresLogin` tinyint(1) NOT NULL,`TargetUrl` varchar(2000) NULL,PRIMARY KEY (`Id`),KEY `ix_security_systems_0` (`ProjectId`)) CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `security_versions` (`Id` bigint NOT NULL AUTO_INCREMENT,`BuildNumber` varchar(100) NULL,`ChangeNotes` varchar(4000) NULL,`CreatedAt` datetime(6) NOT NULL,`CreatedBy` int NOT NULL,`Environment` varchar(20) NOT NULL,`GitCommit` varchar(64) NULL,`SystemId` bigint NOT NULL,`VersionName` varchar(100) NOT NULL,PRIMARY KEY (`Id`),KEY `ix_security_versions_0` (`SystemId`)) CHARACTER SET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `security_website_scan_parts` (`ScanId` bigint NOT NULL,`BatchKey` varchar(36) NOT NULL,`Section` varchar(24) NOT NULL,PRIMARY KEY (`ScanId`),UNIQUE KEY `ix_security_website_scan_parts_0` (`BatchKey`,`Section`)) CHARACTER SET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `security_website_targets` (`Id` bigint NOT NULL AUTO_INCREMENT,`AuthProfile` varchar(80) NULL,`Enabled` tinyint(1) NOT NULL,`RequiresLogin` tinyint(1) NOT NULL,`Section` varchar(24) NOT NULL,`SystemId` bigint NOT NULL,`TargetUrl` varchar(2000) NOT NULL,PRIMARY KEY (`Id`),UNIQUE KEY `ix_security_website_targets_0` (`SystemId`,`Section`)) CHARACTER SET utf8mb4;

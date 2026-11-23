@@ -29,7 +29,21 @@ public static class SecurityProgress
 }
 public static class SecurityValues
 {
-    public static readonly string[] Kinds=["WebInformation","WebMember","WebAdmin","Android","iOS"];
+    public static readonly string[] Kinds=["Website","Android","iOS"];
+    public static readonly string[] WebsiteSections=["WebInfo","WebMember","WebAdmin"];
+    public static string WebsiteUrl(string? baseUrl,string? path)
+    {
+        var origin=SecurityScanService.ValidateUrl(baseUrl).GetLeftPart(UriPartial.Authority);
+        if(string.IsNullOrWhiteSpace(path)||!path.StartsWith('/')||path.StartsWith("//")||path.Contains('\\')||path.Contains('#')||path.Any(char.IsControl))throw new InvalidOperationException("เส้นทางต้องขึ้นต้นด้วย / และอยู่บนโดเมนหลัก เช่น /member/login");
+        var uri=SecurityScanService.ValidateUrl(origin+path);
+        if(uri.GetLeftPart(UriPartial.Authority)!=origin)throw new InvalidOperationException("เส้นทางต้องอยู่บนโดเมนหลัก");
+        return uri.AbsoluteUri;
+    }
+    public static string WebsitePath(string? url)=>Uri.TryCreate(url,UriKind.Absolute,out var uri)?uri.PathAndQuery:"";
+    public static string DefaultWebsitePath(string section)=>section switch {"WebMember"=>"/member/login","WebAdmin"=>"/adminlogon",_=>"/"};
+    public static string Category(string kind)=>IsMobile(kind)?kind:"Website";
+    public static string LegacySection(string kind)=>kind switch {"WebMember"=>"WebMember","WebAdmin"=>"WebAdmin",_=>"WebInfo"};
+    public static string SectionLabel(string section)=>section switch {"WebInfo"=>"Web Info","WebMember"=>"Web Member","WebAdmin"=>"Web Admin",_=>section};
     public static readonly string[] ReviewStatuses=["Open","InProgress","FixedPendingVerification","VerifiedFixed","FalsePositive","AcceptedRisk"];
     public static bool IsMobile(string kind)=>kind is "Android" or "iOS";
     public static string Severity(string? value)=>value?.Trim().ToLowerInvariant() switch {"critical"=>"Critical","high" or "3" or "danger"=>"High","medium" or "moderate" or "2" or "warning"=>"Medium","low" or "1" or "good"=>"Low",_=>"Info"};

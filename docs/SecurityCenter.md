@@ -2,7 +2,7 @@
 
 เข้า **Projects → 🛡️ ตรวจความปลอดภัย** แล้วเพิ่มระบบ → เพิ่มเวอร์ชัน → เพิ่มเข้าคิว → เปิดผลสแกน
 
-- Web Information / Web Member / WebAdmin ใช้ ZAP; Android APK / iOS IPA ใช้ MobSF Static Analysis
+- Website รวม Web Info / Web Member / Web Admin ใช้ ZAP; Android APK / iOS IPA ใช้ MobSF Static Analysis
 - เวอร์ชันเก็บ Version, Build, Git Commit, UAT/Production และรายละเอียดการเปลี่ยนแปลง
 - ไฟล์ APK/IPA สูงสุด 250 MB เก็บนอก wwwroot พร้อม SHA-256; IIS ต้องอนุญาต request size อย่างน้อย 256 MB ด้วย
 - ทุกครั้งที่สแกนมีรายงาน JSON ต้นฉบับแยกกัน ดาวน์โหลด PDF ที่สร้างจากผลรอบนั้นได้
@@ -13,7 +13,7 @@
 
 ## 1. เตรียม IIS และฐานข้อมูล
 
-สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 11 ตารางใหม่ `security_*` ไม่มี ALTER/DROP ตารางเดิม
+สำรองฐานข้อมูลก่อน deploy แล้วรัน `deploy/security/schema.sql` กับฐานข้อมูลของ ProjectTracking ที่ใช้งานจริง ไฟล์นี้สร้างเฉพาะ 13 ตาราง `security_*` ไม่มี ALTER/DROP ตารางเดิม
 
 ค่าเริ่มต้นไม่สร้างตารางอัตโนมัติ ตั้ง `SECURITY_AUTO_CREATE_SCHEMA=false` บน IIS หากติดตั้ง schema เอง หรือใช้ `true` เพื่อให้แอปสร้างตารางใหม่ตอนเริ่ม (ต้องมีสิทธิ์ CREATE TABLE) ไม่ควรใช้การสร้าง schema อัตโนมัติแทนกระบวนการ deploy ที่ตรวจสอบแล้ว
 
@@ -212,3 +212,18 @@ Worker ใช้ ZAP JSON authentication และ Header Based Session Manageme
 กำหนดสิทธิ์ `SecurityScans.Delete` ใน UserManagement/Permissions พร้อม `SecurityScans.Index` และให้ผู้ใช้เข้าใช้งานใหม่เพื่อโหลดสิทธิ์ ปุ่มลบอยู่ในประวัติรอบสแกน ลบได้เฉพาะ Completed / Failed / Cancelled พร้อมยืนยันก่อนลบ ฝั่งเซิร์ฟเวอร์ตรวจสิทธิ์และขอบเขตโครงการอีกครั้ง และบล็อก Queued / Running
 
 การลบจะล้างรอบสแกน ความคืบหน้า ผลที่พบในรอบ และรายงานของรอบนั้น โดยเก็บระบบ เวอร์ชัน ไฟล์ APK/IPA และประเด็น/Issue/ประวัติการแก้ไขไว้ ลิงก์กลับผลสแกนจาก Issue จะเลือกจากรอบที่เสร็จแล้วที่ยังมีอยู่ หากไม่เหลือรอบดังกล่าวจะไม่แสดงลิงก์ รายงานในเครื่อง MobSF ไม่ถูกลบผ่านปุ่มนี้ หากลบไฟล์รายงานบน Windows ไม่สำเร็จ ระบบแจ้งผู้ดูแลและบันทึก Log
+
+
+### Website รวม Web Info / Web Member / Web Admin
+
+ประเภทหลักสำหรับระบบใหม่และแท็บประวัติคือ Website, Android และ iOS แต่ Website เดียวตั้งค่าได้สามส่วน: Web Info, Web Member และ Web Admin แต่ละส่วนมี URL, เปิด/ปิดการรวมสแกน และ Login แบบเข้ารหัสของตัวเอง บันทึก URL และ Username/Password ของ Member และ Admin ล่วงหน้าได้ เลือก Form หรือ JSON Bearer ให้ตรงกับระบบจริง ไม่มีการเดา URL หรือบัญชี Admin อัตโนมัติ URL Login และ URL เริ่มตรวจต้องอยู่ origin เดียวกับ URL ของส่วนที่ตั้งค่า
+
+อัปเกรดระบบเดิม: สำรองฐานข้อมูลและ storage แล้วรัน `deploy/security/website-schema.sql` ในฐานข้อมูลที่ใช้งาน ก่อน Deploy เว็บ Windows สคริปต์เพิ่มเพียง `security_website_targets` และ `security_website_scan_parts` ไม่เปลี่ยนหรือลบข้อมูลเดิม ไม่ต้องเปลี่ยน `.env`, กุญแจ หรืออัปเดต Worker เพราะแต่ละส่วนยังส่งงาน ZAP ตามสัญญา API เดิม
+
+ระบบเก่าประเภท WebInformation / WebMember / WebAdmin แสดงหมวด Website และยังเก็บระบบ เวอร์ชัน รายงานและ Issue เดิมแยกกัน ไม่รวมประวัติจากหลายระบบให้เอง เมื่อบันทึกส่วนใหม่ครั้งแรก ระบบรักษา URL และโปรไฟล์เดิมเป็นส่วนที่ตรงกับประเภทเดิม จากนั้นเพิ่ม Member/Admin ในระบบ Website ที่ต้องการใช้งานเป็นชุดได้
+
+กด “สแกน Website ทุกส่วน” ครั้งเดียว จะตรวจการตั้งค่าและการอนุมัติโดเมนของทุกส่วนที่เปิด ก่อนบันทึกคิวทั้งหมดใน transaction เดียว หากส่วนหนึ่งตั้งค่าไม่ครบจะไม่สร้างคิวเพียงบางส่วน Member/Admin ที่เปิดต้องบันทึก Login ผ่านหน้าเว็บแล้ว ผลลัพธ์แยกเป็นรอบย่อยตามส่วนและมีลิงก์สลับดูภายในชุดเดียวกัน Worker ตรวจตามลำดับ ไม่รันหลาย ZAP sessions พร้อมกัน ส่วนหนึ่ง Login ไม่สำเร็จจะเป็น Failed โดยไม่แกล้งรายงานว่าสแกนผ่าน และส่วนอื่นยังดำเนินการตามคิว
+
+การสแกนทุกส่วนหมายถึงเข้าแต่ละ URL ด้วยบัญชีที่ระบุ ไม่ใช่การข้ามสิทธิ์จากหน้า Info เข้า Member/Admin Traditional Spider ยังไม่รัน JavaScript ของ SPA จึงไม่รับประกันว่าค้นพบทุกหน้า/API ตรวจ coverage ของแต่ละรอบประกอบเสมอ
+
+กรอก URL หลักเว็บไซต์ครั้งเดียว เช่น `https://uat.fishcorp.in.th/` แล้วระบุเส้นทางแต่ละส่วน เช่น `/`, `/member/login`, `/adminlogon` ระบบประกอบ URL ให้เอง ทั้งสามตัวอย่างเป็น origin เดียวกัน ไม่ใช่ subdomain คนละตัว ช่องรับข้อมูล Login ต้องระบุเส้นทาง Form/API ที่รับ POST จริง ซึ่งอาจต่างจากหน้าที่ใช้แสดง Login เช่น `/api/member/auth/login` และระบุเส้นทางเริ่มตรวจหลัง Login ตามระบบจริง ไม่ต้องกรอกโดเมนซ้ำ

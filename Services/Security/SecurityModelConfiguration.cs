@@ -5,6 +5,12 @@ public static class SecurityModelConfiguration
 {
     public static void Configure(ModelBuilder b)
     {
+        b.Entity<SecurityWebsiteTarget>().HasIndex(x=>new{x.SystemId,x.Section}).IsUnique();
+        b.Entity<SecurityWebsiteTarget>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SecurityWebsiteScanPart>().HasKey(x=>x.ScanId);
+        b.Entity<SecurityWebsiteScanPart>().Property(x=>x.ScanId).ValueGeneratedNever();
+        b.Entity<SecurityWebsiteScanPart>().HasIndex(x=>new{x.BatchKey,x.Section}).IsUnique();
+        b.Entity<SecurityWebsiteScanPart>().HasOne<SecurityScan>().WithOne().HasForeignKey<SecurityWebsiteScanPart>(x=>x.ScanId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityHostApproval>().HasIndex(x=>new{x.ProjectId,x.Host}).IsUnique();
         b.Entity<SecuritySystem>().HasIndex(x=>x.ProjectId);
         b.Entity<SecurityVersion>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);

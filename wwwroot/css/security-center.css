@@ -175,3 +175,15 @@ html body main.route-controller-securityscans.route-action-index .security-works
 }
 .security-history-type span { font-size: .8em; }
 .security-history-type:focus-visible { outline: 2px solid var(--pt-accent, #0f766e); outline-offset: 2px; }
+
+.security-website-targets { padding: 16px 22px; }
+.security-website-part { border: 1px solid var(--pt-border, #c2ccd8); border-radius: 10px; padding: 12px; margin: 10px 0; }
+.security-website-part > summary { display: flex; justify-content: space-between; gap: 10px; }
+.security-website-part > summary span { font-size: .8rem; font-weight: 400; }
+.security-website-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.security-website-wide { grid-column: 1 / -1; }
+.security-website-approval { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.security-workspace .security-system[data-system-kind="Website"] { --security-card-tone: var(--pt-chart-primary, #2996f3); }
+@media(max-width:600px) { .security-website-form { grid-template-columns: minmax(0,1fr); } .security-website-targets { padding: 12px; } }
+
+.security-history-type[aria-current="page"] { border-color: var(--pt-accent, #0f766e); font-weight: 700; }

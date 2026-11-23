@@ -32,6 +32,14 @@
         });
         sync();
     });
+    root.querySelectorAll('[data-website-login-form]').forEach(form=>{
+        const type=form.querySelector('[data-website-login-type]');
+        const body=form.querySelector('[name="requestData"]');
+        const defaults={Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        let previous=type.value;
+        const sync=()=>form.querySelectorAll('[data-website-login-kind]').forEach(field=>{field.hidden=field.dataset.websiteLoginKind!==type.value;});
+        type.addEventListener('change',()=>{if(body.value===defaults[previous])body.value=defaults[type.value];previous=type.value;sync();});sync();
+    });
     const storageKey='security-system-open:'+root.dataset.projectId;
     const systems=Array.from(root.querySelectorAll('[data-system-id]'));
     try{const saved=sessionStorage.getItem(storageKey);systems.forEach(system=>{if(system.dataset.systemId===saved)system.open=true;});}catch{}

@@ -142,3 +142,22 @@ public class SecurityHostApproval
     public int UpdatedBy { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("security_website_targets")]
+public class SecurityWebsiteTarget
+{
+    public long Id { get; set; }
+    public long SystemId { get; set; }
+    [MaxLength(24)] public string Section { get; set; } = "WebInfo";
+    [MaxLength(2000)] public string TargetUrl { get; set; } = "";
+    public bool Enabled { get; set; }
+    public bool RequiresLogin { get; set; }
+    [MaxLength(80)] public string? AuthProfile { get; set; }
+}
+[Table("security_website_scan_parts")]
+public class SecurityWebsiteScanPart
+{
+    public long ScanId { get; set; }
+    [MaxLength(36)] public string BatchKey { get; set; } = "";
+    [MaxLength(24)] public string Section { get; set; } = "";
+}

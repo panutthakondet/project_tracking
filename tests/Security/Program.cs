@@ -112,7 +112,8 @@ await Reject(()=>TargetPolicy.ValidateAsync("https://93.184.216.34/","",false,de
 using var fake=new HttpClient(new FakeEngine()){BaseAddress=new Uri("http://zap/")};var engines=new ScannerEngines(fake,fake,_=>"");
 await Reject(()=>engines.Web(new(1,"lease","WebInformation","ZAP","Passive","1",null,"UAT","https://unapproved.example/",false,null,null,null),default),"scanner refuses unapproved jobs");
 await using var mysql=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseMySql("Server=localhost;Database=unused;User=unused",new MySqlServerVersion(new Version(8,0,36))).Options);
-var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==11&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates eleven security tables including independent progress snapshots");
+var sql=SecuritySchema.Statements(mysql).ToArray();Check(sql.Length==13&&sql.All(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_")),"DDL only creates thirteen security tables including independent progress snapshots");
+await File.WriteAllTextAsync("deploy/security/website-schema.sql","-- Select the existing ProjectTracking database. Additive Website upgrade; no existing records changed.\n"+string.Join("\n\n",sql.Where(x=>x.StartsWith("CREATE TABLE IF NOT EXISTS `security_website_")))+"\n");
 await File.WriteAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),"deploy/security/schema.sql"),"-- Generated from SecurityModelConfiguration. New tables only.\n"+string.Join("\n\n",sql)+"\n");
 var progressDdl=sql.Single(s=>s.StartsWith("CREATE TABLE IF NOT EXISTS `security_scan_progress`"));
 Check(progressDdl.Contains("PRIMARY KEY (`ScanId`)")&&!progressDdl.Contains("AUTO_INCREMENT"),"progress schema uses existing scan ID without altering scan/report tables");
@@ -127,6 +128,7 @@ await ArtifactChecks.Run(db,service,storage);
 await LargeReportChecks.Run();
 await EngineChecks.Run();
 await LoginChecks.Run(root);
+await WebsiteChecks.Run(root);
 await ReadinessChecks.Run();
 await RazorChecks.Run();
 Console.WriteLine("ALL SECURITY CHECKS PASSED — isolated SQLite and fake HTTP; no real scans or production writes.");

@@ -22,11 +22,11 @@
         <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form security-system-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
             <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
             <label>ประเภท<select class="form-select" name="kind">@foreach(var kind in SecurityValues.Kinds){<option>@kind</option>}</select></label>
-            <label>URL เว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เว้นว่างสำหรับแอปมือถือ เครื่องสแกนจะตรวจเฉพาะโดเมนที่ผู้ดูแลอนุญาต</small></label>
+            <label>URL หลักเว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>กรอกครั้งเดียว เช่น https://uat.example.com/ จากนั้นตั้งเส้นทาง Info / Member / Admin ภายในระบบ เว้นว่างสำหรับแอปมือถือ</small></label>
             <small class="security-login-create-hint">เว็บไซต์ที่ต้อง Login สามารถตั้งค่า Username และ Password หลังเพิ่มระบบได้</small>
             <div class="security-system-form-actions"><button class="btn btn-primary" type="submit">เพิ่มระบบ</button></div></form></details>
     }
-    @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, WebAdmin, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
+    @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Website, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
     @foreach(var system in Model.Systems){
         var versions=Model.Versions.Where(x=>x.SystemId==system.Id).ToList();
         var mobile=SecurityValues.IsMobile(system.Kind);
@@ -35,36 +35,19 @@
         var hostApproved=mobile||approval?.IsApproved==true;
         var savedLogin=Model.CanManage&&Model.LoginSettings.TryGetValue(system.Id,out var storedLogin)?storedLogin:null;
         var latestScan=Model.Scans.FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
-        <details class="security-card security-system" name="security-system" data-system-id="@system.Id" data-system-kind="@system.Kind"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@system.Kind</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
+        <details class="security-card security-system" name="security-system" data-system-id="@system.Id" data-system-kind="@SecurityValues.Category(system.Kind)"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@SecurityValues.Category(system.Kind)</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
         @if(latestScan!=null){<div class="security-latest-scan"><span>ผลตรวจล่าสุด #@latestScan.Id · @latestScan.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span><a class="btn btn-outline-primary btn-sm" asp-action="Scan" asp-route-id="@latestScan.Id">ดูผลล่าสุด</a></div>}
         @if(!mobile){
-            <div class="security-host-approval">
-                <div><strong>@(host??"ยังไม่ได้ระบุโดเมน")</strong><span class="security-status">@(hostApproved?"อนุมัติให้สแกนแล้ว":"รออนุมัติโดเมน")</span><p>อนุมัติเฉพาะโดเมนนี้ในโครงการนี้ ไม่รวมโดเมนย่อยหรือเว็บไซต์ที่ Redirect ไป</p>@if(!hostApproved&&!Model.CanApproveHosts){<small>ให้ผู้มีสิทธิ์ “อนุมัติและถอนโดเมน” อนุมัติก่อนเพิ่มเข้าคิว</small>}</div>
-                @if(Model.CanApproveHosts&&host!=null){<form asp-action="ApproveHost" method="post"><input type="hidden" name="systemId" value="@system.Id" /><input type="hidden" name="approved" value="@((!hostApproved).ToString().ToLowerInvariant())" /><button class="btn @(hostApproved?"btn-outline-primary":"btn-primary")" type="submit" aria-label="@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมน") @host">@(hostApproved?"ถอนการอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+            <div class="security-website-targets">
+                <p><strong>URL หลัก:</strong> @(Uri.TryCreate(system.TargetUrl,UriKind.Absolute,out var websiteBase)?websiteBase.GetLeftPart(UriPartial.Authority):system.TargetUrl)</p>
+                <p>สแกนทุกส่วนที่เปิดใช้งานในครั้งเดียว โดยใช้ URL และบัญชีแยกกัน ผลสแกนแยกตามส่วน</p>
+                @foreach(var section in SecurityValues.WebsiteSections){
+                    var targetPart=Model.WebsiteTargets.FirstOrDefault(x=>x.SystemId==system.Id&&x.Section==section)??new ProjectTracking.Models.SecurityWebsiteTarget{SystemId=system.Id,Section=section};
+                    var partLogin=targetPart.Id>0?Model.WebsiteLoginSettings.GetValueOrDefault(targetPart.Id):(targetPart.AuthProfile==system.AuthProfile?savedLogin:null);
+                    var partHost=Uri.TryCreate(targetPart.TargetUrl,UriKind.Absolute,out var partUri)?partUri.IdnHost.TrimEnd('.').ToLowerInvariant():null;
+                    <partial name="_WebsiteTarget" model="@(new ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm{System=system,Target=targetPart,Login=partLogin,CanManage=Model.CanManage,CanApprove=Model.CanApproveHosts,Approved=Model.HostApprovals.Any(x=>x.Host==partHost&&x.IsApproved),Unreadable=targetPart.Id>0?Model.UnreadableWebsiteLogins.Contains(targetPart.Id):Model.UnreadableLoginSettings.Contains(system.Id)})" />
+                }
             </div>
-        }
-        @if(!mobile&&Model.CanManage){
-            <details class="security-disclosure security-login-settings">
-                <summary>ตั้งค่า Login <small>— @(system.RequiresLogin ? "เปิดใช้งานแล้ว" : "ยังไม่เปิดใช้งาน")</small></summary>
-                <p>กรอกบัญชีทดสอบที่ใช้เข้าสู่เว็บไซต์ ระบบจะเข้ารหัสข้อมูลและส่งให้เครื่องสแกนเมื่อรับงาน ไม่ต้องสร้างไฟล์บน Ubuntu</p>
-                @if(savedLogin!=null){<p class="security-muted">บันทึกข้อมูล Login ไว้แล้ว ค่าตั้งค่าเดิมแสดงด้านล่าง หากไม่เปลี่ยน Password ให้เว้นว่างเพื่อใช้รหัสเดิม</p>}
-                else if(Model.UnreadableLoginSettings.Contains(system.Id)){<p class="text-danger" role="alert">อ่านข้อมูล Login เดิมไม่ได้ กรุณาตรวจสอบ Data Protection keys หรือกรอกข้อมูลใหม่ให้ครบ</p>}
-                else if(system.RequiresLogin){<p class="security-muted">กำลังใช้โปรไฟล์เดิมบนเครื่องสแกน กรอกข้อมูลด้านล่างเพื่อเปลี่ยนมาตั้งค่าจากหน้าเว็บ</p>}
-                <form asp-action="SaveLogin" method="post" class="security-form security-login-form" data-login-form data-target-url="@system.TargetUrl" autocomplete="off" data-loading-delay="0" data-loading-message="กำลังบันทึกการตั้งค่า Login…">
-                    <input type="hidden" name="systemId" value="@system.Id" />
-                    <label class="security-check security-login-toggle"><input type="checkbox" name="enabled" value="true" checked="@system.RequiresLogin" data-login-enabled /> Login ก่อนสแกน</label>
-                    <label>วิธี Login<select class="form-select" name="authenticationType" data-login-type><option value="Form" selected="@(savedLogin?.AuthenticationType!="JsonBearer")">Form Login — ฟอร์มทั่วไป</option><option value="JsonBearer" selected="@(savedLogin?.AuthenticationType=="JsonBearer")">JSON Login + Bearer Token — Web Member / API</option></select></label>
-                    <div class="security-login-preset"><button class="btn btn-outline-primary" type="button" data-login-member-preset>ใช้ค่าตัวอย่าง Web Member</button><small>เติม API Login และชื่อช่องสมาชิกให้ โดยไม่เปลี่ยน Username / Password ที่กรอกไว้</small></div>
-                    <label class="security-login-url">URL ที่รับข้อมูล Login<input class="form-control" type="url" name="loginUrl" value="@savedLogin?.LoginUrl" maxlength="2000" placeholder="https://your-site.example/login" data-login-required /><small>ใช้โดเมน พอร์ต และ HTTP/HTTPS เดียวกับ URL เว็บไซต์ของระบบนี้</small></label>
-                    <label>Username<input class="form-control" name="username" value="@savedLogin?.Username" maxlength="255" autocomplete="off" data-login-required /></label>
-                    <label>Password<input class="form-control" type="password" name="password" maxlength="2000" autocomplete="new-password" data-login-password data-login-required data-login-optional-password="@((savedLogin!=null).ToString().ToLowerInvariant())" placeholder="@(savedLogin!=null ? "บันทึกรหัสผ่านแล้ว — เว้นว่างเพื่อใช้รหัสเดิม" : "กรอกรหัสผ่านบัญชีทดสอบ")" /><small>@(savedLogin!=null ? "กรอกเฉพาะเมื่อต้องการเปลี่ยนรหัสผ่าน" : "ไม่แสดงรหัสผ่านเดิมกลับบนหน้าจอ")</small></label>
-                    <label class="security-login-indicator" data-login-kind="Form">ข้อความที่พบหลัง Login สำเร็จ<input class="form-control" name="loggedInRegex" value="@savedLogin?.LoggedInRegex" maxlength="500" placeholder="เช่น ออกจากระบบ หรือ Sign out" data-login-required /><small>ต้องเป็นข้อความที่มีเฉพาะหลังเข้าสู่ระบบ เพื่อยืนยันว่า Login สำเร็จจริง</small></label>
-                    <label data-login-kind="JsonBearer">ชื่อฟิลด์ Token ในผล Login<input class="form-control" name="tokenPath" maxlength="120" value="@(savedLogin?.TokenPath ?? "token")" data-login-required /><small>เช่น token หรือ data.access_token ระบบตรวจว่ามี Token จริงก่อนเริ่มสแกน</small></label>
-                    <label data-login-kind="JsonBearer">URL เริ่มตรวจหลัง Login<input class="form-control" type="url" name="scanStartUrl" maxlength="2000" value="@savedLogin?.ScanStartUrl" placeholder="https://your-site.example/member/" /><small>ระบุพื้นที่หลัง Login ที่ต้องการตรวจ ไม่ใช้หน้า /logon เป็นจุดเริ่ม</small></label>
-                    <details class="security-login-advanced"><summary>ตั้งค่าขั้นสูง — ข้อมูลที่ส่ง Login</summary><label>ข้อมูล Request Body<textarea class="form-control" name="requestData" maxlength="4000" rows="3">@(savedLogin?.RequestData ?? "username={%username%}&password={%password%}")</textarea><small>Form ใช้ username={%username%}&amp;password={%password%} · JSON ใช้ {"membership_no":"{%username%}","mem_password":"{%password%}"} โดยคงตัวแทน Username / Password ไว้</small></label></details>
-                    <div class="security-system-form-actions"><small>รองรับ Form และ JSON Bearer · ไม่ข้าม OTP / CAPTCHA · เส้นทางที่สร้างด้วย JavaScript อาจต้องตรวจเพิ่มเติม</small><button class="btn btn-primary" type="submit">บันทึกการตั้งค่า Login</button></div>
-                </form>
-            </details>
         }
         @if(Model.CanManage){<details class="security-disclosure"><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
             <label>Version<input class="form-control" name="versionName" maxlength="100" required placeholder="1.0.0" /></label><label>Build Number<input class="form-control" name="buildNumber" maxlength="100" /></label><label>Git Commit<input class="form-control" name="gitCommit" maxlength="64" /></label><label>สภาพแวดล้อม<select class="form-select" name="environment"><option>UAT</option><option>Production</option></select></label>
@@ -87,7 +70,7 @@
                 @if(Model.CanManage){<form asp-action="Queue" method="post" class="security-queue"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
                     <label for="scan-mode-@version.Id">รูปแบบการตรวจ</label>
                     <select id="scan-mode-@version.Id" class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select>
-                    <button class="btn btn-primary" type="submit" disabled="@(!hostApproved)" title="@(hostApproved?"เพิ่มเข้าคิวสแกน":"ต้องอนุมัติโดเมนก่อนสั่งสแกน")">เพิ่มเข้าคิวสแกน</button>
+                    <button class="btn btn-primary" type="submit" title="เพิ่มทุกส่วนที่เปิดใช้งานเข้าคิวสแกน">@(mobile?"เพิ่มเข้าคิวสแกน":"สแกน Website ทุกส่วน")</button>
                 </form>}
             </article></details>
         }
@@ -97,7 +80,7 @@
     <div class="security-history-types" role="group" aria-label="กรองประวัติตามประเภทระบบ" data-history-controls hidden>
         <button type="button" class="security-history-type" data-history-kind="" aria-pressed="true">ทั้งหมด <span>@Model.Scans.Count</span></button>
         @foreach(var kind in SecurityValues.Kinds){
-            var systemIds=Model.Systems.Where(x=>x.Kind==kind).Select(x=>x.Id).ToHashSet();
+            var systemIds=Model.Systems.Where(x=>SecurityValues.Category(x.Kind)==kind).Select(x=>x.Id).ToHashSet();
             var versionIds=Model.Versions.Where(x=>systemIds.Contains(x.SystemId)).Select(x=>x.Id).ToHashSet();
             var scanCount=Model.Scans.Count(x=>versionIds.Contains(x.VersionId));
             <button type="button" class="security-history-type" data-history-kind="@kind" aria-pressed="false">@kind <span>@scanCount</span></button>
@@ -107,7 +90,7 @@
         <label>ค้นหา<input type="search" class="form-control" data-history-search placeholder="ชื่อระบบ เวอร์ชัน หรือเลขรอบ" /></label>
         <label>สถานะ<select class="form-select" data-history-status><option value="">ทุกสถานะ</option>@foreach(var state in new[]{"Queued","Running","Processing","Completed","Failed","Cancelled"}){<option value="@state">@SecurityValues.StatusLabel(state)</option>}</select></label>
     </div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
-    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status" data-kind="@system.Kind"><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
+    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status" data-kind="@SecurityValues.Category(system.Kind)"><td>#@scan.Id</td><td>@system.Name @if(Model.WebsiteScanParts.FirstOrDefault(x=>x.ScanId==scan.Id) is {} part){<strong> · @SecurityValues.SectionLabel(part.Section)</strong>}<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
         @if(Model.CanDeleteScans && scan.Status is "Completed" or "Failed" or "Cancelled"){
             <form asp-action="DeleteScan" asp-route-id="@scan.Id" method="post" class="security-history-delete" onsubmit="return confirm('ลบรอบสแกน #@scan.Id และรายงานของรอบนี้หรือไม่? เวอร์ชัน ไฟล์แอป และ Issue จะยังคงอยู่');">
                 <button type="submit" class="btn btn-outline-danger" aria-label="ลบรอบสแกน @scan.Id">ลบ</button>
