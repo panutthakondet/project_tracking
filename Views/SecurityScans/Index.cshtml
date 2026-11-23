@@ -89,7 +89,7 @@
                 @if(Model.CanManage){<form asp-action="Queue" method="post" asp-route-workflow="@Model.Workflow" class="security-queue"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
                     <label for="scan-mode-@version.Id">รูปแบบการตรวจ</label>
                     <select id="scan-mode-@version.Id" class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select>
-                    <button class="btn btn-primary" type="submit" title="เพิ่มทุกส่วนที่เปิดใช้งานเข้าคิวสแกน">@(Model.Workflow=="Development"?"สแกนระหว่างพัฒนา (ไม่สร้าง Issue)":mobile?"เพิ่มเข้าคิวสแกนจริง":"สแกน Website ทุกส่วน")</button>
+                    <button class="btn btn-primary" type="submit" title="เพิ่มทุกส่วนที่เปิดใช้งานเข้าคิวสแกน">นำเข้าคิวสแกน</button>
                 </form>}
             </article></details>
         }
