@@ -79,8 +79,6 @@
         margin: 6px 0 0;
     }
 
-    .dev-filter-card,
-    .dev-issue-card,
     /* Override the shared fixed-width action buttons for longer scan links. */
     .dev-issue-page .dev-actions { min-width: 0; max-width: 100%; gap: 8px; }
     .dev-issue-page .dev-actions .btn {
@@ -95,9 +93,12 @@
         padding: .5rem .8rem !important;
     }
 
+    .dev-filter-card,
+    .dev-issue-card,
     .dev-empty-card {
-        background: #fff;
-        border: 1px solid #d8e3ef;
+        background: var(--pt-surface, #fff);
+        color: var(--pt-surface-contrast, #17212b);
+        border: 1px solid var(--pt-border, #d8e3ef);
         border-radius: 18px;
         box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
     }
