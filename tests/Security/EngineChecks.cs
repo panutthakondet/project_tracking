@@ -16,20 +16,9 @@ public static class EngineChecks
   await dynamicEngines.Web(job with{ApprovedHosts=["93.184.216.34"]},default);
   try{await engines.Web(job with{ApprovedHosts=[]},default);throw new Exception("Empty server approval fell back to local allowlist");}catch(InvalidOperationException e)when(e.Message=="Target host is not approved"){}
   Console.WriteLine("PASS dynamic approval works without environment changes; empty server approval cannot fall back to a permissive local list");
-  var profiles=Path.Combine(Path.GetTempPath(),"security-auth-fixture-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(profiles);
-  try{
-   await File.WriteAllTextAsync(Path.Combine(profiles,"member.json"),"""{"loginUrl":"https://93.184.216.34/login","requestData":"username={%username%}&password={%password%}","loggedInRegex":"Logout","username":"fixture","password":"fixture"}""");
-   var authenticated=new ScannerEngines(client,client,k=>k=="SECURITY_AUTH_PROFILES_PATH"?profiles:k=="SECURITY_ALLOWED_HOSTS"?"93.184.216.34":"test");
-   try{await authenticated.Web(job with{RequiresLogin=true,AuthProfile="member"},default);throw new Exception("Failed authentication was accepted");}catch(InvalidOperationException){Console.WriteLine("PASS authenticated scan rejects failed login verification");}
-  }finally{Directory.Delete(profiles,true);}
-
   handler.AuthSuccess=true;
-  var webLogin=new SecurityLoginCredentials{LoginUrl="https://93.184.216.34/login",Username="embedded-test",Password="embedded-secret",LoggedInRegex="Logout"};
   var webAuthenticated=new ScannerEngines(client,client,k=>k=="SECURITY_AUTH_PROFILES_PATH"?throw new Exception("Web login must not read local profiles"):k=="SECURITY_ALLOWED_HOSTS"?"93.184.216.34":"test");
-  await webAuthenticated.Web(job with{RequiresLogin=true,AuthProfile="web-"+new string('a',32),Login=webLogin},default);
-  if(!handler.FormCsrfConfigured||!handler.Paths.Any(p=>p.Contains("acsrf/action/addOptionToken")))throw new Exception("Form CSRF configuration missing");
-  if(!handler.EmbeddedCredentialsSeen)throw new Exception("Embedded credentials were not passed to ZAP");
-  Console.WriteLine("PASS web-managed credentials authenticate through ZAP without a local profile file");
+  // Form cookie, CSRF and rejection cases use an isolated HTTP handler in JsonCookieChecks.
   var jsonLogin=new SecurityLoginCredentials{AuthenticationType="JsonBearer",LoginUrl="https://93.184.216.34/api/member/auth/login",ScanStartUrl="https://93.184.216.34/member/",Username="fixture",Password="fixture",RequestData="""{"membership_no":"{%username%}","mem_password":"{%password%}"}"""};
   string Response(string body,string status="200 OK")=>System.Text.Json.JsonSerializer.Serialize(new{authSuccessful="true",responseHeader="HTTP/1.1 "+status+"\r\n",responseBody=body});
   handler.AuthResponse=Response("""{"token":"fixture.jwt.token"}""");

@@ -71,7 +71,7 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             await Zap("context","action","setContextInScope",new(){["contextName"]=name,["booleanInScope"]="true"},ct);
             await Zap("core","action","setMode",new(){["mode"]="protect"},ct);
             string? user=null;
-            if(loginProfile?.AuthenticationType=="JsonCookie"){
+            if(loginProfile?.AuthenticationType is "JsonCookie" or "Form"){
                 reportProgress?.Invoke(new("Authenticating"));
                 var cookies=new System.Net.CookieContainer();
                 using var handler=new HttpClientHandler{AllowAutoRedirect=false,CookieContainer=cookies};
@@ -117,17 +117,17 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             reportProgress?.Invoke(new("PassiveChecks"));
             while(Value(await Zap("pscan","view","recordsToScan",null,ct),"recordsToScan")!="0")await Task.Delay(1000,ct);
             reportProgress?.Invoke(new("FetchingReport"));
-            if(loginProfile?.AuthenticationType=="JsonCookie"){
+            if(loginProfile?.AuthenticationType is "JsonCookie" or "Form"){
                 // Fail closed when the scan session has expired before reporting success.
                 var verified=await Zap("core","action","accessUrl",new(){["url"]=target.AbsoluteUri,["followRedirects"]="true"},ct);
                 if(!JsonCookieLogin.HasIndicator(verified,loginProfile.LoggedInRegex))throw new InvalidOperationException("JSON Cookie session could not be verified at scan completion");
             }
             var collected=await ZapAlertCollector.CollectAsync((start,token)=>Zap("alert","view","alerts",new(){["baseurl"]=target.AbsoluteUri,["start"]=start.ToString(),["count"]="500"},token),ct);
             var version=Value(await Zap("core","view","version",null,ct),"version");
-            return new(collected.Json,version,$"ZAP {job.Mode}; {collected.Count} raw alerts collected in full; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(loginProfile?.AuthenticationType=="JsonCookie"?"JSON Cookie/CSRF session verified; session expiry causes failure. ":loginProfile?.AuthenticationType=="JsonBearer"?"JSON login verified; context-scoped Bearer session enabled. SPA/browser-only routes still require a browser-based scan. ":user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
+            return new(collected.Json,version,$"ZAP {job.Mode}; {collected.Count} raw alerts collected in full; scoped traditional spider. JavaScript-only routes, MFA and business workflows need separate review. "+(loginProfile?.AuthenticationType is "JsonCookie" or "Form"?"Cookie/CSRF session verified; session expiry causes failure. ":loginProfile?.AuthenticationType=="JsonBearer"?"JSON login verified; context-scoped Bearer session enabled. SPA/browser-only routes still require a browser-based scan. ":user!=null?"Form login configured; confirm authenticated coverage in ZAP before treating the run as complete assurance.":"Unauthenticated scan."));
         }finally{
             using var cleanup=new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            try{if(loginProfile?.AuthenticationType=="JsonCookie")await Zap("replacer","action","removeRule",new(){["description"]=name},cleanup.Token);if(spider!=null)await Zap("spider","action","stop",new(){["scanId"]=spider},cleanup.Token);if(active!=null)await Zap("ascan","action","stop",new(){["scanId"]=active},cleanup.Token);if(context!=null)await Zap("context","action","removeContext",new(){["contextName"]=name},cleanup.Token);}catch{Console.Error.WriteLine("Scanner cleanup failed; restart ZAP before the next run.");}
+            try{if(loginProfile?.AuthenticationType is "JsonCookie" or "Form")await Zap("replacer","action","removeRule",new(){["description"]=name},cleanup.Token);if(spider!=null)await Zap("spider","action","stop",new(){["scanId"]=spider},cleanup.Token);if(active!=null)await Zap("ascan","action","stop",new(){["scanId"]=active},cleanup.Token);if(context!=null)await Zap("context","action","removeContext",new(){["contextName"]=name},cleanup.Token);}catch{Console.Error.WriteLine("Scanner cleanup failed; restart ZAP before the next run.");}
         }
     }
     public async Task<EngineResult> Mobile(SecurityJob job,string file,CancellationToken ct)

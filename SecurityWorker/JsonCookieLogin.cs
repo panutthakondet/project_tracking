@@ -44,27 +44,46 @@ public static class JsonCookieLogin
             }
             throw new InvalidOperationException("Too many Login redirects");
         }
-        using(var preflight=new HttpRequestMessage(HttpMethod.Get,login))await Read(preflight);
+        string loginHtml;
+        using(var preflight=new HttpRequestMessage(HttpMethod.Get,login))loginHtml=await Read(preflight);
         // A public page must not count as proof of authentication.
         using(var anonymous=new HttpRequestMessage(HttpMethod.Get,start))
             if(indicator.IsMatch(await Read(anonymous,true)))throw new InvalidOperationException("Login indicator also matches before Login; choose a protected-page-only indicator");
-        var csrf=cookies.GetCookies(login)["XSRF-TOKEN"]?.Value;
-        if(string.IsNullOrEmpty(csrf))throw new InvalidOperationException("JSON Cookie Login: XSRF-TOKEN cookie was not issued by the Login page");
+        // Refresh the Login page after the anonymous probe, which may rotate the session/token.
+        using(var refresh=new HttpRequestMessage(HttpMethod.Get,login))loginHtml=await Read(refresh);
+        var form=profile.AuthenticationType=="Form";
         var payload=profile.RequestData;
-        // Escape values as JSON string content rather than interpolating raw credentials.
-        payload=payload.Replace("{%username%}",JsonSerializer.Serialize(profile.Username)[1..^1]).Replace("{%password%}",JsonSerializer.Serialize(profile.Password)[1..^1]);
-        using var parsed=JsonDocument.Parse(payload);
         using(var post=new HttpRequestMessage(HttpMethod.Post,login))
         {
-            post.Content=new StringContent(payload,Encoding.UTF8,"application/json");
-            post.Headers.TryAddWithoutValidation("X-XSRF-TOKEN",Uri.UnescapeDataString(csrf));
-            post.Headers.TryAddWithoutValidation("X-Requested-With","XMLHttpRequest");
+            if(form){
+                var fields=payload.Split('&',StringSplitOptions.RemoveEmptyEntries).Select(part=>{
+                    var pair=part.Split('=',2);
+                    string Decode(string value)=>Uri.UnescapeDataString(value.Replace("+"," "));
+                    return new KeyValuePair<string,string>(Decode(pair[0]),Decode(pair.Length>1?pair[1]:""));
+                }).Where(p=>p.Key!="_token").Select(p=>new KeyValuePair<string,string>(p.Key,p.Value.Replace("{%username%}",profile.Username).Replace("{%password%}",profile.Password))).ToList();
+                foreach(Match input in Regex.Matches(loginHtml,@"<input\b[^>]*>",RegexOptions.IgnoreCase,TimeSpan.FromSeconds(1))){
+                    var attributes=Regex.Matches(input.Value,"([\\w-]+)\\s*=\\s*([\"'])(.*?)\\2",RegexOptions.Singleline,TimeSpan.FromSeconds(1))
+                        .Cast<Match>().ToDictionary(m=>m.Groups[1].Value,m=>WebUtility.HtmlDecode(m.Groups[3].Value),StringComparer.OrdinalIgnoreCase);
+                    if(attributes.TryGetValue("name",out var name)&&name=="_token"&&attributes.TryGetValue("value",out var token)){
+                        fields.Add(new("_token",token));break;
+                    }
+                }
+                post.Content=new FormUrlEncodedContent(fields);
+            }else{
+                var csrf=cookies.GetCookies(login)["XSRF-TOKEN"]?.Value;
+                if(string.IsNullOrEmpty(csrf))throw new InvalidOperationException("JSON Cookie Login: XSRF-TOKEN cookie was not issued by the Login page");
+                payload=payload.Replace("{%username%}",JsonSerializer.Serialize(profile.Username)[1..^1]).Replace("{%password%}",JsonSerializer.Serialize(profile.Password)[1..^1]);
+                using var parsed=JsonDocument.Parse(payload);
+                post.Content=new StringContent(payload,Encoding.UTF8,"application/json");
+                post.Headers.TryAddWithoutValidation("X-XSRF-TOKEN",Uri.UnescapeDataString(csrf));
+                post.Headers.TryAddWithoutValidation("X-Requested-With","XMLHttpRequest");
+            }
             post.Headers.TryAddWithoutValidation("Origin",origin);
             post.Headers.Referrer=login;
             await Read(post);
         }
         using(var verify=new HttpRequestMessage(HttpMethod.Get,start))
-            if(!indicator.IsMatch(await Read(verify)))throw new InvalidOperationException("JSON Cookie Login failed: protected-page indicator was not found after Login");
+            if(!indicator.IsMatch(await Read(verify)))throw new InvalidOperationException(profile.AuthenticationType+" Login failed: protected-page indicator was not found after Login");
         var header=cookies.GetCookieHeader(start);
         if(string.IsNullOrEmpty(header))throw new InvalidOperationException("JSON Cookie Login did not establish session cookies");
         return header;
