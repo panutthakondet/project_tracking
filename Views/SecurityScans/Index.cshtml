@@ -26,7 +26,7 @@
             <small class="security-login-create-hint">เว็บไซต์ที่ต้อง Login สามารถตั้งค่า Username และ Password หลังเพิ่มระบบได้</small>
             <div class="security-system-form-actions"><button class="btn btn-primary" type="submit">เพิ่มระบบ</button></div></form></details>
     }
-    @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
+    @if(Model.Systems.Count==0){<div class="security-card">ยังไม่มีระบบ เพิ่ม Web Information, Web Member, WebAdmin, Android หรือ iOS เพื่อเริ่มเก็บเวอร์ชันและผลตรวจ</div>}
     @foreach(var system in Model.Systems){
         var versions=Model.Versions.Where(x=>x.SystemId==system.Id).ToList();
         var mobile=SecurityValues.IsMobile(system.Kind);

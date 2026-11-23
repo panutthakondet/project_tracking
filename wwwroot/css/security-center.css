@@ -159,3 +159,5 @@ html body main.route-controller-securityscans.route-action-index .security-works
 }
 
 .security-history-delete { display: inline-block; margin: 4px 0 4px 6px; }
+
+.security-workspace .security-system[data-system-kind="WebAdmin"] { --security-card-tone: var(--pt-chart-warning, #c77710); }

@@ -29,7 +29,7 @@ public static class SecurityProgress
 }
 public static class SecurityValues
 {
-    public static readonly string[] Kinds=["WebInformation","WebMember","Android","iOS"];
+    public static readonly string[] Kinds=["WebInformation","WebMember","WebAdmin","Android","iOS"];
     public static readonly string[] ReviewStatuses=["Open","InProgress","FixedPendingVerification","VerifiedFixed","FalsePositive","AcceptedRisk"];
     public static bool IsMobile(string kind)=>kind is "Android" or "iOS";
     public static string Severity(string? value)=>value?.Trim().ToLowerInvariant() switch {"critical"=>"Critical","high" or "3" or "danger"=>"High","medium" or "moderate" or "2" or "warning"=>"Medium","low" or "1" or "good"=>"Low",_=>"Info"};

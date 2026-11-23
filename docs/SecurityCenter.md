@@ -2,7 +2,7 @@
 
 เข้า **Projects → 🛡️ ตรวจความปลอดภัย** แล้วเพิ่มระบบ → เพิ่มเวอร์ชัน → เพิ่มเข้าคิว → เปิดผลสแกน
 
-- Web Information / Web Member ใช้ ZAP; Android APK / iOS IPA ใช้ MobSF Static Analysis
+- Web Information / Web Member / WebAdmin ใช้ ZAP; Android APK / iOS IPA ใช้ MobSF Static Analysis
 - เวอร์ชันเก็บ Version, Build, Git Commit, UAT/Production และรายละเอียดการเปลี่ยนแปลง
 - ไฟล์ APK/IPA สูงสุด 250 MB เก็บนอก wwwroot พร้อม SHA-256; IIS ต้องอนุญาต request size อย่างน้อย 256 MB ด้วย
 - ทุกครั้งที่สแกนมีรายงาน JSON ต้นฉบับแยกกัน ดาวน์โหลด PDF ที่สร้างจากผลรอบนั้นได้
