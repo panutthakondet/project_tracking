@@ -28,7 +28,7 @@ public static class SecurityMarkdownReport
         Field("เป้าหมาย", scan.TargetUrl);
         Field("สถานะรอบตรวจ", SecurityValues.StatusLabel(scan.Status));
         Field("ขอบเขตการตรวจ", scan.Coverage);
-        Field("เริ่ม / สิ้นสุด (UTC)", $"{scan.StartedAt:yyyy-MM-dd HH:mm:ss} / {scan.FinishedAt:yyyy-MM-dd HH:mm:ss}");
+        Field("เริ่ม / สิ้นสุด (เวลาไทย UTC+7)", $"{SecurityDisplayDate.Utc(scan.StartedAt)} / {SecurityDisplayDate.Utc(scan.FinishedAt)}");
         text.AppendLine($"## สรุปผล — {findings.Count} รายการ").AppendLine();
         foreach (var group in findings.GroupBy(x => x.Severity).OrderByDescending(x => SecurityValues.Rank(x.Key)))
             text.AppendLine($"- {group.Key}: {group.Count()}");

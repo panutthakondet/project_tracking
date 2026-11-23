@@ -7,11 +7,12 @@ async function check(status,stage,percent,initial='Running',fail=false,batch=fal
  const batchSteps=Array.from({length:3},()=>{const mark=node();mark.nextElementSibling=node();return {classList:{toggle(){}},setAttribute(){},removeAttribute(){},querySelector:()=>mark};});
  const root={dataset:{state:initial,initialState:initial,url:'/fixture',startedAt:new Date().toISOString()},classList:{toggle(){}},querySelector:get,querySelectorAll:()=>batch?batchSteps:[]};
  let calls=0,reloads=0;const scheduled=[];
- const data={isBatch:batch,stepStates:['Completed','Failed',status==='Running'?'Running':'Completed'],status,stage,percent,statusLabel:status,label:'fixture',stepIndex:4,steps:Array.from({length:batch?3:7},(_,i)=>({label:'section '+i})),bytesDone:null,updatedAt:new Date().toISOString(),startedAt:new Date().toISOString(),finishedAt:status==='Completed'?new Date().toISOString():null,error:status==='Failed'?'failure':null};
+ const data={isBatch:batch,stepStates:['Completed','Failed',status==='Running'?'Running':'Completed'],status,stage,percent,statusLabel:status,label:'fixture',stepIndex:4,steps:Array.from({length:batch?3:7},(_,i)=>({label:'section '+i})),bytesDone:null,updatedAt:new Date().toISOString(),startedAt:"2026-11-23T18:30:00Z",finishedAt:status==='Completed'?new Date().toISOString():null,error:status==='Failed'?'failure':null};
  vm.runInNewContext(source,{document:{hidden:false,querySelectorAll:s=>s==='[data-scan-progress]'?[root]:[],querySelector:get,addEventListener(){}},window:{addEventListener(){},location:{reload(){reloads++;}}},AbortController,Date,Set,Number,String,Math,fetch:async()=>{calls++;if(fail)throw Error('offline');return {ok:true,headers:{get:()=> 'application/json'},json:async()=>data};},setInterval:()=>1,clearInterval(){},setTimeout(fn,ms){scheduled.push({fn,ms});return scheduled.length;},clearTimeout(){}});
  await new Promise(resolve=>setImmediate(resolve));
  if(initial==='Completed'){assert.equal(calls,0);return;}
  if(fail){assert.equal(get('[data-progress-connection]').hidden,false);assert.ok(scheduled.some(x=>x.ms===3000));return;}
+ assert.match(get('[data-scan-started]').textContent,/24.*2569.*01:30/);
  const track=get('[role="progressbar"]');
  assert.equal(track.attrs['aria-valuenow'],percent===null?undefined:String(percent));
  assert.equal(get('[data-progress-percent]').textContent,percent===null?(status==='Failed'?status:'กำลังทำงาน'):percent+'%');

@@ -10,7 +10,7 @@
         const fill=root.querySelector('.security-progress-fill');
         let timer, clock, controller, inFlight=false, disposed=false, reloadScheduled=false;
         let state=root.dataset.state, startedAt=root.dataset.startedAt||null, finishedAt=root.dataset.finishedAt||null;
-        const utc=value=>value ? new Date(value).toISOString().slice(0,16).replace('T',' ') : '—';
+        const thaiDate=value=>value ? new Date(value).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',calendar:'buddhist',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})+' น.' : '—';
         const duration=()=>{
             if(!startedAt)return text('[data-progress-elapsed]','—');
             const seconds=Math.max(0,Math.floor(((finishedAt?Date.parse(finishedAt):Date.now())-Date.parse(startedAt))/1000));
@@ -42,9 +42,9 @@
                 step.querySelector('[data-step-mark]').textContent=done?'✓':String(index+1);
                 if(data.isBatch&&data.steps[index])step.querySelector('[data-step-mark]').nextElementSibling.textContent=data.steps[index].label;
             });
-            text('[data-progress-contact]',terminal?'สิ้นสุดรอบสแกนแล้ว':data.updatedAt?'Worker อัปเดต '+new Date(data.updatedAt).toLocaleTimeString('th-TH'):'รอรายละเอียดจาก Worker');
+            text('[data-progress-contact]',terminal?'สิ้นสุดรอบสแกนแล้ว':data.updatedAt?'Worker อัปเดต '+new Date(data.updatedAt).toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hourCycle:'h23'}):'รอรายละเอียดจาก Worker');
             pageText('[data-scan-status]',stateLabels[state]||data.statusLabel);
-            pageText('[data-scan-started]',utc(data.startedAt));pageText('[data-scan-finished]',utc(data.finishedAt));
+            pageText('[data-scan-started]',thaiDate(data.startedAt));pageText('[data-scan-finished]',thaiDate(data.finishedAt));
             const error=document.querySelector('[data-scan-error]');if(error){error.hidden=!data.error;error.textContent=data.error||'';}
             document.querySelectorAll('[data-scan-cancel],[data-scan-running-note]').forEach(node=>{node.hidden=terminal;});
             connection.hidden=true;
