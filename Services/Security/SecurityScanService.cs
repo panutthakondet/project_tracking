@@ -203,24 +203,31 @@ await transaction.CommitAsync(ct);return ids;
         await using var tx=db.Database.CurrentTransaction==null?await db.Database.BeginTransactionAsync(ct):null;
         // Atomic guard serializes duplicate Issue creation for this finding.
         await db.SecurityFindingRows.Where(x=>x.Id==finding.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);
-        var old=await db.SecurityFindingIssueLinkRows.SingleOrDefaultAsync(x=>x.FindingId==finding.Id,ct);
+        var old=await db.SecurityFindingIssueLinkRows.Where(x=>x.FindingId==finding.Id).OrderByDescending(x=>x.Id).FirstOrDefaultAsync(ct);
+        int? previousIssueId=null;
         if(old!=null){
-            var linkedProject=await db.ProjectIssues.Where(x=>x.IssueId==old.IssueId).Select(x=>(int?)x.ProjectId).SingleOrDefaultAsync(ct);
+            var linkedIssue=await db.ProjectIssues.SingleOrDefaultAsync(x=>x.IssueId==old.IssueId,ct);
             var sourceProject=await db.SecuritySystemRows.Where(x=>x.Id==finding.SystemId).Select(x=>x.ProjectId).SingleAsync(ct);
-            if(linkedProject.HasValue){
-                if(linkedProject!=sourceProject)throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
-                if(tx!=null)await tx.CommitAsync(ct);return old.IssueId;
+            if(linkedIssue!=null){
+                if(linkedIssue.ProjectId!=sourceProject)throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
+                var sourceScan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);
+                // Only a later scan can create a recurrence; retries on the original result reuse its Issue.
+                if(linkedIssue.IssueStatus!="PASS"||sourceScan.CreatedAt<=old.CreatedAt){
+                    if(tx!=null)await tx.CommitAsync(ct);return old.IssueId;
+                }
+                previousIssueId=old.IssueId;
+            }else{
+                db.SecurityFindingIssueLinkRows.Remove(old);await db.SaveChangesAsync(ct);
             }
-            // A deleted Issue must not permanently prevent this finding from creating another one.
-            db.SecurityFindingIssueLinkRows.Remove(old);await db.SaveChangesAsync(ct);
         }
         var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==finding.SystemId,ct);var scan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==scan.VersionId,ct);
         var details=$"Security scan #{scan.Id} / {scan.Engine}\nระบบ: {system.Name} / {version.Environment}\nVersion: {version.VersionName} Build: {version.BuildNumber}\nความเสี่ยง: {observation.Severity} / CWE: {observation.Cwe}\nตำแหน่ง: {observation.Location}\n\nรายละเอียด:\n{observation.Description}\n\nหลักฐาน:\n{observation.Evidence}\n\nแนวทางแก้ไขจากเครื่องมือ:\n{observation.Remediation}\n\nอ้างอิง:\n{observation.References}\n\nผลสแกน: /SecurityScans/Scan/{scan.Id}";
+        if(previousIssueId.HasValue)details=$"พบปัญหาซ้ำหลัง Issue #{previousIssueId.Value} ทดสอบผ่านแล้ว\nIssue เดิม: /ProjectIssues/DevDetails/{previousIssueId.Value}\n\n"+details;
         var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=SecurityValues.Cut("[Security / "+observation.Severity+"] "+observation.Title,500),IssueDetail=IssueDetailsForStorage(details,scan.Id),AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
         db.ProjectIssues.Add(issue);await db.SaveChangesAsync(ct);
         db.ProjectIssueStatusHistories.Add(new(){IssueId=issue.IssueId,NewStatus="OPEN",ChangedByEmpId=creatorEmpId??employeeId,ChangedAt=issue.CreatedAt});
         db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});finding.AssignedEmpId=employeeId;finding.DueDate=end.Date;finding.ReviewStatus="InProgress";
-        db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status="InProgress",Note="สร้าง Issue #"+issue.IssueId,CreatedBy=userId});
+        db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status="InProgress",Note=previousIssueId.HasValue?$"พบซ้ำจากผลสแกน #{scan.Id}: สร้าง Issue #{issue.IssueId} ต่อจาก Issue #{previousIssueId.Value} ที่ PASS แล้ว":"สร้าง Issue #"+issue.IssueId,CreatedBy=userId});
         await db.SaveChangesAsync(ct);if(tx!=null)await tx.CommitAsync(ct);return issue.IssueId;
     }
 }

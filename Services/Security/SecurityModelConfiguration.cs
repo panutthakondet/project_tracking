@@ -33,7 +33,7 @@ public static class SecurityModelConfiguration
         b.Entity<SecurityReport>().HasIndex(x=>new{x.ScanId,x.Format}).IsUnique();
         b.Entity<SecurityReport>().HasOne<SecurityScan>().WithMany().HasForeignKey(x=>x.ScanId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityFindingHistory>().HasOne<SecurityFinding>().WithMany().HasForeignKey(x=>x.FindingId).OnDelete(DeleteBehavior.Restrict);
-        b.Entity<SecurityFindingIssueLink>().HasIndex(x=>x.FindingId).IsUnique();
+        b.Entity<SecurityFindingIssueLink>().HasIndex(x=>new{x.FindingId,x.IssueId}).IsUnique();
         b.Entity<SecurityFindingIssueLink>().HasOne<SecurityFinding>().WithMany().HasForeignKey(x=>x.FindingId).OnDelete(DeleteBehavior.Restrict);
     }
 }

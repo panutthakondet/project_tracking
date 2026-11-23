@@ -33,7 +33,7 @@ public static class SecurityIssueWorkflow
         if(!SecurityValues.ReviewStatuses.Contains(status))throw new ArgumentOutOfRangeException(nameof(status));
         var findings=await (from finding in db.SecurityFindingRows
             join system in db.SecuritySystemRows on finding.SystemId equals system.Id
-            where system.ProjectId==issue.ProjectId&&db.SecurityFindingIssueLinkRows.Any(l=>l.FindingId==finding.Id&&l.IssueId==issue.IssueId)
+            where system.ProjectId==issue.ProjectId&&db.SecurityFindingIssueLinkRows.Any(l=>l.FindingId==finding.Id&&l.IssueId==issue.IssueId&&!db.SecurityFindingIssueLinkRows.Any(newer=>newer.FindingId==finding.Id&&newer.Id>l.Id))
             select finding).ToListAsync();
         foreach(var finding in findings){
             if(finding.ReviewStatus==status&&finding.AssignedEmpId==issue.AssignTo&&finding.DueDate==issue.EndDate)continue;

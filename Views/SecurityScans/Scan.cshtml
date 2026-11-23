@@ -36,7 +36,7 @@
 <div id="security-findings">
 @await Html.PartialAsync("_FindingPagination",Model)
 @foreach(var item in Model.Observations.OrderByDescending(x=>SecurityValues.Rank(x.Severity)).ThenBy(x=>x.Title)){
- var finding=Model.Findings.Single(x=>x.Id==item.FindingId);var link=Model.Links.FirstOrDefault(x=>x.FindingId==finding.Id);
+ var finding=Model.Findings.Single(x=>x.Id==item.FindingId);var link=Model.Links.Where(x=>x.FindingId==finding.Id).OrderByDescending(x=>x.Id).FirstOrDefault();
  var linkedIssue=Model.LinkedIssues.FirstOrDefault(x=>x.IssueId==link?.IssueId);
  var reviewStatus=linkedIssue==null?finding.ReviewStatus:ProjectTracking.Services.Security.SecurityIssueWorkflow.CurrentReviewStatus(linkedIssue);
  var issueState=(linkedIssue?.IssueStatus,linkedIssue?.DevStatus) switch {

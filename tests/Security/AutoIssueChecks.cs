@@ -57,7 +57,7 @@ public static class AutoIssueChecks
   await SecurityIssueWorkflow.StageStatusAsync(db,rejectedIssue,"AcceptedRisk",1);await db.SaveChangesAsync();
   var acceptedLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.IssueId==rejectedIssue.IssueId);
   var acceptedId=acceptedLink.FindingId;
-  async Task CheckAccepted(long versionId){
+  async Task CheckAccepted(long versionId,int expectedIssues=4){
    var scanId=await service.QueueAsync(versionId,"Passive",Guid.NewGuid().ToString(),1,default);
    var claimed=await service.ClaimAsync(default);
    await service.CompleteAsync(scanId,claimed!.LeaseToken,json,new("fake","accepted-risk regression"),default);
@@ -65,12 +65,27 @@ public static class AutoIssueChecks
    if(!await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==scanId&&x.FindingId==acceptedId)
       ||!await db.SecurityFindingRows.AnyAsync(x=>x.Id==acceptedId&&x.ReviewStatus=="AcceptedRisk")
       ||!await db.ProjectIssues.AnyAsync(x=>x.IssueId==rejectedIssue.IssueId&&x.IssueStatus=="REJECT")
-      ||await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated finding must retain accepted risk and its rejected Issue without duplication");
+      ||await db.ProjectIssues.CountAsync()!=expectedIssues)throw new Exception("Repeated finding must retain accepted risk and its rejected Issue without duplication");
   }
   await CheckAccepted(version.Id);
   var nextVersion=new SecurityVersion{SystemId=system.Id,VersionName="2",Environment="UAT"};db.SecurityVersionRows.Add(nextVersion);await db.SaveChangesAsync();
   await CheckAccepted(nextVersion.Id);
   Console.WriteLine("PASS REJECT / AcceptedRisk survives rescans of the same and next version without reopening or duplicating Issues");
+  var passed=await db.ProjectIssues.Where(x=>x.IssueStatus!="REJECT").OrderBy(x=>x.IssueId).FirstAsync();
+  passed.IssueStatus="PASS";passed.DevStatus="FIXED";
+  await SecurityIssueWorkflow.StageStatusAsync(db,passed,"VerifiedFixed",1);await db.SaveChangesAsync();
+  await CheckAccepted(nextVersion.Id,5);
+  var unchanged=await db.ProjectIssues.SingleAsync(x=>x.IssueId==passed.IssueId);
+  if(unchanged.IssueStatus!="PASS"||unchanged.DevStatus!="FIXED")throw new Exception("Original PASS Issue must remain unchanged");
+  var recurring=await db.ProjectIssues.OrderByDescending(x=>x.IssueId).FirstAsync();
+  if(recurring.IssueStatus!="OPEN"||recurring.DevStatus!="WIP"||!recurring.IssueDetail!.Contains($"Issue #{passed.IssueId}"))throw new Exception("Recurring finding must create an OPEN Issue referencing the original");
+  var recurringLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.IssueId==recurring.IssueId);
+  if(!await db.SecurityFindingIssueLinkRows.AnyAsync(x=>x.FindingId==recurringLink.FindingId&&x.IssueId==passed.IssueId))throw new Exception("Original Issue link must be preserved");
+  if(!await db.SecurityFindingRows.AnyAsync(x=>x.Id==recurringLink.FindingId&&x.ReviewStatus=="InProgress"))throw new Exception("Recurring finding must be InProgress");
+  await SecurityIssueWorkflow.StageStatusAsync(db,unchanged,"VerifiedFixed",1);await db.SaveChangesAsync();
+  if((await db.SecurityFindingRows.SingleAsync(x=>x.Id==recurringLink.FindingId)).ReviewStatus!="InProgress")throw new Exception("Old Issue must not overwrite the current recurrence status");
+  await CheckAccepted(nextVersion.Id,5);
+  Console.WriteLine("PASS recurring PASS finding creates one new Issue, keeps original Issue/link and ignores stale status updates; REJECT persists");
   Console.WriteLine("PASS automatic Issues: Critical/High/Medium/Low, excluded Info, copied assignee/dates, atomic completion retry and finding deduplication");
  }
 }

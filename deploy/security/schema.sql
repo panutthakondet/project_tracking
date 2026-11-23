@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `security_findings` (`Id` bigint NOT NULL AUTO_INCREM
 
 CREATE TABLE IF NOT EXISTS `security_finding_history` (`Id` bigint NOT NULL AUTO_INCREMENT,`CreatedAt` datetime(6) NOT NULL,`CreatedBy` int NOT NULL,`FindingId` bigint NOT NULL,`Note` varchar(4000) NOT NULL,`Status` varchar(30) NOT NULL,PRIMARY KEY (`Id`),KEY `ix_security_finding_history_0` (`FindingId`)) CHARACTER SET utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `security_finding_issue_links` (`Id` bigint NOT NULL AUTO_INCREMENT,`CreatedAt` datetime(6) NOT NULL,`CreatedBy` int NOT NULL,`FindingId` bigint NOT NULL,`IssueId` int NOT NULL,PRIMARY KEY (`Id`),UNIQUE KEY `ix_security_finding_issue_links_0` (`FindingId`)) CHARACTER SET utf8mb4;
+CREATE TABLE IF NOT EXISTS `security_finding_issue_links` (`Id` bigint NOT NULL AUTO_INCREMENT,`CreatedAt` datetime(6) NOT NULL,`CreatedBy` int NOT NULL,`FindingId` bigint NOT NULL,`IssueId` int NOT NULL,PRIMARY KEY (`Id`),UNIQUE KEY `ix_security_finding_issue_links_0` (`FindingId`,`IssueId`)) CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `security_host_approvals` (`Id` bigint NOT NULL AUTO_INCREMENT,`Host` varchar(253) NOT NULL,`IsApproved` tinyint(1) NOT NULL,`ProjectId` int NOT NULL,`UpdatedAt` datetime(6) NOT NULL,`UpdatedBy` int NOT NULL,PRIMARY KEY (`Id`),UNIQUE KEY `ix_security_host_approvals_0` (`ProjectId`,`Host`)) CHARACTER SET utf8mb4;
 
