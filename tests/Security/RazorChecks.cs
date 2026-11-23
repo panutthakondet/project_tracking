@@ -31,12 +31,14 @@ public static class RazorChecks
   detail.Links.Add(new SecurityFindingIssueLink{FindingId=1,IssueId=500});
   var output=Path.Combine(Path.GetTempPath(),"security-ui-preview");Directory.CreateDirectory(output);
   var running=new SecurityScanPage{Project=project,System=system,Version=version,Scan=new SecurityScan{Id=3,VersionId=1,Engine="MobSF",Status="Running",StartedAt=DateTime.UtcNow.AddMinutes(-3)},Progress=new SecurityScanProgress{ScanId=3,Stage="Analyzing",UpdatedAt=DateTime.UtcNow},CanManage=true};
-  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail),("Scan-running",running)}){
+  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail),("Scan-running",running),("Index-development",index),("Scan-development",running)}){
+   if(pair.Item1=="Index-development")index.Workflow="Development";
+   if(pair.Item1=="Scan-development")running.Scan.Workflow="Development";
    using var scope=app.Services.CreateScope();var http=new DefaultHttpContext{RequestServices=scope.ServiceProvider};http.Request.Scheme="http";http.Request.Host=new HostString("127.0.0.1",8766);
    var route=new RouteData();route.Routers.Add(new PreviewRouter());route.Values["controller"]="SecurityScans";route.Values["action"]=pair.Item1;
    var action=new ActionContext(http,route,new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
    Console.WriteLine("Razor: resolving view "+pair.Item1);
-   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,$"/Views/SecurityScans/{(pair.Item1=="Index"?"Index":"Scan")}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
+   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,$"/Views/SecurityScans/{(pair.Item1.StartsWith("Index")?"Index":"Scan")}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
    using var writer=new StringWriter();var data=new ViewDataDictionary(new EmptyModelMetadataProvider(),new ModelStateDictionary()){Model=pair.Item2};
    var temp=new TempDataDictionary(http,scope.ServiceProvider.GetRequiredService<ITempDataProvider>());
    Console.WriteLine("Razor: rendering "+pair.Item1);
@@ -47,6 +49,7 @@ public static class RazorChecks
    if(pair.Item1=="Index"&&(!html.Contains("fixture-display-user")||!html.Contains("value=\"/auth\"")||!html.Contains("data-website-password-saved=\"true\"")||!html.Contains("data.token")||!html.Contains("value=\"/member/\"")||html.Contains("fixture-secret")))throw new Exception("Login settings must be displayed without the password");
    if(pair.Item1=="Index"&&(!html.Contains("name=\"assignedEmpId\"")||!html.Contains("name=\"startDate\"")||!html.Contains("name=\"endDate\"")))throw new Exception("Automatic Issue assignment fields missing");
    if(pair.Item1=="Index"&&(!html.Contains("name=\"targetUrl\"")||html.Contains("name=\"targetPath\"")))throw new Exception("Website targets must display full URLs");
+   if(pair.Item1=="Index-development"&&(html.Contains("name=\"assignedEmpId\"")||!html.Contains("workflow=Development")))throw new Exception("Development workflow must retain its route and omit automatic Issue assignment");
    if(pair.Item1=="Scan"&&(!html.Contains("30/11/2026")||!html.Contains("fixture dev resolution")||!html.Contains("data-issue-state=\"FIXED\"")||!html.Contains("is-issue-linked")||html.Contains("/SecurityScans/Review")))throw new Exception("Security tracking must show read-only Issue dates/details without a Review form");
    if(pair.Item1=="Scan"&&(!html.Contains("page=2")||!html.Contains("10,001")))throw new Exception("Paged scan must retain navigation and whole-run totals");
    Console.WriteLine("PASS compiled Razor "+pair.Item1+" renders with CSRF and routes");

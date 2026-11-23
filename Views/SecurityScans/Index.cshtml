@@ -17,13 +17,18 @@
     @if(TempData["Error"] is string error){<div class="alert alert-danger" role="alert">@error</div>}
     <nav class="security-section-nav" aria-label="ส่วนต่าง ๆ ของศูนย์สแกน"><a href="#security-overview">ภาพรวม</a><a href="#security-systems">ระบบและเวอร์ชัน</a><a href="#security-history">ประวัติสแกน</a></nav>
     <div id="security-overview" class="security-summary"><div><strong>@Model.Systems.Count</strong> ระบบ</div><div><strong>@Model.Versions.Count</strong> เวอร์ชัน</div><div><strong>@Model.Scans.Count(x=>x.Status is "Queued" or "Running")</strong> งานในคิว</div><div><strong>@Model.Scans.Count(x=>x.Status=="Completed")</strong> รอบที่เสร็จแล้ว</div></div>
+    <nav class="security-workflows" aria-label="รูปแบบการทำงานสแกน">
+        <a class="btn @(Model.Workflow=="Formal"?"btn-primary":"btn-outline-primary")" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="Formal" aria-current="@(Model.Workflow=="Formal"?"page":null)">สแกนจริง</a>
+        <a class="btn @(Model.Workflow=="Development"?"btn-primary":"btn-outline-primary")" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="Development" aria-current="@(Model.Workflow=="Development"?"page":null)">สแกนระหว่างพัฒนา</a>
+        <p>@(Model.Workflow=="Development"?"ตรวจระหว่างเขียนโปรแกรม ไม่สร้างหรือเชื่อม Issue ประวัติและประเด็นแยกจากสแกนจริง":"สแกนจริงและติดตามแก้ไขผ่าน Issue ตามการตั้งค่าระบบ ประวัติแยกจากการสแกนระหว่างพัฒนา")</p>
+    </nav>
     <div id="security-systems" class="security-systems">
     @if(Model.CanManage){
-        <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" class="security-form security-system-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
+        <details class="security-card security-add-system"><summary>＋ เพิ่มระบบในโครงการ</summary><form asp-action="AddSystem" method="post" asp-route-workflow="@Model.Workflow" class="security-form security-system-form"><input type="hidden" name="projectId" value="@Model.Project.ProjectId" />
             <label>ชื่อระบบ<input class="form-control" name="name" maxlength="160" required placeholder="เช่น Website Member หรือ FollowME Android" /></label>
             <label>ประเภท<select class="form-select" name="kind">@foreach(var kind in SecurityValues.Kinds){<option>@kind</option>}</select></label>
             <label>URL หลักเว็บไซต์<input class="form-control" type="url" name="targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>กรอกครั้งเดียว เช่น https://uat.example.com/ จากนั้นตั้งเส้นทาง Info / Member / Admin ภายในระบบ เว้นว่างสำหรับแอปมือถือ</small></label>
-            @if(Model.CanAutoCreateIssues){
+            @if(Model.Workflow=="Development"){<p>สแกนระหว่างพัฒนา ไม่ต้องกำหนดผู้รับผิดชอบหรือวันที่สำหรับ Issue</p>}else if(Model.CanAutoCreateIssues){
                 <label>ผู้รับผิดชอบแก้ไข<select name="assignedEmpId" class="form-select" required><option value="">เลือกผู้รับผิดชอบ</option>@foreach(var employee in Model.ResponsibleEmployees){<option value="@employee.EmpId">@employee.EmpName</option>}</select></label>
                 <label>เริ่มแก้ไข<input name="startDate" type="date" class="form-control" required /></label>
                 <label>กำหนดแก้ไขถึง<input name="endDate" type="date" class="form-control" required /></label>
@@ -43,7 +48,7 @@
         var latestScan=Model.Scans.FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
         <details class="security-card security-system" name="security-system" data-system-id="@system.Id" data-system-kind="@SecurityValues.Category(system.Kind)"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@SecurityValues.Category(system.Kind)</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
         @{var issueDefaults=Model.IssueDefaults.FirstOrDefault(x=>x.SystemId==system.Id);}
-        @if(issueDefaults!=null){<p class="security-auto-issue-summary">Issue อัตโนมัติ: @(Model.ResponsibleEmployees.FirstOrDefault(x=>x.EmpId==issueDefaults.AssignedEmpId)?.EmpName??"ผู้รับผิดชอบ #"+issueDefaults.AssignedEmpId) | แก้ไข @issueDefaults.StartDate.ToString("dd/MM/yyyy") - @issueDefaults.EndDate.ToString("dd/MM/yyyy") | Critical / High / Medium / Low (ยกเว้น Info)</p>}
+        @if(issueDefaults!=null&&Model.Workflow=="Formal"){<p class="security-auto-issue-summary">Issue อัตโนมัติ: @(Model.ResponsibleEmployees.FirstOrDefault(x=>x.EmpId==issueDefaults.AssignedEmpId)?.EmpName??"ผู้รับผิดชอบ #"+issueDefaults.AssignedEmpId) | แก้ไข @issueDefaults.StartDate.ToString("dd/MM/yyyy") - @issueDefaults.EndDate.ToString("dd/MM/yyyy") | Critical / High / Medium / Low (ยกเว้น Info)</p>}
 
         @if(latestScan!=null){<div class="security-latest-scan"><span>ผลตรวจล่าสุด #@latestScan.Id · @latestScan.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span><a class="btn btn-outline-primary btn-sm" asp-action="Scan" asp-route-id="@latestScan.Id">ดูผลล่าสุด</a></div>}
         @if(!mobile){
@@ -54,11 +59,11 @@
                     var targetPart=Model.WebsiteTargets.FirstOrDefault(x=>x.SystemId==system.Id&&x.Section==section)??new ProjectTracking.Models.SecurityWebsiteTarget{SystemId=system.Id,Section=section};
                     var partLogin=targetPart.Id>0?Model.WebsiteLoginSettings.GetValueOrDefault(targetPart.Id):(targetPart.AuthProfile==system.AuthProfile?savedLogin:null);
                     var partHost=Uri.TryCreate(targetPart.TargetUrl,UriKind.Absolute,out var partUri)?partUri.IdnHost.TrimEnd('.').ToLowerInvariant():null;
-                    <partial name="_WebsiteTarget" model="@(new ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm{System=system,Target=targetPart,Login=partLogin,CanManage=Model.CanManage,CanApprove=Model.CanApproveHosts,Approved=Model.HostApprovals.Any(x=>x.Host==partHost&&x.IsApproved),Unreadable=targetPart.Id>0?Model.UnreadableWebsiteLogins.Contains(targetPart.Id):Model.UnreadableLoginSettings.Contains(system.Id)})" />
+                    <partial name="_WebsiteTarget" model="@(new ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm{Workflow=Model.Workflow,System=system,Target=targetPart,Login=partLogin,CanManage=Model.CanManage,CanApprove=Model.CanApproveHosts,Approved=Model.HostApprovals.Any(x=>x.Host==partHost&&x.IsApproved),Unreadable=targetPart.Id>0?Model.UnreadableWebsiteLogins.Contains(targetPart.Id):Model.UnreadableLoginSettings.Contains(system.Id)})" />
                 }
             </div>
         }
-        @if(Model.CanManage){<details class="security-disclosure"><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
+        @if(Model.CanManage){<details class="security-disclosure"><summary>＋ เพิ่มเวอร์ชัน</summary><form asp-action="AddVersion" method="post" asp-route-workflow="@Model.Workflow" enctype="multipart/form-data" class="security-form"><input type="hidden" name="systemId" value="@system.Id" />
             <label>Version<input class="form-control" name="versionName" maxlength="100" required placeholder="1.0.0" /></label><label>Build Number<input class="form-control" name="buildNumber" maxlength="100" /></label><label>Git Commit<input class="form-control" name="gitCommit" maxlength="64" /></label><label>สภาพแวดล้อม<select class="form-select" name="environment"><option>UAT</option><option>Production</option></select></label>
             @if(SecurityValues.IsMobile(system.Kind)){<label>ไฟล์ @(system.Kind=="Android"?"APK":"IPA")<input class="form-control" type="file" name="application" accept="@(system.Kind=="Android"?".apk":".ipa")" required /><small>เก็บไฟล์และ SHA-256 แยกตามเวอร์ชัน สูงสุด 250 MB</small></label>}
             <label>รายละเอียดการเปลี่ยนแปลง<textarea class="form-control" name="changeNotes" maxlength="4000"></textarea></label><button class="btn btn-primary" type="submit">เก็บเวอร์ชัน</button></form></details>}
@@ -76,16 +81,16 @@
                     @if(!string.IsNullOrWhiteSpace(version.ChangeNotes)){<p class="security-text">@version.ChangeNotes</p>}
                     @if(artifact!=null){<div class="security-file"><span aria-hidden="true">▤</span><div><strong>@artifact.OriginalName</strong><small>@((artifact.Size/1048576d).ToString("0.##")) MB</small></div></div><details class="security-checksum"><summary>ดู SHA-256</summary><code class="security-hash">@artifact.Sha256</code></details>}
                 </div>
-                @if(Model.CanManage){<form asp-action="Queue" method="post" class="security-queue"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+                @if(Model.CanManage){<form asp-action="Queue" method="post" asp-route-workflow="@Model.Workflow" class="security-queue"><input type="hidden" name="versionId" value="@version.Id" /><input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
                     <label for="scan-mode-@version.Id">รูปแบบการตรวจ</label>
                     <select id="scan-mode-@version.Id" class="form-select" name="mode" aria-label="โหมดสแกน @version.VersionName">@if(SecurityValues.IsMobile(system.Kind)){<option value="Static">MobSF Static</option>}else{<option value="Passive">ZAP Passive</option>@if(version.Environment=="UAT"){<option value="Active">ZAP Active (UAT)</option>}}</select>
-                    <button class="btn btn-primary" type="submit" title="เพิ่มทุกส่วนที่เปิดใช้งานเข้าคิวสแกน">@(mobile?"เพิ่มเข้าคิวสแกน":"สแกน Website ทุกส่วน")</button>
+                    <button class="btn btn-primary" type="submit" title="เพิ่มทุกส่วนที่เปิดใช้งานเข้าคิวสแกน">@(Model.Workflow=="Development"?"สแกนระหว่างพัฒนา (ไม่สร้าง Issue)":mobile?"เพิ่มเข้าคิวสแกนจริง":"สแกน Website ทุกส่วน")</button>
                 </form>}
             </article></details>
         }
         </div></details>
     }
-    <details id="security-history" class="security-card security-history"><summary class="security-history-heading"><strong>ประวัติรอบสแกน</strong><span class="security-chip">@Model.Scans.Count รอบ</span><span class="security-expand-hint">เปิดดูประวัติ</span></summary>
+    <details id="security-history" class="security-card security-history"><summary class="security-history-heading"><strong>ประวัติรอบสแกน - @(Model.Workflow=="Development"?"ระหว่างพัฒนา":"สแกนจริง")</strong><span class="security-chip">@Model.Scans.Count รอบ</span><span class="security-expand-hint">เปิดดูประวัติ</span></summary>
     <div class="security-history-types" role="group" aria-label="กรองประวัติตามประเภทระบบ" data-history-controls hidden>
         <button type="button" class="security-history-type" data-history-kind="" aria-pressed="true">ทั้งหมด <span>@Model.Scans.Count</span></button>
         @foreach(var kind in SecurityValues.Kinds){
@@ -101,7 +106,7 @@
     </div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
     @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status" data-kind="@SecurityValues.Category(system.Kind)"><td>#@scan.Id</td><td>@system.Name @if(Model.WebsiteScanParts.FirstOrDefault(x=>x.ScanId==scan.Id) is {} part){<strong> · @SecurityValues.SectionLabel(part.Section)</strong>}<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
         @if(Model.CanDeleteScans && scan.Status is "Completed" or "Failed" or "Cancelled"){
-            <form asp-action="DeleteScan" asp-route-id="@scan.Id" method="post" class="security-history-delete" onsubmit="return confirm('ลบรอบสแกน #@scan.Id และรายงานของรอบนี้หรือไม่? เวอร์ชัน ไฟล์แอป และ Issue จะยังคงอยู่');">
+            <form asp-action="DeleteScan" asp-route-id="@scan.Id" method="post" asp-route-workflow="@Model.Workflow" class="security-history-delete" onsubmit="return confirm('ลบรอบสแกน #@scan.Id และรายงานของรอบนี้หรือไม่? เวอร์ชัน ไฟล์แอป และ Issue จะยังคงอยู่');">
                 <button type="submit" class="btn btn-outline-danger" aria-label="ลบรอบสแกน @scan.Id">ลบ</button>
             </form>
         }

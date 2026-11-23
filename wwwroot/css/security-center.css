@@ -189,3 +189,5 @@ html body main.route-controller-securityscans.route-action-index .security-works
 .security-history-type[aria-current="page"] { border-color: var(--pt-accent, #0f766e); font-weight: 700; }
 
 .security-login-help{display:flex;justify-content:flex-end;margin:10px 0}.security-login-help .btn{font-size:.85rem}
+
+.security-workflows{padding:16px;border:1px solid var(--bs-border-color,#ccd7df);border-radius:12px;background:var(--bs-body-bg,#fff);margin-bottom:16px}.security-workflows .btn{margin:0 8px 8px 0}.security-workflows p{margin:0}

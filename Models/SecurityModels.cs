@@ -47,6 +47,7 @@ public class SecurityScan
     [MaxLength(20)] public string Engine { get; set; } = "ZAP";
     [MaxLength(20)] public string Mode { get; set; } = "Passive";
     [MaxLength(20)] public string Status { get; set; } = "Queued";
+    [MaxLength(20)] public string Workflow { get; set; } = "Formal";
     // Immutable execution snapshot: changing a system later must not change queued jobs.
     [MaxLength(2000)] public string? TargetUrl { get; set; }
     [MaxLength(80)] public string? AuthProfile { get; set; }

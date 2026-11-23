@@ -2,6 +2,7 @@ using ProjectTracking.Models;
 namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
+    public string Workflow { get; set; }="Formal";
     public bool CanAutoCreateIssues { get; set; }
     public List<SecurityIssueDefaults> IssueDefaults { get; set; }=[];
     public List<Employee> ResponsibleEmployees { get; set; }=[];
@@ -65,6 +66,7 @@ public sealed class SecurityLoginSettings
 
 public class SecurityWebsiteTargetForm
 {
+    public string Workflow { get; set; }="Formal";
     public SecuritySystem System { get; set; }=null!;
     public SecurityWebsiteTarget Target { get; set; }=null!;
     public SecurityLoginSettings? Login { get; set; }

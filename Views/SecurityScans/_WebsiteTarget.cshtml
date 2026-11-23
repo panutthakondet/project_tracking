@@ -6,7 +6,7 @@
     @if(t.Section!="WebInfo"){<div class="security-login-help"><a asp-action="LoginGuide" asp-route-systemId="@Model.System.Id" asp-route-section="@t.Section" target="_blank" rel="noopener" class="btn btn-outline-primary">คู่มือ Login @SecurityValues.SectionLabel(t.Section) (PDF)</a></div>}
     @if(Model.Unreadable){<p class="text-danger">อ่าน Login เดิมไม่ได้ กรุณากรอกและบันทึกข้อมูลใหม่</p>}
     @if(Model.CanManage){
-    <form asp-action="SaveWebsiteTarget" method="post" class="security-form security-website-form" data-website-login-form>
+    <form asp-action="SaveWebsiteTarget" method="post" asp-route-workflow="@Model.Workflow" class="security-form security-website-form" data-website-login-form>
         <input type="hidden" name="systemId" value="@Model.System.Id" />
         <input type="hidden" name="section" value="@t.Section" />
         <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
@@ -28,8 +28,8 @@
     @if(!string.IsNullOrWhiteSpace(t.TargetUrl)){
         <div class="security-website-approval"><span>@(Model.Approved?"อนุมัติโดเมนแล้ว":"ยังไม่อนุมัติโดเมน")</span>
         @if(Model.CanApprove){
-            @if(t.Id>0){<form asp-action="ApproveWebsiteTarget" method="post"><input type="hidden" name="targetId" value="@t.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
-            else{<form asp-action="ApproveHost" method="post"><input type="hidden" name="systemId" value="@Model.System.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+            @if(t.Id>0){<form asp-action="ApproveWebsiteTarget" method="post" asp-route-workflow="@Model.Workflow"><input type="hidden" name="targetId" value="@t.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
+            else{<form asp-action="ApproveHost" method="post" asp-route-workflow="@Model.Workflow"><input type="hidden" name="systemId" value="@Model.System.Id" /><input type="hidden" name="approved" value="@((!Model.Approved).ToString().ToLowerInvariant())" /><button class="btn btn-outline-primary" type="submit">@(Model.Approved?"ถอนอนุมัติ":"อนุมัติโดเมนนี้")</button></form>}
         }</div>
     }
 </details>

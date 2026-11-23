@@ -5,12 +5,12 @@
 <div class="security-center">
 <header class="index-hero">
     <div class="index-hero__content">
-        <span class="index-eyebrow">Security Scan #@Model.Scan.Id</span>
+        <span class="index-eyebrow">Security Scan #@Model.Scan.Id · @(Model.Scan.Workflow=="Development"?"สแกนระหว่างพัฒนา":"สแกนจริง")</span>
         <h1 class="index-title">@Model.System.Name @if(Model.WebsitePart!=null){<span> · @SecurityValues.SectionLabel(Model.WebsitePart.Section)</span>}</h1>
         <p class="index-subtitle">@Model.Project.ProjectDisplayName<br />Version @Model.Version.VersionName / Build @Model.Version.BuildNumber · @Model.Version.Environment</p>
     </div>
     <div class="index-actions">
-        <a class="btn btn-outline-light" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId">กลับศูนย์สแกน</a>
+        <a class="btn btn-outline-light" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="@Model.Scan.Workflow">กลับศูนย์สแกน</a>
     </div>
 </header>
 @if(Model.WebsiteBatchParts.Count>0){
@@ -20,6 +20,7 @@
         }
     </nav>
 }
+@if(Model.Scan.Workflow=="Development"){<div class="alert alert-info">ผลสแกนระหว่างพัฒนา ไม่สร้างหรือเชื่อม Issue และไม่รวมกับประวัติสแกนจริง</div>}
 @if(TempData["Success"] is string success){<div class="alert alert-success">@success</div>}@if(TempData["Error"] is string error){<div class="alert alert-danger">@error</div>}
 <section class="security-card"><div class="security-card-head"><h2 data-scan-status>@SecurityValues.StatusLabel(Model.Scan.Status)</h2><div class="security-inline"><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id">รีเฟรชสถานะ</a>@if(Model.CanManage&&(Model.Scan.Status is "Queued" or "Running")){<form asp-action="Cancel" method="post" data-scan-cancel><input type="hidden" name="id" value="@Model.Scan.Id" /><button type="submit" class="btn btn-outline-danger">ยกเลิกรอบนี้</button></form>}</div></div>
 @await Html.PartialAsync("_Progress",ProjectTracking.ViewModels.Security.ScanProgressPage.From(Model.Scan,Model.Progress))

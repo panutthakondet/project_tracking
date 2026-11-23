@@ -25,11 +25,12 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         row.IsApproved=approved;row.UpdatedBy=userId;row.UpdatedAt=DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
     }
-    public async Task<long> QueueAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct,SecurityWebsiteTarget? websiteTarget=null)
+    public async Task<long> QueueAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct,SecurityWebsiteTarget? websiteTarget=null,string workflow="Formal")
     {
+        if(workflow is not ("Formal" or "Development"))throw new InvalidOperationException("รูปแบบการทำงานไม่ถูกต้อง");
         if(!WorkerConfigured)throw new InvalidOperationException("ยังไม่ได้ตั้งค่า SECURITY_WORKER_KEY และเครื่องสแกน กรุณาติดตั้งตามคู่มือก่อน");
         if(!Guid.TryParse(requestKey,out _))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
-        var existing=await db.SecurityScanRows.SingleOrDefaultAsync(x=>x.RequestKey==requestKey,ct);if(existing!=null){if(existing.VersionId!=versionId||existing.CreatedBy!=userId)throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return existing.Id;}
+        var existing=await db.SecurityScanRows.SingleOrDefaultAsync(x=>x.RequestKey==requestKey,ct);if(existing!=null){if(existing.VersionId!=versionId||existing.CreatedBy!=userId||existing.Workflow!=workflow)throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return existing.Id;}
         var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==versionId,ct);var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==version.SystemId,ct);
         if(websiteTarget!=null){
             if(websiteTarget.SystemId!=system.Id||SecurityValues.IsMobile(system.Kind)||!websiteTarget.Enabled)throw new InvalidOperationException("ส่วนเว็บไซต์ไม่ตรงกับระบบ");
@@ -46,18 +47,19 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             if(mode=="Active"&&version.Environment!="UAT")throw new InvalidOperationException("Active Scan เปิดใช้เฉพาะ UAT");
             if(system.RequiresLogin&&string.IsNullOrWhiteSpace(system.AuthProfile))throw new InvalidOperationException("กรุณาระบุโปรไฟล์ Login ที่ตั้งค่าบนเครื่องสแกน");
         }
-        var scan=new SecurityScan{VersionId=versionId,Mode=mode,Engine=SecurityValues.IsMobile(system.Kind)?"MobSF":"ZAP",TargetUrl=system.TargetUrl,AuthProfile=system.AuthProfile,RequiresLogin=system.RequiresLogin,CreatedBy=userId,RequestKey=requestKey};
+        var scan=new SecurityScan{Workflow=workflow,VersionId=versionId,Mode=mode,Engine=SecurityValues.IsMobile(system.Kind)?"MobSF":"ZAP",TargetUrl=system.TargetUrl,AuthProfile=system.AuthProfile,RequiresLogin=system.RequiresLogin,CreatedBy=userId,RequestKey=requestKey};
         db.SecurityScanRows.Add(scan);
         try{await db.SaveChangesAsync(ct);return scan.Id;}
         catch(DbUpdateException){
             db.Entry(scan).State=EntityState.Detached;
             var duplicate=await db.SecurityScanRows.AsNoTracking().SingleOrDefaultAsync(x=>x.RequestKey==requestKey,ct);
-            if(duplicate!=null&&duplicate.VersionId==versionId&&duplicate.CreatedBy==userId)return duplicate.Id;
+            if(duplicate!=null&&duplicate.VersionId==versionId&&duplicate.CreatedBy==userId&&duplicate.Workflow==workflow)return duplicate.Id;
             throw;
         }
     }
-    public async Task<IReadOnlyList<long>> QueueWebsiteAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct)
+    public async Task<IReadOnlyList<long>> QueueWebsiteAsync(long versionId,string mode,string requestKey,int userId,CancellationToken ct,string workflow="Formal")
     {
+        if(workflow is not ("Formal" or "Development"))throw new InvalidOperationException("รูปแบบการทำงานไม่ถูกต้อง");
         if(!Guid.TryParse(requestKey,out var batch))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
         var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==versionId,ct);
         var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);
@@ -67,7 +69,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         await db.SecuritySystemRows.Where(x=>x.Id==system.Id).ExecuteUpdateAsync(set=>set.SetProperty(x=>x.CreatedBy,x=>x.CreatedBy),ct);
         var batchKey=batch.ToString();
         var previous=await (from part in db.SecurityWebsiteScanParts join scan in db.SecurityScanRows on part.ScanId equals scan.Id where part.BatchKey==batchKey select scan).AsNoTracking().ToListAsync(ct);
-        if(previous.Count>0){if(previous.Any(x=>x.VersionId!=versionId||x.CreatedBy!=userId))throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return previous.Select(x=>x.Id).ToArray();}
+        if(previous.Count>0){if(previous.Any(x=>x.VersionId!=versionId||x.CreatedBy!=userId||x.Workflow!=workflow))throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return previous.Select(x=>x.Id).ToArray();}
         var configured=await db.SecurityWebsiteTargets.AsNoTracking().Where(x=>x.SystemId==system.Id).ToListAsync(ct);
         var targets=configured.Where(x=>x.Enabled).OrderBy(x=>x.Section).ToList();
         if(configured.Count==0 && !string.IsNullOrWhiteSpace(system.TargetUrl))targets.Add(new(){SystemId=system.Id,Section=SecurityValues.LegacySection(system.Kind),TargetUrl=system.TargetUrl,Enabled=true,RequiresLogin=system.RequiresLogin,AuthProfile=system.AuthProfile});
@@ -80,7 +82,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         foreach(var target in targets){
             var bytes=System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(batchKey+":"+target.Section));
             var key=new Guid(bytes.AsSpan(0,16)).ToString();
-            var id=await QueueAsync(versionId,mode,key,userId,ct,target);
+            var id=await QueueAsync(versionId,mode,key,userId,ct,target,workflow);
             db.SecurityWebsiteScanParts.Add(new(){ScanId=id,BatchKey=batchKey,Section=target.Section});ids.Add(id);
         }
         await db.SaveChangesAsync(ct);
@@ -155,12 +157,12 @@ await transaction.CommitAsync(ct);return ids;
             if(claimed!=1)throw new InvalidOperationException("งานถูกยกเลิกหรือมีผู้ส่งผลแล้ว");
             var known=await db.SecurityFindingRows.Where(x=>x.SystemId==version.SystemId).ToDictionaryAsync(x=>x.Fingerprint,ct);
             foreach(var o in observations){
-                var fingerprint=SecurityReportParser.Fingerprint(scan.Engine+":"+version.Environment,o);
+                var fingerprint=SecurityReportParser.Fingerprint((scan.Workflow=="Development"?"Development:":"")+scan.Engine+":"+version.Environment,o);
                 if(!known.TryGetValue(fingerprint,out var finding)){finding=new SecurityFinding{SystemId=version.SystemId,Fingerprint=fingerprint,Title=o.Title};db.SecurityFindingRows.Add(finding);known.Add(fingerprint,finding);}
             }
             await db.SaveChangesAsync(ct);
             foreach(var o in observations){
-                var finding=known[SecurityReportParser.Fingerprint(scan.Engine+":"+version.Environment,o)];
+                var finding=known[SecurityReportParser.Fingerprint((scan.Workflow=="Development"?"Development:":"")+scan.Engine+":"+version.Environment,o)];
                 finding.LastSeenAt=DateTime.UtcNow;
                 db.SecurityScanFindingRows.Add(new(){ScanId=id,FindingId=finding.Id,Title=o.Title,RuleId=o.RuleId,Severity=o.Severity,Location=o.Location,Description=o.Description,Evidence=o.Evidence,Remediation=o.Remediation,References=o.References,Cwe=o.Cwe});
             }
@@ -170,7 +172,7 @@ await transaction.CommitAsync(ct);return ids;
             db.Entry(scan).Property(x=>x.Status).IsModified=true;
             await db.SaveChangesAsync(ct);
             var defaults=await db.SecurityIssueDefaults.AsNoTracking().SingleOrDefaultAsync(x=>x.SystemId==version.SystemId,ct);
-            if(defaults!=null){
+            if(defaults!=null&&scan.Workflow=="Formal"){
                 var autoIds=await db.SecurityScanFindingRows.Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low")).Select(x=>x.Id).ToListAsync(ct);
                 foreach(var observationId in autoIds)await CreateIssueAsync(observationId,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
             }
@@ -195,6 +197,7 @@ await transaction.CommitAsync(ct);return ids;
         if(end.Date<start.Date)throw new InvalidOperationException("กำหนดส่งต้องไม่ก่อนวันเริ่ม");
         if(!await db.Employees.AnyAsync(e=>e.EmpId==employeeId&&e.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
         var observation=await db.SecurityScanFindingRows.SingleAsync(x=>x.Id==observationId,ct);var finding=await db.SecurityFindingRows.SingleAsync(x=>x.Id==observation.FindingId,ct);
+        if(await db.SecurityScanRows.AnyAsync(x=>x.Id==observation.ScanId&&x.Workflow=="Development",ct))throw new InvalidOperationException("รอบสแกนระหว่างพัฒนาไม่สร้าง Issue");
         await using var tx=db.Database.CurrentTransaction==null?await db.Database.BeginTransactionAsync(ct):null;
         // Atomic guard serializes duplicate Issue creation for this finding.
         await db.SecurityFindingRows.Where(x=>x.Id==finding.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);

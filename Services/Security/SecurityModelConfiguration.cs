@@ -18,6 +18,7 @@ public static class SecurityModelConfiguration
         b.Entity<SecurityVersion>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityArtifact>().HasIndex(x=>x.VersionId).IsUnique();
         b.Entity<SecurityArtifact>().HasOne<SecurityVersion>().WithMany().HasForeignKey(x=>x.VersionId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SecurityScan>().Property(x=>x.Workflow).HasDefaultValue("Formal");
         b.Entity<SecurityScan>().HasIndex(x=>x.RequestKey).IsUnique();
         b.Entity<SecurityScan>().HasIndex(x=>new{x.Status,x.CreatedAt});
         b.Entity<SecurityScan>().HasOne<SecurityVersion>().WithMany().HasForeignKey(x=>x.VersionId).OnDelete(DeleteBehavior.Restrict);

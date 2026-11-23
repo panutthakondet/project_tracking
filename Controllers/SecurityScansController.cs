@@ -21,6 +21,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         Response.Headers.CacheControl="private, no-store";
         return File(SecurityLoginGuide.Create(section,Path.Combine(env.WebRootPath,"fonts","THSarabunNew.ttf")),"application/pdf");
     }
+    private string SelectedWorkflow=>Request.Query["workflow"]=="Development"?"Development":"Formal";
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
     private bool Can(string key)=>string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||(HttpContext.Session.GetString("Menus")??"").Split(',').Any(x=>x.Trim().Equals(key,StringComparison.OrdinalIgnoreCase));
     private async Task<int?> EmployeeId(CancellationToken ct)=>await db.LoginUsers.Where(u=>u.UserId==UserId).Select(u=>u.EmpId).FirstOrDefaultAsync(ct)??await db.Employees.Where(e=>e.LoginUserId==UserId).Select(e=>(int?)e.EmpId).FirstOrDefaultAsync(ct);
@@ -38,11 +39,12 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==scan.VersionId,ct);var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);var project=await AllowedProject(system.ProjectId,ct);
         return project==null?null:(scan,version,system,project);
     }
-    public async Task<IActionResult> Index(int projectId,CancellationToken ct)
+    public async Task<IActionResult> Index(int projectId,CancellationToken ct,string workflow="Formal")
     {
+        if(workflow is not ("Formal" or "Development"))return BadRequest();
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        var page=new SecurityProjectPage{CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
+        var page=new SecurityProjectPage{Workflow=workflow,CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)&&x.Workflow==workflow).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
         page.IssueDefaults=await db.SecurityIssueDefaults.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).ToListAsync(ct);
         page.CanAutoCreateIssues=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create");
         page.ResponsibleEmployees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct);
@@ -103,7 +105,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             TempData["Success"]=$"บันทึก {SecurityValues.SectionLabel(section)} แล้ว";
         }catch(InvalidOperationException error){if(newProfile!=null)loginStore.DeleteUncommitted(newProfile);TempData["Error"]=error.Message;}
         catch{if(newProfile!=null)loginStore.DeleteUncommitted(newProfile);throw;}
-        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
 
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.ApproveHosts")]
@@ -115,7 +117,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         if(await AllowedProject(system.ProjectId,ct)==null)return NotFound();
         try{await scans.SetHostApprovalAsync(system.ProjectId,SecurityScanService.TargetHost(target.TargetUrl),approved,UserId,ct);TempData["Success"]=approved?"อนุมัติโดเมนแล้ว":"ถอนอนุมัติโดเมนแล้ว";}
         catch(InvalidOperationException error){TempData["Error"]=error.Message;}
-        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
 
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
@@ -144,7 +146,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(profile!=null)loginStore.DeleteUncommitted(profile);
             throw;
         }
-        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.ApproveHosts")]
     public async Task<IActionResult> ApproveHost(long systemId,bool approved,CancellationToken ct)
@@ -156,10 +158,10 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             await scans.SetHostApprovalAsync(system.ProjectId,SecurityScanService.TargetHost(system.TargetUrl),approved,UserId,ct);
             TempData["Success"]=approved?"อนุมัติโดเมนแล้ว สั่งสแกนได้ทันทีโดยไม่ต้อง Restart Worker":"ถอนการอนุมัติโดเมนแล้ว งานที่ยังไม่เริ่มจะไม่รับไปสแกน";
         }catch(InvalidOperationException error){TempData["Error"]=error.Message;}
-        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
-    public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct,int? assignedEmpId=null,DateTime? startDate=null,DateTime? endDate=null)
+    public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct,int? assignedEmpId=null,DateTime? startDate=null,DateTime? endDate=null,string workflow="Formal")
     {
         if(await AllowedProject(projectId,ct)==null)return NotFound();
         try{
@@ -167,16 +169,19 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(!SecurityValues.IsMobile(kind))SecurityScanService.ValidateUrl(targetUrl);
             if(authProfile?.Length>80||authProfile?.Any(c=>!char.IsAsciiLetterOrDigit(c)&&c!='-'&&c!='_')==true)throw new InvalidOperationException("ชื่อโปรไฟล์ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข - และ _");
             if(requiresLogin&&string.IsNullOrWhiteSpace(authProfile))throw new InvalidOperationException("กรุณาระบุชื่อโปรไฟล์ Login บนเครื่องสแกน");
+            if(workflow is not ("Formal" or "Development"))throw new InvalidOperationException("รูปแบบการทำงานไม่ถูกต้อง");
+            if(workflow=="Formal"){
             if(!Can("SecurityScans.CreateIssues")||!Can("ProjectIssues.Create"))throw new InvalidOperationException("ต้องมีสิทธิ์สร้าง Issue จากผลสแกน และ ProjectIssues.Create เพื่อกำหนดสร้าง Issue อัตโนมัติ");
             if(!assignedEmpId.HasValue||!await db.Employees.AnyAsync(x=>x.EmpId==assignedEmpId&&x.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
             if(!startDate.HasValue||!endDate.HasValue||startDate.Value==default||endDate.Value.Date<startDate.Value.Date)throw new InvalidOperationException("ระบุวันที่เริ่มและสิ้นสุดการแก้ไข โดยสิ้นสุดต้องไม่ก่อนวันเริ่ม");
+            }
             await using var tx=await db.Database.BeginTransactionAsync(ct);
             var system=new SecuritySystem{ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId};
             db.SecuritySystemRows.Add(system);await db.SaveChangesAsync(ct);
-            db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)});
-            await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]="เพิ่มระบบแล้ว ผลสแกน Critical / High / Medium / Low จะสร้าง Issue อัตโนมัติ";
+            if(workflow=="Formal")db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)});
+            await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]=workflow=="Development"?"เพิ่มระบบสำหรับสแกนระหว่างพัฒนาแล้ว ไม่สร้าง Issue":"เพิ่มระบบแล้ว ผลสแกน Critical / High / Medium / Low จะสร้าง Issue อัตโนมัติ";
         }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
-        return RedirectToAction(nameof(Index),new{projectId});
+        return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit"),RequestSizeLimit(268435456),RequestFormLimits(MultipartBodyLengthLimit=268435456)]
     public async Task<IActionResult> AddVersion(long systemId,string versionName,string? buildNumber,string? gitCommit,string environment,string? changeNotes,IFormFile? application,CancellationToken ct)
@@ -197,19 +202,19 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(artifact!=null){artifact.VersionId=version.Id;db.SecurityArtifactRows.Add(artifact);await db.SaveChangesAsync(ct);}await tx.CommitAsync(ct);committed=true;TempData["Success"]="เก็บเวอร์ชันใหม่แล้ว ไม่ทับเวอร์ชันเดิม";
         }catch(Exception e)when(e is InvalidOperationException or InvalidDataException){TempData["Error"]=e.Message;}
         finally{if(!committed&&key!=null)storage.Delete(key);}
-        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
-    public async Task<IActionResult> Queue(long versionId,string mode,string requestKey,CancellationToken ct)
+    public async Task<IActionResult> Queue(long versionId,string mode,string requestKey,CancellationToken ct,string workflow="Formal")
     {
         var version=await db.SecurityVersionRows.FindAsync([versionId],ct);if(version==null)return NotFound();var system=await db.SecuritySystemRows.FindAsync([version.SystemId],ct);if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
         try{
             if(!SecurityValues.IsMobile(system.Kind)){
-                var ids=await scans.QueueWebsiteAsync(versionId,mode,requestKey,UserId,ct);
+                var ids=await scans.QueueWebsiteAsync(versionId,mode,requestKey,UserId,ct,workflow);
                 TempData["Success"]=$"เพิ่ม Website เข้าคิวแล้ว {ids.Count} ส่วน ตรวจผลแต่ละส่วนได้ในประวัติรอบสแกน";
-                return Redirect(Url.Action(nameof(Index),new{projectId=system.ProjectId})+"#security-history");
+                return Redirect(Url.Action(nameof(Index),new{projectId=system.ProjectId,workflow})+"#security-history");
             }
-            var id=await scans.QueueAsync(versionId,mode,requestKey,UserId,ct);return RedirectToAction(nameof(Scan),new{id});}catch(InvalidOperationException e){TempData["Error"]=e.Message;return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});}
+            var id=await scans.QueueAsync(versionId,mode,requestKey,UserId,ct,workflow:workflow);return RedirectToAction(nameof(Scan),new{id});}catch(InvalidOperationException e){TempData["Error"]=e.Message;return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});}
     }
     public async Task<IActionResult> Scan(long id,long? baselineId,CancellationToken ct,int page=1)
     {
@@ -220,10 +225,10 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var pageNumber=Math.Clamp(page,1,Math.Max(1,(int)Math.Ceiling(total/(double)pageSize)));
         var allFindingIds=await observationQuery.Select(x=>x.FindingId).ToListAsync(ct);
         var observations=await observationQuery.OrderByDescending(x=>x.Severity=="Critical"?5:x.Severity=="High"?4:x.Severity=="Medium"?3:x.Severity=="Low"?2:1).ThenBy(x=>x.Title).ThenBy(x=>x.Id).Skip((pageNumber-1)*pageSize).Take(pageSize).ToListAsync(ct);var fids=observations.Select(x=>x.FindingId).ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
-        var baselines=await db.SecurityScanRows.AsNoTracking().Where(x=>versions.Contains(x.VersionId)&&x.Id!=id&&x.Status=="Completed"&&x.Engine==scan.Engine&&x.Mode==scan.Mode&&x.TargetUrl==scan.TargetUrl&&x.RequiresLogin==scan.RequiresLogin&&x.AuthProfile==scan.AuthProfile).OrderByDescending(x=>x.CreatedAt).Take(50).ToListAsync(ct);
+        var baselines=await db.SecurityScanRows.AsNoTracking().Where(x=>versions.Contains(x.VersionId)&&x.Id!=id&&x.Status=="Completed"&&x.Engine==scan.Engine&&x.Mode==scan.Mode&&x.Workflow==scan.Workflow&&x.TargetUrl==scan.TargetUrl&&x.RequiresLogin==scan.RequiresLogin&&x.AuthProfile==scan.AuthProfile).OrderByDescending(x=>x.CreatedAt).Take(50).ToListAsync(ct);
         var websitePart=await db.SecurityWebsiteScanParts.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct);
         var batchParts=websitePart==null?new List<SecurityWebsiteScanPart>():await (from part in db.SecurityWebsiteScanParts join other in db.SecurityScanRows on part.ScanId equals other.Id where part.BatchKey==websitePart.BatchKey&&other.VersionId==version.Id select part).AsNoTracking().ToListAsync(ct);
-        return View(new SecurityScanPage{WebsitePart=websitePart,WebsiteBatchParts=batchParts,TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
+        return View(new SecurityScanPage{WebsitePart=websitePart,WebsiteBatchParts=batchParts,TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=scan.Workflow=="Formal"&&Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
     }
     [HttpGet,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Progress(long id,CancellationToken ct)
@@ -242,7 +247,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         // Acquire the row before deleting dependants; an active lease must never be removed.
         var locked=await db.SecurityScanRows.Where(x=>x.Id==id&&(x.Status=="Completed"||x.Status=="Failed"||x.Status=="Cancelled"))
             .ExecuteUpdateAsync(set=>set.SetProperty(x=>x.Status,x=>x.Status),ct);
-        if(locked==0){TempData["Error"]="ไม่สามารถลบรอบที่อยู่ในคิวหรือกำลังสแกนได้ กรุณายกเลิกงานก่อน";return RedirectToAction(nameof(Index),new{projectId});}
+        if(locked==0){TempData["Error"]="ไม่สามารถลบรอบที่อยู่ในคิวหรือกำลังสแกนได้ กรุณายกเลิกงานก่อน";return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});}
         var reports=await db.SecurityReportRows.Where(x=>x.ScanId==id).Select(x=>x.StorageKey).ToListAsync(ct);
         await db.SecurityWebsiteScanParts.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
         await db.SecurityScanProgressRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
@@ -257,7 +262,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         }
         logger?.LogInformation("Security scan {ScanId} deleted by user {UserId} in project {ProjectId}",id,UserId,projectId);
         TempData[fileCleanupFailed?"Error":"Success"]=fileCleanupFailed?"ลบประวัติแล้ว แต่ลบไฟล์รายงานบางไฟล์ไม่ได้ กรุณาให้ผู้ดูแลตรวจสอบ":"ลบประวัติรอบสแกนแล้ว โดยเก็บเวอร์ชัน ไฟล์แอป และ Issue เดิมไว้";
-        return RedirectToAction(nameof(Index),new{projectId});
+        return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});
     }
 
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
@@ -296,6 +301,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     public async Task<IActionResult> LinkIssue(long observationId,int issueId,CancellationToken ct)
     {
         var observation=await db.SecurityScanFindingRows.FindAsync([observationId],ct);if(observation==null)return NotFound();var scope=await Scope(observation.ScanId,ct);if(scope==null)return NotFound();
+        if(scope.Value.Scan.Workflow=="Development")return BadRequest("รอบสแกนระหว่างพัฒนาไม่เชื่อม Issue");
         if(!await db.ProjectIssues.AnyAsync(x=>x.IssueId==issueId&&x.ProjectId==scope.Value.Project.ProjectId,ct))return BadRequest();
         await using var tx=await db.Database.BeginTransactionAsync(ct);
         await db.SecurityFindingRows.Where(x=>x.Id==observation.FindingId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);

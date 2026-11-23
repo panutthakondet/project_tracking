@@ -23,11 +23,19 @@ public static class AutoIssueChecks
   var issues=await db.ProjectIssues.ToListAsync();
   if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=4)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
   await Scan();if(await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated scan duplicated Issues");
+  var devKey=Guid.NewGuid().ToString();
+  var devId=await service.QueueAsync(version.Id,"Passive",devKey,1,default,workflow:"Development");var devJob=await service.ClaimAsync(default);
+  await service.CompleteAsync(devId,devJob!.LeaseToken,json,new("fake","development"),default);
+  if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=10||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
+  var devObservation=await db.SecurityScanFindingRows.FirstAsync(x=>x.ScanId==devId);
+  try{await service.CreateIssueAsync(devObservation.Id,employee.EmpId,start,end,1,employee.EmpId,default);throw new Exception("Development finding converted to Issue");}catch(InvalidOperationException){}
+  try{await service.QueueAsync(version.Id,"Passive",devKey,1,default);throw new Exception("Request key changed workflow");}catch(InvalidOperationException){}
+  Console.WriteLine("PASS Development scan separates history and finding identity; no automatic or manual Issues; request retry cannot change workflow");
   employee.Status="INACTIVE";await db.SaveChangesAsync();
   var failedId=await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var failedJob=await service.ClaimAsync(default);
   try{await service.CompleteAsync(failedId,failedJob!.LeaseToken,json,new("fake","fake"),default);throw new Exception("Inactive assignee was accepted");}catch(InvalidOperationException){}
   db.ChangeTracker.Clear();
-  if(await db.SecurityReportRows.CountAsync()!=2||await db.ProjectIssues.CountAsync()!=4||await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==failedId))throw new Exception("Failed auto assignment left partial results");
+  if(await db.SecurityReportRows.CountAsync()!=3||await db.ProjectIssues.CountAsync()!=4||await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==failedId))throw new Exception("Failed auto assignment left partial results");
   Console.WriteLine("PASS automatic Issues: Critical/High/Medium/Low, excluded Info, copied assignee/dates, atomic completion retry and finding deduplication");
  }
 }
