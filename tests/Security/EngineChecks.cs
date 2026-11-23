@@ -27,6 +27,7 @@ public static class EngineChecks
   var webLogin=new SecurityLoginCredentials{LoginUrl="https://93.184.216.34/login",Username="embedded-test",Password="embedded-secret",LoggedInRegex="Logout"};
   var webAuthenticated=new ScannerEngines(client,client,k=>k=="SECURITY_AUTH_PROFILES_PATH"?throw new Exception("Web login must not read local profiles"):k=="SECURITY_ALLOWED_HOSTS"?"93.184.216.34":"test");
   await webAuthenticated.Web(job with{RequiresLogin=true,AuthProfile="web-"+new string('a',32),Login=webLogin},default);
+  if(!handler.FormCsrfConfigured||!handler.Paths.Any(p=>p.Contains("acsrf/action/addOptionToken")))throw new Exception("Form CSRF configuration missing");
   if(!handler.EmbeddedCredentialsSeen)throw new Exception("Embedded credentials were not passed to ZAP");
   Console.WriteLine("PASS web-managed credentials authenticate through ZAP without a local profile file");
   var jsonLogin=new SecurityLoginCredentials{AuthenticationType="JsonBearer",LoginUrl="https://93.184.216.34/api/member/auth/login",ScanStartUrl="https://93.184.216.34/member/",Username="fixture",Password="fixture",RequestData="""{"membership_no":"{%username%}","mem_password":"{%password%}"}"""};
@@ -77,7 +78,7 @@ public static class EngineChecks
   public bool AuthSuccess{get;set;}
   public bool EmbeddedCredentialsSeen{get;set;}
   public string? AuthResponse{get;set;}
-  public bool JsonConfigured,HeaderConfigured;
+  public bool JsonConfigured,HeaderConfigured,FormCsrfConfigured;
   public string ScanResult="{\"scanAsUser\":\"1\"}";
   protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
   {
@@ -93,6 +94,8 @@ public static class EngineChecks
    }
    if(path=="/JSON/authentication/action/setAuthenticationMethod/"){
     var data=System.Web.HttpUtility.ParseQueryString(request.Content!.ReadAsStringAsync(ct).GetAwaiter().GetResult());
+    var config=System.Web.HttpUtility.ParseQueryString(data["authMethodConfigParams"]!);
+    if(data["authMethodName"]=="formBasedAuthentication")FormCsrfConfigured=config["loginPageUrl"]=="https://93.184.216.34/login"&&config["loginRequestData"]!.Contains("_token=");
     JsonConfigured=data["authMethodName"]=="jsonBasedAuthentication" && System.Web.HttpUtility.ParseQueryString(data["authMethodConfigParams"]!)["loginRequestData"]!.Contains("membership_no");
    }
    if(path=="/JSON/sessionManagement/action/setSessionManagementMethod/"){

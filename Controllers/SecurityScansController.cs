@@ -11,6 +11,16 @@ namespace ProjectTracking.Controllers;
 [RequireMenu("SecurityScans.Index")]
 public class SecurityScansController(AppDbContext db,SecurityStorage storage,SecurityScanService scans,IWebHostEnvironment env,SecurityLoginStore loginStore,ILogger<SecurityScansController>? logger=null):BaseController
 {
+    [HttpGet]
+    public async Task<IActionResult> LoginGuide(long systemId,string section,CancellationToken ct)
+    {
+        var system=await db.SecuritySystemRows.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==systemId,ct);
+        if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(!SecurityValues.WebsiteSections.Contains(section))return BadRequest();
+        Response.Headers.ContentDisposition="inline; filename=login-guide-"+section+".pdf";
+        Response.Headers.CacheControl="private, no-store";
+        return File(SecurityLoginGuide.Create(section,Path.Combine(env.WebRootPath,"fonts","THSarabunNew.ttf")),"application/pdf");
+    }
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
     private bool Can(string key)=>string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||(HttpContext.Session.GetString("Menus")??"").Split(',').Any(x=>x.Trim().Equals(key,StringComparison.OrdinalIgnoreCase));
     private async Task<int?> EmployeeId(CancellationToken ct)=>await db.LoginUsers.Where(u=>u.UserId==UserId).Select(u=>u.EmpId).FirstOrDefaultAsync(ct)??await db.Employees.Where(e=>e.LoginUserId==UserId).Select(e=>(int?)e.EmpId).FirstOrDefaultAsync(ct);

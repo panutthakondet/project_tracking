@@ -187,3 +187,5 @@ html body main.route-controller-securityscans.route-action-index .security-works
 @media(max-width:600px) { .security-website-form { grid-template-columns: minmax(0,1fr); } .security-website-targets { padding: 12px; } }
 
 .security-history-type[aria-current="page"] { border-color: var(--pt-accent, #0f766e); font-weight: 700; }
+
+.security-login-help{display:flex;justify-content:flex-end;margin:10px 0}.security-login-help .btn{font-size:.85rem}

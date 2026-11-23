@@ -48,9 +48,9 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
             if(loginProfile==null||loginProfile.AuthenticationType is not ("Form" or "JsonBearer" or "JsonCookie"))throw new InvalidOperationException("Unsupported login type");
             var origin=target.GetLeftPart(UriPartial.Authority);
             if(!Uri.TryCreate(loginProfile.LoginUrl,UriKind.Absolute,out var loginUrl)||loginUrl.GetLeftPart(UriPartial.Authority)!=origin||loginUrl.UserInfo!=""||loginUrl.Fragment!="")throw new InvalidOperationException("Login URL must use the approved origin");
-            if(loginProfile.AuthenticationType is "JsonBearer" or "JsonCookie"){
+            {
                 if(loginProfile.AuthenticationType=="JsonBearer"&&!JsonLoginVerification.ValidPath(loginProfile.TokenPath))throw new InvalidOperationException("Invalid JSON token field");
-                try{using var payload=JsonDocument.Parse(loginProfile.RequestData);if(payload.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();}
+                try{if(loginProfile.AuthenticationType!="Form"){using var payload=JsonDocument.Parse(loginProfile.RequestData);if(payload.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();}}
                 catch(JsonException){throw new InvalidOperationException("JSON Login requires a JSON request body");}
                 if(!string.IsNullOrWhiteSpace(loginProfile.ScanStartUrl)){
                     if(!Uri.TryCreate(loginProfile.ScanStartUrl,UriKind.Absolute,out var start)||start.GetLeftPart(UriPartial.Authority)!=origin)throw new InvalidOperationException("Scan start must use the approved origin");
@@ -85,7 +85,14 @@ public sealed class ScannerEngines(HttpClient zap,HttpClient mobsf,Func<string,s
                 var jsonBearer=profile.AuthenticationType=="JsonBearer";
                 var loggedIn=jsonBearer?JsonLoginVerification.Indicator(profile.TokenPath):profile.LoggedInRegex;
                 if(string.IsNullOrWhiteSpace(loggedIn))throw new InvalidOperationException("Login verification is required");
-                var config="loginUrl="+Uri.EscapeDataString(profile.LoginUrl)+"&loginRequestData="+Uri.EscapeDataString(profile.RequestData);
+                var requestData=profile.RequestData;
+                if(profile.AuthenticationType=="Form"){
+                    // ZAP regenerates registered hidden form tokens from loginPageUrl on every authentication.
+                    var tokens=await Zap("acsrf","view","optionTokensNames",null,ct);
+                    if(!tokens.ToString().Contains("\"_token\"",StringComparison.OrdinalIgnoreCase))await Zap("acsrf","action","addOptionToken",new(){["String"]="_token"},ct);
+                    if(!requestData.Split('&').Any(x=>Uri.UnescapeDataString(x.Split('=')[0])=="_token"))requestData+="&_token=";
+                }
+                var config="loginUrl="+Uri.EscapeDataString(profile.LoginUrl)+"&loginPageUrl="+Uri.EscapeDataString(profile.LoginUrl)+"&loginRequestData="+Uri.EscapeDataString(requestData);
                 await Zap("authentication","action","setAuthenticationMethod",new(){["contextId"]=context,["authMethodName"]=jsonBearer?"jsonBasedAuthentication":"formBasedAuthentication",["authMethodConfigParams"]=config},ct);
                 if(jsonBearer)await Zap("sessionManagement","action","setSessionManagementMethod",new(){["contextId"]=context,["methodName"]="headerBasedSessionManagement",["methodConfigParams"]="headers="+Uri.EscapeDataString("Authorization:Bearer {%json:"+profile.TokenPath+"%}")},ct);
                 await Zap("authentication","action","setLoggedInIndicator",new(){["contextId"]=context,["loggedInIndicatorRegex"]=loggedIn},ct);
