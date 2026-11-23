@@ -41,7 +41,7 @@
         const sync=()=>form.querySelectorAll('[data-website-login-kind]').forEach(field=>{field.hidden=!field.dataset.websiteLoginKind.split(" ").includes(type.value);});
         type.addEventListener('change',()=>{if(body.value===defaults[previous])body.value=defaults[type.value];previous=type.value;sync();});sync();
     });
-    const storageKey='security-system-open:'+root.dataset.projectId;
+    const storageKey='security-system-open:'+root.dataset.projectId+':'+(root.dataset.workflow||'Formal');
     const systems=Array.from(root.querySelectorAll('[data-system-id]'));
     try{const saved=sessionStorage.getItem(storageKey);systems.forEach(system=>{if(system.dataset.systemId===saved)system.open=true;});}catch{}
     systems.forEach(system=>system.addEventListener('toggle',()=>{

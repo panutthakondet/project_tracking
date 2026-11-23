@@ -14,6 +14,7 @@ public static class SecurityModelConfiguration
         b.Entity<SecurityWebsiteScanPart>().HasIndex(x=>new{x.BatchKey,x.Section}).IsUnique();
         b.Entity<SecurityWebsiteScanPart>().HasOne<SecurityScan>().WithOne().HasForeignKey<SecurityWebsiteScanPart>(x=>x.ScanId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityHostApproval>().HasIndex(x=>new{x.ProjectId,x.Host}).IsUnique();
+        b.Entity<SecuritySystem>().Property(x=>x.Workflow).HasDefaultValue("Formal");
         b.Entity<SecuritySystem>().HasIndex(x=>x.ProjectId);
         b.Entity<SecurityVersion>().HasOne<SecuritySystem>().WithMany().HasForeignKey(x=>x.SystemId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SecurityArtifact>().HasIndex(x=>x.VersionId).IsUnique();

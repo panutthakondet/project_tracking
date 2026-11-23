@@ -3,6 +3,8 @@ namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
     public string Workflow { get; set; }="Formal";
+    public List<SecuritySystem> HistorySystems { get; set; }=[];
+    public List<SecurityVersion> HistoryVersions { get; set; }=[];
     public bool CanAutoCreateIssues { get; set; }
     public List<SecurityIssueDefaults> IssueDefaults { get; set; }=[];
     public List<Employee> ResponsibleEmployees { get; set; }=[];

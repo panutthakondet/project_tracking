@@ -43,8 +43,13 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         if(workflow is not ("Formal" or "Development"))return BadRequest();
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
-        var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        var page=new SecurityProjectPage{Workflow=workflow,CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)&&x.Workflow==workflow).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
+        var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId&&x.Workflow==workflow).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
+        var history=await (from scan in db.SecurityScanRows join version in db.SecurityVersionRows on scan.VersionId equals version.Id join system in db.SecuritySystemRows on version.SystemId equals system.Id where system.ProjectId==projectId&&scan.Workflow==workflow orderby scan.CreatedAt descending select scan).AsNoTracking().Take(200).ToListAsync(ct);
+        var historyVersionIds=history.Select(x=>x.VersionId).Distinct().ToArray();
+        var historyVersions=await db.SecurityVersionRows.AsNoTracking().Where(x=>historyVersionIds.Contains(x.Id)).ToListAsync(ct);
+        var historySystemIds=historyVersions.Select(x=>x.SystemId).Distinct().ToArray();
+        var historySystems=await db.SecuritySystemRows.AsNoTracking().Where(x=>historySystemIds.Contains(x.Id)).ToListAsync(ct);
+        var page=new SecurityProjectPage{HistoryVersions=historyVersions,HistorySystems=historySystems,Workflow=workflow,CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=history,CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
         page.IssueDefaults=await db.SecurityIssueDefaults.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).ToListAsync(ct);
         page.CanAutoCreateIssues=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create");
         page.ResponsibleEmployees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct);
@@ -78,6 +83,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         Response.Headers.CacheControl="no-store";
         var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);
         if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest("ระบบอยู่คนละรูปแบบการทำงาน");
         if(SecurityValues.IsMobile(system.Kind)||!SecurityValues.WebsiteSections.Contains(section))return BadRequest();
         if(section=="WebInfo")requiresLogin=false;
         login.AuthenticationType??="Form";login.TokenPath??="token";login.LoginUrl??="";login.Username??="";login.Password??="";login.LoggedInRegex??="";
@@ -176,7 +182,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(!startDate.HasValue||!endDate.HasValue||startDate.Value==default||endDate.Value.Date<startDate.Value.Date)throw new InvalidOperationException("ระบุวันที่เริ่มและสิ้นสุดการแก้ไข โดยสิ้นสุดต้องไม่ก่อนวันเริ่ม");
             }
             await using var tx=await db.Database.BeginTransactionAsync(ct);
-            var system=new SecuritySystem{ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId};
+            var system=new SecuritySystem{Workflow=workflow,ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId};
             db.SecuritySystemRows.Add(system);await db.SaveChangesAsync(ct);
             if(workflow=="Formal")db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)});
             await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]=workflow=="Development"?"เพิ่มระบบสำหรับสแกนระหว่างพัฒนาแล้ว ไม่สร้าง Issue":"เพิ่มระบบแล้ว ผลสแกน Critical / High / Medium / Low จะสร้าง Issue อัตโนมัติ";
@@ -187,6 +193,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     public async Task<IActionResult> AddVersion(long systemId,string versionName,string? buildNumber,string? gitCommit,string environment,string? changeNotes,IFormFile? application,CancellationToken ct)
     {
         var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest("ระบบอยู่คนละรูปแบบการทำงาน");
         string? key=null;var committed=false;
         try{
             if(string.IsNullOrWhiteSpace(versionName)||versionName.Length>100||buildNumber?.Length>100||gitCommit?.Length>64||changeNotes?.Length>4000||environment is not ("UAT" or "Production"))throw new InvalidOperationException("ข้อมูลเวอร์ชันไม่ถูกต้อง");

@@ -32,6 +32,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         if(!Guid.TryParse(requestKey,out _))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
         var existing=await db.SecurityScanRows.SingleOrDefaultAsync(x=>x.RequestKey==requestKey,ct);if(existing!=null){if(existing.VersionId!=versionId||existing.CreatedBy!=userId||existing.Workflow!=workflow)throw new InvalidOperationException("คำขอสแกนไม่ตรงกัน");return existing.Id;}
         var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==versionId,ct);var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(system.Workflow!=workflow)throw new InvalidOperationException("ระบบนี้อยู่คนละฝั่งกับรูปแบบการสแกนที่เลือก");
         if(websiteTarget!=null){
             if(websiteTarget.SystemId!=system.Id||SecurityValues.IsMobile(system.Kind)||!websiteTarget.Enabled)throw new InvalidOperationException("ส่วนเว็บไซต์ไม่ตรงกับระบบ");
             system.TargetUrl=websiteTarget.TargetUrl;system.RequiresLogin=websiteTarget.RequiresLogin;system.AuthProfile=websiteTarget.AuthProfile;
@@ -63,6 +64,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         if(!Guid.TryParse(requestKey,out var batch))throw new InvalidOperationException("รหัสคำขอไม่ถูกต้อง");
         var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==versionId,ct);
         var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(system.Workflow!=workflow)throw new InvalidOperationException("ระบบนี้อยู่คนละฝั่งกับรูปแบบการสแกนที่เลือก");
         if(SecurityValues.IsMobile(system.Kind))throw new InvalidOperationException("ระบบนี้ไม่ใช่ Website");
         await using var transaction=await db.Database.BeginTransactionAsync(ct);
         // Serialize requests for this Website before checking batch idempotency.

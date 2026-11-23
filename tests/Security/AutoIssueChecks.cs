@@ -23,8 +23,13 @@ public static class AutoIssueChecks
   var issues=await db.ProjectIssues.ToListAsync();
   if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=4)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
   await Scan();if(await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated scan duplicated Issues");
+  var devSystem=new SecuritySystem{ProjectId=1,Name="Auto",Kind="Website",TargetUrl="https://example.com/",Workflow="Development"};db.SecuritySystemRows.Add(devSystem);await db.SaveChangesAsync();
+  var devVersion=new SecurityVersion{SystemId=devSystem.Id,VersionName="1",Environment="UAT"};db.SecurityVersionRows.Add(devVersion);await db.SaveChangesAsync();
+  try{await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default,workflow:"Development");throw new Exception("Formal system queued as development");}catch(InvalidOperationException){}
+  try{await service.QueueWebsiteAsync(devVersion.Id,"Passive",Guid.NewGuid().ToString(),1,default);throw new Exception("Development Website queued as Formal");}catch(InvalidOperationException){}
+  if(await db.SecuritySystemRows.CountAsync(x=>x.Workflow=="Formal")!=1||await db.SecuritySystemRows.CountAsync(x=>x.Workflow=="Development")!=1)throw new Exception("System workflows were not separated");
   var devKey=Guid.NewGuid().ToString();
-  var devId=await service.QueueAsync(version.Id,"Passive",devKey,1,default,workflow:"Development");var devJob=await service.ClaimAsync(default);
+  var devId=await service.QueueAsync(devVersion.Id,"Passive",devKey,1,default,workflow:"Development");var devJob=await service.ClaimAsync(default);
   await service.CompleteAsync(devId,devJob!.LeaseToken,json,new("fake","development"),default);
   if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=10||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
   var devObservation=await db.SecurityScanFindingRows.FirstAsync(x=>x.ScanId==devId);

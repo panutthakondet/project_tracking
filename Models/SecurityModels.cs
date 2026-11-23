@@ -5,6 +5,7 @@ namespace ProjectTracking.Models;
 [Table("security_systems")]
 public class SecuritySystem
 {
+    [MaxLength(20)] public string Workflow { get; set; } = "Formal";
     public long Id { get; set; }
     public int ProjectId { get; set; }
     [MaxLength(160)] public string Name { get; set; } = "";

@@ -1,8 +1,9 @@
 @model ProjectTracking.ViewModels.Security.SecurityProjectPage
+@{var historySystems=Model.HistorySystems.Count>0?Model.HistorySystems:Model.Systems;var historyVersions=Model.HistoryVersions.Count>0?Model.HistoryVersions:Model.Versions;}
 @using ProjectTracking.Services.Security
 @{ViewData["Title"]="ตรวจความปลอดภัยโครงการ";}
 @section Styles { <link rel="stylesheet" href="~/css/security-center.css" asp-append-version="true" /> }
-<div class="security-center security-workspace" data-project-id="@Model.Project.ProjectId">
+<div class="security-center security-workspace" data-project-id="@Model.Project.ProjectId" data-workflow="@Model.Workflow">
     <header class="index-hero">
         <div class="index-hero__content">
             <span class="index-eyebrow">Project Security Center</span>
@@ -20,7 +21,7 @@
     <nav class="security-workflows" aria-label="รูปแบบการทำงานสแกน">
         <a class="btn @(Model.Workflow=="Formal"?"btn-primary":"btn-outline-primary")" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="Formal" aria-current="@(Model.Workflow=="Formal"?"page":null)">สแกนจริง</a>
         <a class="btn @(Model.Workflow=="Development"?"btn-primary":"btn-outline-primary")" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="Development" aria-current="@(Model.Workflow=="Development"?"page":null)">สแกนระหว่างพัฒนา</a>
-        <p>@(Model.Workflow=="Development"?"ตรวจระหว่างเขียนโปรแกรม ไม่สร้างหรือเชื่อม Issue ประวัติและประเด็นแยกจากสแกนจริง":"สแกนจริงและติดตามแก้ไขผ่าน Issue ตามการตั้งค่าระบบ ประวัติแยกจากการสแกนระหว่างพัฒนา")</p>
+        <p>@(Model.Workflow=="Development"?"ตรวจระหว่างเขียนโปรแกรม ไม่สร้างหรือเชื่อม Issue ระบบ เวอร์ชัน ไฟล์ Login และประวัติแยกจากสแกนจริง":"สแกนจริงและติดตามแก้ไขผ่าน Issue ตามการตั้งค่าระบบ ประวัติแยกจากการสแกนระหว่างพัฒนา")</p>
     </nav>
     <div id="security-systems" class="security-systems">
     @if(Model.CanManage){
@@ -94,8 +95,8 @@
     <div class="security-history-types" role="group" aria-label="กรองประวัติตามประเภทระบบ" data-history-controls hidden>
         <button type="button" class="security-history-type" data-history-kind="" aria-pressed="true">ทั้งหมด <span>@Model.Scans.Count</span></button>
         @foreach(var kind in SecurityValues.Kinds){
-            var systemIds=Model.Systems.Where(x=>SecurityValues.Category(x.Kind)==kind).Select(x=>x.Id).ToHashSet();
-            var versionIds=Model.Versions.Where(x=>systemIds.Contains(x.SystemId)).Select(x=>x.Id).ToHashSet();
+            var systemIds=historySystems.Where(x=>SecurityValues.Category(x.Kind)==kind).Select(x=>x.Id).ToHashSet();
+            var versionIds=historyVersions.Where(x=>systemIds.Contains(x.SystemId)).Select(x=>x.Id).ToHashSet();
             var scanCount=Model.Scans.Count(x=>versionIds.Contains(x.VersionId));
             <button type="button" class="security-history-type" data-history-kind="@kind" aria-pressed="false">@kind <span>@scanCount</span></button>
         }
@@ -104,7 +105,7 @@
         <label>ค้นหา<input type="search" class="form-control" data-history-search placeholder="ชื่อระบบ เวอร์ชัน หรือเลขรอบ" /></label>
         <label>สถานะ<select class="form-select" data-history-status><option value="">ทุกสถานะ</option>@foreach(var state in new[]{"Queued","Running","Processing","Completed","Failed","Cancelled"}){<option value="@state">@SecurityValues.StatusLabel(state)</option>}</select></label>
     </div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
-    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status" data-kind="@SecurityValues.Category(system.Kind)"><td>#@scan.Id</td><td>@system.Name @if(Model.WebsiteScanParts.FirstOrDefault(x=>x.ScanId==scan.Id) is {} part){<strong> · @SecurityValues.SectionLabel(part.Section)</strong>}<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
+    @foreach(var scan in Model.Scans){var version=historyVersions.Single(x=>x.Id==scan.VersionId);var system=historySystems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status" data-kind="@SecurityValues.Category(system.Kind)"><td>#@scan.Id</td><td>@system.Name @if(Model.WebsiteScanParts.FirstOrDefault(x=>x.ScanId==scan.Id) is {} part){<strong> · @SecurityValues.SectionLabel(part.Section)</strong>}<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
         @if(Model.CanDeleteScans && scan.Status is "Completed" or "Failed" or "Cancelled"){
             <form asp-action="DeleteScan" asp-route-id="@scan.Id" method="post" asp-route-workflow="@Model.Workflow" class="security-history-delete" onsubmit="return confirm('ลบรอบสแกน #@scan.Id และรายงานของรอบนี้หรือไม่? เวอร์ชัน ไฟล์แอป และ Issue จะยังคงอยู่');">
                 <button type="submit" class="btn btn-outline-danger" aria-label="ลบรอบสแกน @scan.Id">ลบ</button>
