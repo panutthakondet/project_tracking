@@ -51,6 +51,26 @@ public static class AutoIssueChecks
   try{await service.CompleteAsync(failedId,failedJob!.LeaseToken,json,new("fake","fake"),default);throw new Exception("Inactive assignee was accepted");}catch(InvalidOperationException){}
   db.ChangeTracker.Clear();
   if(await db.SecurityReportRows.CountAsync()!=3||await db.ProjectIssues.CountAsync()!=4||await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==failedId))throw new Exception("Failed auto assignment left partial results");
+  employee=await db.Employees.SingleAsync();employee.Status="ACTIVE";await db.SaveChangesAsync();
+  var rejectedIssue=await db.ProjectIssues.OrderBy(x=>x.IssueId).FirstAsync();
+  rejectedIssue.IssueStatus="REJECT";
+  await SecurityIssueWorkflow.StageStatusAsync(db,rejectedIssue,"AcceptedRisk",1);await db.SaveChangesAsync();
+  var acceptedLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.IssueId==rejectedIssue.IssueId);
+  var acceptedId=acceptedLink.FindingId;
+  async Task CheckAccepted(long versionId){
+   var scanId=await service.QueueAsync(versionId,"Passive",Guid.NewGuid().ToString(),1,default);
+   var claimed=await service.ClaimAsync(default);
+   await service.CompleteAsync(scanId,claimed!.LeaseToken,json,new("fake","accepted-risk regression"),default);
+   db.ChangeTracker.Clear();
+   if(!await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==scanId&&x.FindingId==acceptedId)
+      ||!await db.SecurityFindingRows.AnyAsync(x=>x.Id==acceptedId&&x.ReviewStatus=="AcceptedRisk")
+      ||!await db.ProjectIssues.AnyAsync(x=>x.IssueId==rejectedIssue.IssueId&&x.IssueStatus=="REJECT")
+      ||await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated finding must retain accepted risk and its rejected Issue without duplication");
+  }
+  await CheckAccepted(version.Id);
+  var nextVersion=new SecurityVersion{SystemId=system.Id,VersionName="2",Environment="UAT"};db.SecurityVersionRows.Add(nextVersion);await db.SaveChangesAsync();
+  await CheckAccepted(nextVersion.Id);
+  Console.WriteLine("PASS REJECT / AcceptedRisk survives rescans of the same and next version without reopening or duplicating Issues");
   Console.WriteLine("PASS automatic Issues: Critical/High/Medium/Low, excluded Info, copied assignee/dates, atomic completion retry and finding deduplication");
  }
 }
