@@ -213,7 +213,7 @@ html body main .security-center .security-website-part[data-section]>summary{bor
 .security-assignment-summary time{display:inline-block;font-variant-numeric:tabular-nums}
 @media(max-width:720px){.security-assignment-summary{margin:12px 14px;padding:12px;gap:10px}.security-assignment-summary>div{width:100%}}
 
-.security-finding-origin{font-size:13px;font-weight:600;color:var(--pt-surface-contrast-muted,#47515c);margin:10px 0}
+.security-center .security-finding .security-finding-origin{font-size:18px;font-weight:600;line-height:1.5;color:var(--pt-surface-contrast-muted,#47515c);margin:10px 0}
 
 /* Keep edit and delete controls together without stretching their labels. */
 .security-management-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;padding:12px 16px}
