@@ -38,6 +38,35 @@ public static class SecurityLoginGuide
                 Line("เว้น Password ว่างเพื่อใช้รหัสที่บันทึกไว้เดิม บัญชีเก็บแบบเข้ารหัส คู่มือนี้ไม่มีรหัสผ่านหรือ Cookie จริง");
                 Line("พบ 419: ตรวจ CSRF; 401/403 หรือกลับหน้า Login: ตรวจบัญชีและสิทธิ์; ยืนยันไม่ผ่าน: ตรวจเส้นทางหลัง Login และข้อความยืนยัน ไม่แก้ด้วยการข้ามการตรวจ Login");
                 Line("OTP, CAPTCHA, MFA และหน้าที่ต้องรัน JavaScript อาจต้องเตรียมวิธีเชื่อมต่อเพิ่มเติม การสแกนไม่รับประกันว่าค้นพบทุกหน้า");
+                if(section=="WebMember"){
+                    c.Item().PageBreak();
+                    Heading("ตัวอย่างกรอก Web Member - fishcorp");
+                    Line("ใช้กับเว็บที่ POST JSON ไป /member/login และยืนยันด้วย Cookie/Session + CSRF ตามข้อมูลที่ตรวจสอบ ไม่ใช้แทนการตั้งค่าเว็บไซต์ทุกแห่ง");
+                    c.Item().PaddingVertical(8).Table(table=>{
+                        table.ColumnsDefinition(cols=>{cols.RelativeColumn(2);cols.RelativeColumn(3);});
+                        void Row(string name,string value){
+                            table.Cell().DefaultTextStyle(x=>x.FontSize(14)).BorderBottom(1).BorderColor("DCE6EE").Background("EEF4F8").Padding(4).Text(name).Bold();
+                            table.Cell().DefaultTextStyle(x=>x.FontSize(14)).BorderBottom(1).BorderColor("DCE6EE").Padding(4).Text(value);
+                        }
+                        Row("ช่องบนหน้าจอ","สิ่งที่กรอก / เลือก");
+                        Row("รวมส่วนนี้เมื่อสแกน Website","ติ๊กเปิด เพื่อรวม Web Member ในชุดสแกน");
+                        Row("URL Web Member","https://uat.fishcorp.in.th/member/login (ระบบเติมให้แล้ว)");
+                        Row("Login ก่อนสแกนส่วนนี้","ติ๊กเปิด");
+                        Row("วิธี Login","JSON + Cookie/Session + CSRF");
+                        Row("เส้นทางรับข้อมูล Login","/member/login (กรอกเฉพาะเส้นทาง ไม่ต้องใส่โดเมน)");
+                        Row("Username","เลขสมาชิกของบัญชีทดสอบ");
+                        Row("Password","รหัสผ่านบัญชีทดสอบ; เว้นว่างเพื่อใช้รหัสเดิมได้เฉพาะเมื่อบันทึกรหัสไว้แล้ว");
+                        Row("ข้อความยืนยันหลัง Login","ข้อความที่พบเฉพาะหลัง Login เช่น ออกจากระบบ - ใช้ได้เมื่อหน้าจริงมีคำนี้ และหน้า Login ไม่มี");
+                        Row("เส้นทางเริ่มตรวจหลัง Login","ตรวจ URL หลัง Login จริง เช่น /member/profile เป็นเพียงตัวอย่าง ต้องมีหน้านี้จริงและต้อง Login จึงเข้าได้");
+                    });
+                    Heading("ข้อมูล Request Body");
+                    Code("{\"membership_no\":\"{%username%}\",\"password\":\"{%password%}\",\"des\":\"\",\"remember\":false}");
+                    Line("คง {%username%} และ {%password%} ตามนี้ ระบบแทนค่าจากช่องบัญชีให้เอง ไม่ต้องใส่รหัสผ่านจริงลงใน Request Body");
+                    Heading("ตรวจสองช่องนี้ก่อนกดบันทึก");
+                    Line("1. เข้าสู่ระบบด้วยบัญชีทดสอบ แล้วคัดลอกเฉพาะเส้นทางจาก URL ของหน้าที่เข้าได้หลัง Login มาใส่ช่องเส้นทางเริ่มตรวจ");
+                    Line("2. เลือกข้อความเฉพาะหลัง Login จากหน้าที่เส้นทางนั้นแสดงจริง ไม่เลือกคำทั่วไปหรือคำที่อยู่บนหน้า Login ด้วย");
+                    Line("กดบันทึก Web Member และตรวจว่าบันทึกสำเร็จ จากนั้นอนุมัติโดเมนและเพิ่มเข้าคิวสแกน ไม่ต้องคัดลอก XSRF-TOKEN หรือ Cookie มาใส่เอง");
+                }
                 c.Item().PaddingTop(12).Text("อ้างอิง ZAP: www.zaproxy.org/docs/desktop/start/features/authmethods/").FontSize(11).FontColor("53758A");
             });
             page.Footer().PaddingTop(10).AlignRight().Text(t=>{t.Span("คู่มือ Login  |  ");t.CurrentPageNumber();t.Span(" / ");t.TotalPages();});
