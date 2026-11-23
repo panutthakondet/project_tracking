@@ -110,6 +110,16 @@
                     <span asp-validation-for="ProjectDetail" class="text-danger"></span>
                 </div>
 
+                <div class="col-md-6">
+                    <label asp-for="TorDetail" class="form-label fw-semibold"></label>
+                    <textarea asp-for="TorDetail" class="form-control" rows="4" placeholder="ระบุรายละเอียดตาม TOR"></textarea>
+                    <span asp-validation-for="TorDetail" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ExtraTorDetail" class="form-label fw-semibold"></label>
+                    <textarea asp-for="ExtraTorDetail" class="form-control" rows="4" placeholder="ระบุรายละเอียดงานนอกเหนือ TOR"></textarea>
+                    <span asp-validation-for="ExtraTorDetail" class="text-danger"></span>
+                </div>
                 <!-- Status -->
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">

@@ -243,6 +243,7 @@ await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureProjectWarrantyDateColumnsAsync(app.Services);
 await EnsureProjectLinkNameTextColumnAsync(app.Services);
+await EnsureProjectTorColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -4489,4 +4490,28 @@ static async Task PrintStatusCleanupSummaryAsync(IServiceProvider services)
         if (shouldClose)
             await connection.CloseAsync();
     }
+}
+
+
+static async Task EnsureProjectTorColumnsAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+    try
+    {
+        using var command = connection.CreateCommand();
+        foreach (var column in new[] { "tor_detail", "extra_tor_detail" })
+        {
+            command.CommandText = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='project' AND COLUMN_NAME='{column}';";
+            if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) == 0)
+            {
+                command.CommandText = $"ALTER TABLE `project` ADD COLUMN `{column}` longtext NULL;";
+                await command.ExecuteNonQueryAsync();
+            }
+        }
+    }
+    finally { if (shouldClose) await connection.CloseAsync(); }
 }

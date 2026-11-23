@@ -675,6 +675,8 @@ namespace ProjectTracking.Controllers
 
             db.ProjectName = model.ProjectName;
             db.ProjectDetail = model.ProjectDetail;
+            db.TorDetail = model.TorDetail;
+            db.ExtraTorDetail = model.ExtraTorDetail;
             db.CoopId = model.CoopId;
             db.DepartmentId = model.DepartmentId;
             db.StartDate = model.StartDate;

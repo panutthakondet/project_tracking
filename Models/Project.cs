@@ -87,6 +87,14 @@ namespace ProjectTracking.Models
         [Column("project_detail", TypeName = "text")]
         public string? ProjectDetail { get; set; }
 
+        [Display(Name = "รายละเอียดตาม TOR")]
+        [Column("tor_detail", TypeName = "longtext")]
+        public string? TorDetail { get; set; }
+
+        [Display(Name = "รายละเอียดงานนอกเหนือ TOR")]
+        [Column("extra_tor_detail", TypeName = "longtext")]
+        public string? ExtraTorDetail { get; set; }
+
         // ======================
         // 👤 BUSINESS ANALYST
         // ======================
