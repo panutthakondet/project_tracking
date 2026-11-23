@@ -43,6 +43,9 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
         var page=new SecurityProjectPage{CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
+        page.IssueDefaults=await db.SecurityIssueDefaults.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).ToListAsync(ct);
+        page.CanAutoCreateIssues=Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create");
+        page.ResponsibleEmployees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct);
         page.WebsiteTargets=await db.SecurityWebsiteTargets.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).ToListAsync(ct);
         var scanIds=page.Scans.Select(x=>x.Id).ToArray();
         page.WebsiteScanParts=await db.SecurityWebsiteScanParts.AsNoTracking().Where(x=>scanIds.Contains(x.ScanId)).ToListAsync(ct);
@@ -156,7 +159,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         return RedirectToAction(nameof(Index),new{projectId=system.ProjectId});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
-    public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct)
+    public async Task<IActionResult> AddSystem(int projectId,string name,string kind,string? targetUrl,bool requiresLogin,string? authProfile,CancellationToken ct,int? assignedEmpId=null,DateTime? startDate=null,DateTime? endDate=null)
     {
         if(await AllowedProject(projectId,ct)==null)return NotFound();
         try{
@@ -164,7 +167,14 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(!SecurityValues.IsMobile(kind))SecurityScanService.ValidateUrl(targetUrl);
             if(authProfile?.Length>80||authProfile?.Any(c=>!char.IsAsciiLetterOrDigit(c)&&c!='-'&&c!='_')==true)throw new InvalidOperationException("ชื่อโปรไฟล์ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข - และ _");
             if(requiresLogin&&string.IsNullOrWhiteSpace(authProfile))throw new InvalidOperationException("กรุณาระบุชื่อโปรไฟล์ Login บนเครื่องสแกน");
-            db.SecuritySystemRows.Add(new(){ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId});await db.SaveChangesAsync(ct);TempData["Success"]="เพิ่มระบบแล้ว";
+            if(!Can("SecurityScans.CreateIssues")||!Can("ProjectIssues.Create"))throw new InvalidOperationException("ต้องมีสิทธิ์สร้าง Issue จากผลสแกน และ ProjectIssues.Create เพื่อกำหนดสร้าง Issue อัตโนมัติ");
+            if(!assignedEmpId.HasValue||!await db.Employees.AnyAsync(x=>x.EmpId==assignedEmpId&&x.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
+            if(!startDate.HasValue||!endDate.HasValue||startDate.Value==default||endDate.Value.Date<startDate.Value.Date)throw new InvalidOperationException("ระบุวันที่เริ่มและสิ้นสุดการแก้ไข โดยสิ้นสุดต้องไม่ก่อนวันเริ่ม");
+            await using var tx=await db.Database.BeginTransactionAsync(ct);
+            var system=new SecuritySystem{ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId};
+            db.SecuritySystemRows.Add(system);await db.SaveChangesAsync(ct);
+            db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)});
+            await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]="เพิ่มระบบแล้ว ผลสแกน Critical / High / Medium / Low จะสร้าง Issue อัตโนมัติ";
         }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
         return RedirectToAction(nameof(Index),new{projectId});
     }

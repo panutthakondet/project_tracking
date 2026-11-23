@@ -235,3 +235,7 @@ Worker ใช้ ZAP JSON authentication และ Header Based Session Manageme
 
 ### Form Login พร้อม CSRF และคู่มือ PDF
 Worker ลงทะเบียน `_token` เป็น Anti-CSRF และกำหนด `loginPageUrl` ให้ ZAP อ่านค่าจากหน้า Login ใหม่ทุกครั้ง ถ้าไม่มีฟิลด์ `_token` ใน Request Body จะเพิ่มช่องว่างให้ ZAP เติมค่าใหม่ ไม่ใช้ Token คงที่ ตัวอย่าง Admin: `/adminlogon`, `username={%username%}&password={%password%}&submit=Login`, เริ่มตรวจ `/control` และใช้ข้อความยืนยันเฉพาะหลัง Login คู่มือ PDF อยู่ใน Web Info/Member/Admin แต่ละส่วน เปิดแท็บใหม่แบบ inline ผ่าน endpoint ที่ตรวจสิทธิ์และขอบเขตโครงการ ไม่มีข้อมูลบัญชีจริงใน PDF
+
+### ผู้รับผิดชอบและ Issue อัตโนมัติ
+ก่อน Deploy เว็บ Windows ให้รัน `deploy/security/auto-issues-schema.sql` ในฐานข้อมูลเดิม เพิ่มตาราง `security_issue_defaults` เพียงตารางเดียว ไม่แก้ไขข้อมูลเดิม ไม่ต้องอัปเดต Worker สำหรับฟีเจอร์นี้
+เพิ่มระบบใหม่ต้องเลือกพนักงาน Active พร้อมวันเริ่ม/สิ้นสุดการแก้ไข และมีสิทธิ์ SecurityScans.Edit, SecurityScans.CreateIssues และ ProjectIssues.Create เมื่อรับผลสำเร็จ เว็บสร้าง Issue สำหรับ Critical/High/Medium/Low ยกเว้น Info ใน transaction เดียวกับรายงาน ใช้สถานะ OPEN / Dev WIP และการติดตามเดิม มี Issue เชื่อมประเด็นนั้นอยู่แล้วจะใช้รายการเดิม ไม่สร้างซ้ำ ไม่ทับผู้รับผิดชอบหรือวันที่ของ Issue เดิม ระบบเก่าที่ไม่มีค่าในตารางนี้ยังใช้การสร้าง Issue แบบเดิม ไม่สร้างย้อนหลัง

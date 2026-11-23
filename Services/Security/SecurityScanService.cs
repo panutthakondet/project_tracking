@@ -83,7 +83,8 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             var id=await QueueAsync(versionId,mode,key,userId,ct,target);
             db.SecurityWebsiteScanParts.Add(new(){ScanId=id,BatchKey=batchKey,Section=target.Section});ids.Add(id);
         }
-        await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);return ids;
+        await db.SaveChangesAsync(ct);
+await transaction.CommitAsync(ct);return ids;
     }
 
     public async Task<SecurityJob?> ClaimAsync(CancellationToken ct)
@@ -167,7 +168,13 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             scan.Status="Completed";scan.EngineVersion=SecurityValues.Cut(completion.EngineVersion,200);scan.Coverage=SecurityValues.Cut(completion.Coverage,2000);scan.FinishedAt=DateTime.UtcNow;
             // ExecuteUpdate bypasses tracking; explicitly persist the completed state.
             db.Entry(scan).Property(x=>x.Status).IsModified=true;
-            await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);
+            await db.SaveChangesAsync(ct);
+            var defaults=await db.SecurityIssueDefaults.AsNoTracking().SingleOrDefaultAsync(x=>x.SystemId==version.SystemId,ct);
+            if(defaults!=null){
+                var autoIds=await db.SecurityScanFindingRows.Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low")).Select(x=>x.Id).ToListAsync(ct);
+                foreach(var observationId in autoIds)await CreateIssueAsync(observationId,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
+            }
+            await transaction.CommitAsync(ct);
         }catch{storage.Delete(file.Key);throw;}
     }
     public static string IssueDetailsForStorage(string details,long scanId)
@@ -188,7 +195,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         if(end.Date<start.Date)throw new InvalidOperationException("กำหนดส่งต้องไม่ก่อนวันเริ่ม");
         if(!await db.Employees.AnyAsync(e=>e.EmpId==employeeId&&e.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
         var observation=await db.SecurityScanFindingRows.SingleAsync(x=>x.Id==observationId,ct);var finding=await db.SecurityFindingRows.SingleAsync(x=>x.Id==observation.FindingId,ct);
-        await using var tx=await db.Database.BeginTransactionAsync(ct);
+        await using var tx=db.Database.CurrentTransaction==null?await db.Database.BeginTransactionAsync(ct):null;
         // Atomic guard serializes duplicate Issue creation for this finding.
         await db.SecurityFindingRows.Where(x=>x.Id==finding.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);
         var old=await db.SecurityFindingIssueLinkRows.SingleOrDefaultAsync(x=>x.FindingId==finding.Id,ct);
@@ -197,7 +204,7 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
             var sourceProject=await db.SecuritySystemRows.Where(x=>x.Id==finding.SystemId).Select(x=>x.ProjectId).SingleAsync(ct);
             if(linkedProject.HasValue){
                 if(linkedProject!=sourceProject)throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
-                await tx.CommitAsync(ct);return old.IssueId;
+                if(tx!=null)await tx.CommitAsync(ct);return old.IssueId;
             }
             // A deleted Issue must not permanently prevent this finding from creating another one.
             db.SecurityFindingIssueLinkRows.Remove(old);await db.SaveChangesAsync(ct);
@@ -209,6 +216,6 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         db.ProjectIssueStatusHistories.Add(new(){IssueId=issue.IssueId,NewStatus="OPEN",ChangedByEmpId=creatorEmpId??employeeId,ChangedAt=issue.CreatedAt});
         db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});finding.AssignedEmpId=employeeId;finding.DueDate=end.Date;finding.ReviewStatus="InProgress";
         db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status="InProgress",Note="สร้าง Issue #"+issue.IssueId,CreatedBy=userId});
-        await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return issue.IssueId;
+        await db.SaveChangesAsync(ct);if(tx!=null)await tx.CommitAsync(ct);return issue.IssueId;
     }
 }

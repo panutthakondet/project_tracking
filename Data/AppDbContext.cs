@@ -13,6 +13,7 @@ namespace ProjectTracking.Data
         // ======================
         // ===== TABLES =====
         // ======================
+        public DbSet<SecurityIssueDefaults> SecurityIssueDefaults => Set<SecurityIssueDefaults>();
         public DbSet<SecurityWebsiteTarget> SecurityWebsiteTargets => Set<SecurityWebsiteTarget>();
         public DbSet<SecurityWebsiteScanPart> SecurityWebsiteScanParts => Set<SecurityWebsiteScanPart>();
         public DbSet<SecuritySystem> SecuritySystemRows => Set<SecuritySystem>();

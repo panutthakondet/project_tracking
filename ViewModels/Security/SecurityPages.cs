@@ -2,6 +2,9 @@ using ProjectTracking.Models;
 namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
+    public bool CanAutoCreateIssues { get; set; }
+    public List<SecurityIssueDefaults> IssueDefaults { get; set; }=[];
+    public List<Employee> ResponsibleEmployees { get; set; }=[];
     public Project Project { get; set; }=null!;
     public List<SecurityWebsiteTarget> WebsiteTargets { get; set; }=[];
     public List<SecurityWebsiteScanPart> WebsiteScanParts { get; set; }=[];

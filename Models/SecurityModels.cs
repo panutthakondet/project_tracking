@@ -161,3 +161,14 @@ public class SecurityWebsiteScanPart
     [MaxLength(36)] public string BatchKey { get; set; } = "";
     [MaxLength(24)] public string Section { get; set; } = "";
 }
+
+[Table("security_issue_defaults")]
+public class SecurityIssueDefaults
+{
+    [Key] public long SystemId { get; set; }
+    public int AssignedEmpId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int CreatedBy { get; set; }
+    public int? CreatorEmpId { get; set; }
+}
