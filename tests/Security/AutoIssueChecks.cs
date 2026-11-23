@@ -23,6 +23,16 @@ public static class AutoIssueChecks
   var issues=await db.ProjectIssues.ToListAsync();
   if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=4)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
   await Scan();if(await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated scan duplicated Issues");
+  var completed=await db.SecurityScanRows.OrderBy(x=>x.Id).ToListAsync();
+  completed[0].AuthProfile="web-old";completed[1].AuthProfile="web-new";
+  await db.SaveChangesAsync();
+  var comparison=await SecurityScanComparison.Candidates(db.SecurityScanRows,db.SecurityWebsiteScanParts,new[]{version.Id},completed[1],"WebInfo","WebInfo").ToListAsync();
+  if(comparison.Count!=1||comparison[0].Id!=completed[0].Id)throw new Exception("Saving a new login profile must not hide comparable scans");
+  db.SecurityWebsiteScanParts.Add(new(){ScanId=completed[0].Id,Section="WebAdmin",BatchKey="comparison-fixture"});await db.SaveChangesAsync();
+  if(await SecurityScanComparison.Candidates(db.SecurityScanRows,db.SecurityWebsiteScanParts,new[]{version.Id},completed[1],"WebMember","WebInfo").AnyAsync())throw new Exception("Comparison mixed Website sections");
+  db.SecurityWebsiteScanParts.RemoveRange(await db.SecurityWebsiteScanParts.ToListAsync());
+  completed[0].AuthProfile=null;completed[1].AuthProfile=null;await db.SaveChangesAsync();
+  Console.WriteLine("PASS comparison accepts renewed Login profiles and isolates Website sections");
   var devSystem=new SecuritySystem{ProjectId=1,Name="Auto",Kind="Website",TargetUrl="https://example.com/",Workflow="Development"};db.SecuritySystemRows.Add(devSystem);await db.SaveChangesAsync();
   var devVersion=new SecurityVersion{SystemId=devSystem.Id,VersionName="1",Environment="UAT"};db.SecurityVersionRows.Add(devVersion);await db.SaveChangesAsync();
   try{await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default,workflow:"Development");throw new Exception("Formal system queued as development");}catch(InvalidOperationException){}
