@@ -9,7 +9,7 @@
         const enabled=form.querySelector('[data-login-enabled]'),type=form.querySelector('[data-login-type]');
         if(!enabled||!type)return;
         const body=form.querySelector('[name="requestData"]');
-        const defaults={Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        const defaults={JsonCookie:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}',Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
         let previous=type.value;
         const sync=()=>{
             form.querySelectorAll('[data-login-kind]').forEach(group=>{group.hidden=group.dataset.loginKind!==type.value;});
@@ -35,9 +35,9 @@
     root.querySelectorAll('[data-website-login-form]').forEach(form=>{
         const type=form.querySelector('[data-website-login-type]');
         const body=form.querySelector('[name="requestData"]');
-        const defaults={Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        const defaults={JsonCookie:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}',Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
         let previous=type.value;
-        const sync=()=>form.querySelectorAll('[data-website-login-kind]').forEach(field=>{field.hidden=field.dataset.websiteLoginKind!==type.value;});
+        const sync=()=>form.querySelectorAll('[data-website-login-kind]').forEach(field=>{field.hidden=!field.dataset.websiteLoginKind.split(" ").includes(type.value);});
         type.addEventListener('change',()=>{if(body.value===defaults[previous])body.value=defaults[type.value];previous=type.value;sync();});sync();
     });
     const storageKey='security-system-open:'+root.dataset.projectId;

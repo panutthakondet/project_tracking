@@ -31,11 +31,16 @@ public static class SecurityValues
 {
     public static readonly string[] Kinds=["Website","Android","iOS"];
     public static readonly string[] WebsiteSections=["WebInfo","WebMember","WebAdmin"];
+    private static Uri WebsiteBase(string? value)
+    {
+        if(!Uri.TryCreate(value,UriKind.Absolute,out var uri)||uri.Scheme is not ("http" or "https")||uri.UserInfo!=""||uri.Fragment!="")throw new InvalidOperationException("URL เว็บไซต์ไม่ถูกต้อง");
+        return uri;
+    }
     public static string WebsiteUrl(string? baseUrl,string? path)
     {
-        var origin=SecurityScanService.ValidateUrl(baseUrl).GetLeftPart(UriPartial.Authority);
+        var origin=WebsiteBase(baseUrl).GetLeftPart(UriPartial.Authority);
         if(string.IsNullOrWhiteSpace(path)||!path.StartsWith('/')||path.StartsWith("//")||path.Contains('\\')||path.Contains('#')||path.Any(char.IsControl))throw new InvalidOperationException("เส้นทางต้องขึ้นต้นด้วย / และอยู่บนโดเมนหลัก เช่น /member/login");
-        var uri=SecurityScanService.ValidateUrl(origin+path);
+        var uri=WebsiteBase(origin+path);
         if(uri.GetLeftPart(UriPartial.Authority)!=origin)throw new InvalidOperationException("เส้นทางต้องอยู่บนโดเมนหลัก");
         return uri.AbsoluteUri;
     }

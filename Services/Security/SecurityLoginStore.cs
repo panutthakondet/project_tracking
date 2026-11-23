@@ -15,13 +15,15 @@ public sealed class SecurityLoginStore(SecurityStorage storage, IDataProtectionP
         var url = SecurityScanService.ValidateUrl(login.LoginUrl);
         if (target.GetLeftPart(UriPartial.Authority) != url.GetLeftPart(UriPartial.Authority))
             throw new InvalidOperationException("URL Login ต้องใช้โดเมน พอร์ต และ HTTP/HTTPS เดียวกับ URL ระบบ");
-        if (login.AuthenticationType is not ("Form" or "JsonBearer"))
+        if (login.AuthenticationType is not ("Form" or "JsonBearer" or "JsonCookie"))
             throw new InvalidOperationException("รูปแบบ Login ไม่ถูกต้อง");
         if (!string.IsNullOrWhiteSpace(login.ScanStartUrl) && SecurityScanService.ValidateUrl(login.ScanStartUrl).GetLeftPart(UriPartial.Authority) != target.GetLeftPart(UriPartial.Authority))
             throw new InvalidOperationException("URL เริ่มตรวจต้องอยู่บนเว็บไซต์เดียวกับระบบ");
-        if (login.AuthenticationType == "JsonBearer")
+        if (login.AuthenticationType=="JsonCookie" && (string.IsNullOrWhiteSpace(login.ScanStartUrl)||new Uri(login.ScanStartUrl).AbsolutePath==url.AbsolutePath))
+            throw new InvalidOperationException("JSON Cookie Login ต้องระบุเส้นทางหน้าที่ต้อง Login จริง และไม่ใช่หน้า Login");
+        if (login.AuthenticationType is "JsonBearer" or "JsonCookie")
         {
-            if (!Regex.IsMatch(login.TokenPath, @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$") || login.TokenPath.Length > 120)
+            if (login.AuthenticationType == "JsonBearer" && (!Regex.IsMatch(login.TokenPath, @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$") || login.TokenPath.Length > 120))
                 throw new InvalidOperationException("ชื่อ Token ใช้ชื่อฟิลด์ JSON เช่น token หรือ data.access_token");
             try {
                 using var payload = JsonDocument.Parse(login.RequestData);

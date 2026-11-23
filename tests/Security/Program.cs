@@ -129,6 +129,7 @@ await LargeReportChecks.Run();
 await EngineChecks.Run();
 await LoginChecks.Run(root);
 await WebsiteChecks.Run(root);
+await JsonCookieChecks.Run();
 await ReadinessChecks.Run();
 await RazorChecks.Run();
 Console.WriteLine("ALL SECURITY CHECKS PASSED — isolated SQLite and fake HTTP; no real scans or production writes.");

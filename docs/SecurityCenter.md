@@ -227,3 +227,8 @@ Worker ใช้ ZAP JSON authentication และ Header Based Session Manageme
 การสแกนทุกส่วนหมายถึงเข้าแต่ละ URL ด้วยบัญชีที่ระบุ ไม่ใช่การข้ามสิทธิ์จากหน้า Info เข้า Member/Admin Traditional Spider ยังไม่รัน JavaScript ของ SPA จึงไม่รับประกันว่าค้นพบทุกหน้า/API ตรวจ coverage ของแต่ละรอบประกอบเสมอ
 
 กรอก URL หลักเว็บไซต์ครั้งเดียว เช่น `https://uat.fishcorp.in.th/` แล้วระบุเส้นทางแต่ละส่วน เช่น `/`, `/member/login`, `/adminlogon` ระบบประกอบ URL ให้เอง ทั้งสามตัวอย่างเป็น origin เดียวกัน ไม่ใช่ subdomain คนละตัว ช่องรับข้อมูล Login ต้องระบุเส้นทาง Form/API ที่รับ POST จริง ซึ่งอาจต่างจากหน้าที่ใช้แสดง Login เช่น `/api/member/auth/login` และระบุเส้นทางเริ่มตรวจหลัง Login ตามระบบจริง ไม่ต้องกรอกโดเมนซ้ำ
+
+### JSON + Cookie/Session + CSRF
+เลือกโหมดนี้สำหรับเว็บที่ POST JSON แต่ใช้ Session Cookie แทน Bearer Token เช่น Inertia เว็บสมาชิก กำหนด Login path `/member/login`, Request Body `{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}` และเส้นทางเริ่มตรวจเป็นหน้าที่ต้อง Login จริง พร้อม regex ข้อความที่มีเฉพาะหลัง Login เครื่องสแกน GET หน้า Login เพื่อรับ XSRF-TOKEN แล้ว POST พร้อม X-XSRF-TOKEN และเก็บ Cookie ตรวจยืนยันก่อนเริ่มและก่อนจบ ไม่รองรับ OTP/MFA หรือการ refresh session อัตโนมัติ ต้องเริ่มรอบใหม่เมื่อ session หมดอายุ Cookie ถูกจำกัดตาม URL ของรอบและลบกฎเมื่อจบ ตาม Replacer API: https://www.zaproxy.org/docs/desktop/addons/replacer/
+
+การอัปเดตรุ่นนี้ต้อง Deploy เว็บ Windows และอัปเดต source/build/recreate Worker Ubuntu ไม่ต้องเปลี่ยนฐานข้อมูลหรือกุญแจ เลือกโหมดและบันทึก Login ใหม่ก่อนเพิ่มรอบสแกน ไม่ใช้ Cookie ที่คัดลอกจาก browser
