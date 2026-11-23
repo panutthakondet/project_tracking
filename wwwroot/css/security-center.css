@@ -157,3 +157,5 @@ html body main.route-controller-securityscans.route-action-index .security-works
     border-top: 3px solid var(--security-card-tone);
     color: #17212b;
 }
+
+.security-history-delete { display: inline-block; margin: 4px 0 4px 6px; }

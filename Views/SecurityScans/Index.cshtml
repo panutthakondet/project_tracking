@@ -98,7 +98,13 @@
         <label>ค้นหา<input type="search" class="form-control" data-history-search placeholder="ชื่อระบบ เวอร์ชัน หรือเลขรอบ" /></label>
         <label>สถานะ<select class="form-select" data-history-status><option value="">ทุกสถานะ</option>@foreach(var state in new[]{"Queued","Running","Processing","Completed","Failed","Cancelled"}){<option value="@state">@SecurityValues.StatusLabel(state)</option>}</select></label>
     </div><p>รอบใหม่ไม่ทับรายงานเก่า · สแกนมือถือเป็น Static Analysis · เว็บเลือก Passive หรือ Active สำหรับ UAT</p><div class="table-responsive"><table class="table"><thead><tr><th>รอบ</th><th>ระบบ / เวอร์ชัน</th><th>เครื่องมือ</th><th>สถานะ</th><th>สร้างเมื่อ (UTC)</th><th></th></tr></thead><tbody>
-    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status"><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a></td></tr>}
+    @foreach(var scan in Model.Scans){var version=Model.Versions.Single(x=>x.Id==scan.VersionId);var system=Model.Systems.Single(x=>x.Id==version.SystemId);<tr data-history-row data-status="@scan.Status"><td>#@scan.Id</td><td>@system.Name<br />@version.VersionName / @version.Environment</td><td>@scan.Engine / @scan.Mode</td><td><span class="security-status" data-state="@scan.Status">@SecurityValues.StatusLabel(scan.Status)</span></td><td>@scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td><td><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@scan.Id">ดูผล / ติดตามงาน</a>
+        @if(Model.CanDeleteScans && scan.Status is "Completed" or "Failed" or "Cancelled"){
+            <form asp-action="DeleteScan" asp-route-id="@scan.Id" method="post" class="security-history-delete" onsubmit="return confirm('ลบรอบสแกน #@scan.Id และรายงานของรอบนี้หรือไม่? เวอร์ชัน ไฟล์แอป และ Issue จะยังคงอยู่');">
+                <button type="submit" class="btn btn-outline-danger" aria-label="ลบรอบสแกน @scan.Id">ลบ</button>
+            </form>
+        }
+        </td></tr>}
     @if(Model.Scans.Count==0){<tr><td colspan="6"><div class="security-empty">ยังไม่มีประวัติสแกน เลือกเวอร์ชันด้านบนเพื่อเพิ่มเข้าคิว</div></td></tr>}
     </tbody></table></div>
     <div class="security-history-pages" data-history-controls hidden><span data-history-count role="status" aria-live="polite"></span><div><button type="button" class="btn btn-outline-primary btn-sm" data-history-prev>ก่อนหน้า</button><button type="button" class="btn btn-outline-primary btn-sm" data-history-next>ถัดไป</button></div></div>

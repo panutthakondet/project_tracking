@@ -206,3 +206,9 @@ Worker ใช้ ZAP JSON authentication และ Header Based Session Manageme
 ต้องมี ZAP Authentication Helper ที่รองรับ Header Based Session Management API (ZAP 2.16.1 ขึ้นไป) ดู https://www.zaproxy.org/docs/desktop/addons/authentication-helper/session-header/ หาก ZAP ปฏิเสธ method ต้องอัปเดต scanner ก่อนเริ่มรอบใหม่
 
 ขอบเขต: การยืนยันว่าได้รับ token ยังไม่เท่ากับตรวจครบทุกหน้าที่ต้องล็อกอิน Traditional Spider ไม่รัน JavaScript ของ SPA และไม่อ่าน localStorage แบบ browser จึงอาจค้นพบหน้า/API ได้น้อย ต้องตรวจรายงาน coverage และใช้ browser-based scan เพิ่มสำหรับเส้นทางเหล่านั้น รุ่นนี้ไม่ข้าม CAPTCHA, OTP หรือ MFA
+
+### ลบประวัติรอบสแกน
+
+กำหนดสิทธิ์ `SecurityScans.Delete` ใน UserManagement/Permissions พร้อม `SecurityScans.Index` และให้ผู้ใช้เข้าใช้งานใหม่เพื่อโหลดสิทธิ์ ปุ่มลบอยู่ในประวัติรอบสแกน ลบได้เฉพาะ Completed / Failed / Cancelled พร้อมยืนยันก่อนลบ ฝั่งเซิร์ฟเวอร์ตรวจสิทธิ์และขอบเขตโครงการอีกครั้ง และบล็อก Queued / Running
+
+การลบจะล้างรอบสแกน ความคืบหน้า ผลที่พบในรอบ และรายงานของรอบนั้น โดยเก็บระบบ เวอร์ชัน ไฟล์ APK/IPA และประเด็น/Issue/ประวัติการแก้ไขไว้ ลิงก์กลับผลสแกนจาก Issue จะเลือกจากรอบที่เสร็จแล้วที่ยังมีอยู่ หากไม่เหลือรอบดังกล่าวจะไม่แสดงลิงก์ รายงานในเครื่อง MobSF ไม่ถูกลบผ่านปุ่มนี้ หากลบไฟล์รายงานบน Windows ไม่สำเร็จ ระบบแจ้งผู้ดูแลและบันทึก Log

@@ -32,7 +32,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     {
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
-        var page=new SecurityProjectPage{CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
+        var page=new SecurityProjectPage{CanDeleteScans=Can("SecurityScans.Delete"),CanApproveHosts=Can("SecurityScans.ApproveHosts"),HostApprovals=await db.SecurityHostApprovals.AsNoTracking().Where(x=>x.ProjectId==projectId).ToListAsync(ct),Project=project,Systems=systems,Versions=versions,Artifacts=await db.SecurityArtifactRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).ToListAsync(ct),Scans=await db.SecurityScanRows.AsNoTracking().Where(x=>vids.Contains(x.VersionId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),CanManage=Can("SecurityScans.Edit"),WorkerConfigured=scans.WorkerConfigured};
         Response.Headers.CacheControl="no-store";
         if(page.CanManage){
             foreach(var system in systems.Where(x=>!SecurityValues.IsMobile(x.Kind)&&SecurityLoginStore.IsManaged(x.AuthProfile))){
@@ -143,6 +143,33 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct);
         return Json(ScanProgressPage.From(scope.Value.Scan,progress));
     }
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
+    public async Task<IActionResult> DeleteScan(long id,CancellationToken ct)
+    {
+        var scope=await Scope(id,ct);
+        if(scope==null)return NotFound();
+        var projectId=scope.Value.Project.ProjectId;
+        await using var transaction=await db.Database.BeginTransactionAsync(ct);
+        // Acquire the row before deleting dependants; an active lease must never be removed.
+        var locked=await db.SecurityScanRows.Where(x=>x.Id==id&&(x.Status=="Completed"||x.Status=="Failed"||x.Status=="Cancelled"))
+            .ExecuteUpdateAsync(set=>set.SetProperty(x=>x.Status,x=>x.Status),ct);
+        if(locked==0){TempData["Error"]="ไม่สามารถลบรอบที่อยู่ในคิวหรือกำลังสแกนได้ กรุณายกเลิกงานก่อน";return RedirectToAction(nameof(Index),new{projectId});}
+        var reports=await db.SecurityReportRows.Where(x=>x.ScanId==id).Select(x=>x.StorageKey).ToListAsync(ct);
+        await db.SecurityScanProgressRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
+        await db.SecurityScanFindingRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
+        await db.SecurityReportRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
+        await db.SecurityScanRows.Where(x=>x.Id==id).ExecuteDeleteAsync(ct);
+        await transaction.CommitAsync(ct);
+        var fileCleanupFailed=false;
+        foreach(var key in reports){
+            try{storage.Delete(key);}
+            catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or InvalidOperationException){fileCleanupFailed=true;logger?.LogWarning(ex,"Could not remove report file for deleted security scan {ScanId}",id);}
+        }
+        logger?.LogInformation("Security scan {ScanId} deleted by user {UserId} in project {ProjectId}",id,UserId,projectId);
+        TempData[fileCleanupFailed?"Error":"Success"]=fileCleanupFailed?"ลบประวัติแล้ว แต่ลบไฟล์รายงานบางไฟล์ไม่ได้ กรุณาให้ผู้ดูแลตรวจสอบ":"ลบประวัติรอบสแกนแล้ว โดยเก็บเวอร์ชัน ไฟล์แอป และ Issue เดิมไว้";
+        return RedirectToAction(nameof(Index),new{projectId});
+    }
+
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> Cancel(long id,CancellationToken ct)
     {
