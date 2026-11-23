@@ -176,15 +176,17 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(authProfile?.Length>80||authProfile?.Any(c=>!char.IsAsciiLetterOrDigit(c)&&c!='-'&&c!='_')==true)throw new InvalidOperationException("ชื่อโปรไฟล์ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข - และ _");
             if(requiresLogin&&string.IsNullOrWhiteSpace(authProfile))throw new InvalidOperationException("กรุณาระบุชื่อโปรไฟล์ Login บนเครื่องสแกน");
             if(workflow is not ("Formal" or "Development"))throw new InvalidOperationException("รูปแบบการทำงานไม่ถูกต้อง");
+            SecurityIssueDefaults? issueDefaults=null;
             if(workflow=="Formal"){
             if(!Can("SecurityScans.CreateIssues")||!Can("ProjectIssues.Create"))throw new InvalidOperationException("ต้องมีสิทธิ์สร้าง Issue จากผลสแกน และ ProjectIssues.Create เพื่อกำหนดสร้าง Issue อัตโนมัติ");
             if(!assignedEmpId.HasValue||!await db.Employees.AnyAsync(x=>x.EmpId==assignedEmpId&&x.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
             if(!startDate.HasValue||!endDate.HasValue||startDate.Value==default||endDate.Value.Date<startDate.Value.Date)throw new InvalidOperationException("ระบุวันที่เริ่มและสิ้นสุดการแก้ไข โดยสิ้นสุดต้องไม่ก่อนวันเริ่ม");
+            issueDefaults=new(){AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)};
             }
             await using var tx=await db.Database.BeginTransactionAsync(ct);
             var system=new SecuritySystem{Workflow=workflow,ProjectId=projectId,Name=name.Trim(),Kind=kind,TargetUrl=SecurityValues.IsMobile(kind)?null:targetUrl?.Trim(),RequiresLogin=requiresLogin,AuthProfile=authProfile,CreatedBy=UserId};
             db.SecuritySystemRows.Add(system);await db.SaveChangesAsync(ct);
-            if(workflow=="Formal")db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=assignedEmpId.Value,StartDate=startDate.Value.Date,EndDate=endDate.Value.Date,CreatedBy=UserId,CreatorEmpId=await EmployeeId(ct)});
+            if(issueDefaults!=null){issueDefaults.SystemId=system.Id;db.SecurityIssueDefaults.Add(issueDefaults);}
             await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]=workflow=="Development"?"เพิ่มระบบสำหรับสแกนระหว่างพัฒนาแล้ว ไม่สร้าง Issue":"เพิ่มระบบแล้ว ผลสแกน Critical / High / Medium / Low จะสร้าง Issue อัตโนมัติ";
         }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
         return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});
