@@ -240,3 +240,8 @@ html body main .security-center .security-website-part[data-section]>summary{bor
  .security-center .security-finding>.security-card-head{grid-template-columns:minmax(0,1fr);gap:10px}
  .security-finding>.security-card-head .security-finding-state{grid-template-columns:auto minmax(0,1fr) auto;width:100%}
 }
+
+/* Larger finding selection target and risk label. */
+.security-center .security-finding>.security-card-head h2 input[type=checkbox]{width:24px;height:24px;min-width:24px;margin:0 10px 0 0;vertical-align:middle;cursor:pointer;accent-color:var(--pt-accent,#0f766e)}
+.security-center .security-finding>.security-card-head h2 .security-severity{font-size:16px;line-height:1.5;gap:8px;vertical-align:middle}
+.security-center .security-finding>.security-card-head h2 .security-severity::before{font-size:12px}
