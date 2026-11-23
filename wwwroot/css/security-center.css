@@ -225,3 +225,5 @@ html body main .security-center .security-website-part[data-section]>summary{bor
 .security-management-tools>form{grid-column:2;margin:0;padding:0;align-self:start}
 .security-center .security-management-tools>form>.btn{padding:7px 14px;min-height:36px;border-radius:8px;font-size:14px;line-height:1.5;white-space:nowrap}
 @media(max-width:720px){.security-system-tools{margin:10px 14px}.security-management-tools{padding:10px;gap:8px}.security-management-tools>.security-disclosure[open]{grid-column:1/-1}.security-management-tools>.security-disclosure[open]+form{grid-column:2;justify-self:end}}
+
+.security-finding-state .security-open-issue{justify-self:end;white-space:nowrap;margin-top:4px}
