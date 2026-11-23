@@ -1,6 +1,6 @@
 @model ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm
 @using ProjectTracking.Services.Security
-@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||t.Section!="WebInfo";}
+@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||t.Section!="WebInfo";var targetUrl=t.TargetUrl;if(string.IsNullOrWhiteSpace(targetUrl)&&Uri.TryCreate(Model.System.TargetUrl,UriKind.Absolute,out var baseUri)){targetUrl=t.Section=="WebInfo"?baseUri.AbsoluteUri:SecurityValues.WebsiteUrl(baseUri.AbsoluteUri,SecurityValues.DefaultWebsitePath(t.Section));}}
 <details class="security-website-part">
     <summary><strong>@SecurityValues.SectionLabel(t.Section)</strong> <span>@(t.Enabled?"เปิดสแกน":"ยังไม่เปิดสแกน")</span></summary>
     <div class="security-login-help"><a asp-action="LoginGuide" asp-route-systemId="@Model.System.Id" asp-route-section="@t.Section" target="_blank" rel="noopener" class="btn btn-outline-primary">คู่มือ Login @SecurityValues.SectionLabel(t.Section) (PDF)</a></div>
@@ -10,7 +10,7 @@
         <input type="hidden" name="systemId" value="@Model.System.Id" />
         <input type="hidden" name="section" value="@t.Section" />
         <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
-        <label class="security-website-wide">เส้นทาง @SecurityValues.SectionLabel(t.Section)<input name="targetPath" class="form-control" value="@(string.IsNullOrWhiteSpace(t.TargetUrl)?SecurityValues.DefaultWebsitePath(t.Section):SecurityValues.WebsitePath(t.TargetUrl))" maxlength="2000" placeholder="/member/login" /><small>ต่อท้าย URL หลักอัตโนมัติ ไม่ต้องกรอกโดเมนซ้ำ</small></label>
+        <label class="security-website-wide">URL @SecurityValues.SectionLabel(t.Section)<input type="url" name="targetUrl" class="form-control" value="@targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /><small>เติม URL เต็มจาก URL หลักให้อัตโนมัติ แก้ไขได้ตามหน้าที่ต้องการสแกน</small></label>
         <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" checked="@requires" /> Login ก่อนสแกนส่วนนี้</label>
         <label>วิธี Login<select data-website-login-type name="authenticationType" class="form-select"><option value="Form" selected="@(login?.AuthenticationType=="Form"||login==null&&!member)">Form Login</option><option value="JsonBearer" selected="@(login?.AuthenticationType=="JsonBearer"||login==null&&member)">JSON + Bearer Token</option><option value="JsonCookie" selected="@(login?.AuthenticationType=="JsonCookie")">JSON + Cookie/Session + CSRF</option></select></label>
         <label class="security-website-wide">เส้นทางรับข้อมูล Login (Form หรือ API)<input name="loginPath" class="form-control" value="@SecurityValues.WebsitePath(login?.LoginUrl)" maxlength="2000" placeholder="เช่น /adminlogon หรือ /api/member/auth/login" /></label>

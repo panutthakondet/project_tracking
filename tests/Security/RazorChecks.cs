@@ -45,6 +45,7 @@ public static class RazorChecks
    await File.WriteAllTextAsync(Path.Combine(output,pair.Item1+".html"),html);
    if(!html.Contains("__RequestVerificationToken")||!html.Contains("SecurityScans/"))throw new Exception("Missing CSRF token or generated routes");
    if(pair.Item1=="Index"&&(!html.Contains("fixture-display-user")||!html.Contains("value=\"/auth\"")||!html.Contains("data-website-password-saved=\"true\"")||!html.Contains("data.token")||!html.Contains("value=\"/member/\"")||html.Contains("fixture-secret")))throw new Exception("Login settings must be displayed without the password");
+   if(pair.Item1=="Index"&&(!html.Contains("name=\"targetUrl\"")||html.Contains("name=\"targetPath\"")))throw new Exception("Website targets must display full URLs");
    if(pair.Item1=="Scan"&&(!html.Contains("30/11/2026")||!html.Contains("fixture dev resolution")||!html.Contains("data-issue-state=\"FIXED\"")||!html.Contains("is-issue-linked")||html.Contains("/SecurityScans/Review")))throw new Exception("Security tracking must show read-only Issue dates/details without a Review form");
    if(pair.Item1=="Scan"&&(!html.Contains("page=2")||!html.Contains("10,001")))throw new Exception("Paged scan must retain navigation and whole-run totals");
    Console.WriteLine("PASS compiled Razor "+pair.Item1+" renders with CSRF and routes");
