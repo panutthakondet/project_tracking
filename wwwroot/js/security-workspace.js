@@ -36,10 +36,17 @@
         const type=form.querySelector('[data-website-login-type]');
         if(!type)return;
         const body=form.querySelector('[name="requestData"]');
-        const defaults={JsonCookie:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}',Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        const admin=form.dataset?.websiteSection==='WebAdmin';
+        const legacyDefaults={JsonCookie:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}',Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
+        const defaults=admin?{Form:'username={%username%}&password={%password%}&submit=Login',JsonCookie:'{"username":"{%username%}","password":"{%password%}"}',JsonBearer:'{"username":"{%username%}","password":"{%password%}"}'}:legacyDefaults;
         let previous=type.value;
         const sync=()=>form.querySelectorAll('[data-website-login-kind]').forEach(field=>{field.hidden=!field.dataset.websiteLoginKind.split(" ").includes(type.value);});
-        type.addEventListener('change',()=>{if(body.value===defaults[previous])body.value=defaults[type.value];previous=type.value;sync();});sync();
+        type.addEventListener('change',()=>{if(body.value===defaults[previous]||Object.values(legacyDefaults).includes(body.value))body.value=defaults[type.value];previous=type.value;sync();});
+        if(admin)form.querySelector('[data-admin-form-preset]')?.addEventListener('click',()=>{
+            type.value='Form';previous='Form';body.value=defaults.Form;
+            const path=form.querySelector('[name="loginPath"]');if(path&&!path.value.trim())path.value='/adminlogon';
+            sync();
+        });sync();
     });
     const storageKey='security-system-open:'+root.dataset.projectId+':'+(root.dataset.workflow||'Formal');
     const systems=Array.from(root.querySelectorAll('[data-system-id]'));

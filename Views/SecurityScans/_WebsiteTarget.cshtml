@@ -6,7 +6,7 @@
     @if(t.Section!="WebInfo"){<div class="security-login-help"><a asp-action="LoginGuide" asp-route-systemId="@Model.System.Id" asp-route-section="@t.Section" target="_blank" rel="noopener" class="btn btn-outline-primary">คู่มือ Login @SecurityValues.SectionLabel(t.Section) (PDF)</a></div>}
     @if(Model.Unreadable){<p class="text-danger">อ่าน Login เดิมไม่ได้ กรุณากรอกและบันทึกข้อมูลใหม่</p>}
     @if(Model.CanManage){
-    <form asp-action="SaveWebsiteTarget" method="post" asp-route-workflow="@Model.Workflow" class="security-form security-website-form" data-website-login-form>
+    <form asp-action="SaveWebsiteTarget" method="post" asp-route-workflow="@Model.Workflow" class="security-form security-website-form" data-website-login-form data-website-section="@t.Section">
         <input type="hidden" name="systemId" value="@Model.System.Id" />
         <input type="hidden" name="section" value="@t.Section" />
         <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
@@ -14,13 +14,14 @@
         @if(t.Section!="WebInfo"){
         <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" checked="@requires" /> Login ก่อนสแกนส่วนนี้</label>
         <label>วิธี Login<select data-website-login-type name="authenticationType" class="form-select"><option value="Form" selected="@(login?.AuthenticationType=="Form"||login==null&&!member)">Form Login</option><option value="JsonBearer" selected="@(login?.AuthenticationType=="JsonBearer"||login==null&&member)">JSON + Bearer Token</option><option value="JsonCookie" selected="@(login?.AuthenticationType=="JsonCookie")">JSON + Cookie/Session + CSRF</option></select></label>
+        @if(t.Section=="WebAdmin"){<div class="security-inline"><button type="button" class="btn btn-outline-primary btn-sm" data-admin-form-preset>ใช้ตัวอย่าง Form Admin</button></div>}
         <label class="security-website-wide">เส้นทางรับข้อมูล Login (Form หรือ API)<input name="loginPath" class="form-control" value="@SecurityValues.WebsitePath(login?.LoginUrl)" maxlength="2000" placeholder="เช่น /adminlogon หรือ /api/member/auth/login" /></label>
         <label>Username<input name="username" class="form-control" value="@login?.Username" maxlength="255" autocomplete="off" /></label>
         <label>Password<input name="password" data-website-password-saved="@((login!=null).ToString().ToLowerInvariant())" type="password" class="form-control" maxlength="2000" autocomplete="new-password" placeholder="@(login!=null?"เว้นว่างเพื่อใช้รหัสเดิม":"รหัสผ่านบัญชีทดสอบ")" /></label>
         <label data-website-login-kind="Form JsonCookie">ข้อความยืนยันหลัง Login<input name="loggedInRegex" class="form-control" value="@login?.LoggedInRegex" maxlength="500" placeholder="ข้อความเฉพาะหน้าหลัง Login เช่น ออกจากระบบ" /></label>
         <label data-website-login-kind="JsonBearer">ชื่อฟิลด์ Token (JSON)<input name="tokenPath" class="form-control" value="@(login?.TokenPath??"token")" maxlength="120" /></label>
         <label class="security-website-wide">เส้นทางเริ่มตรวจหลัง Login<input name="scanStartPath" class="form-control" value="@SecurityValues.WebsitePath(login?.ScanStartUrl)" maxlength="2000" placeholder="เช่น /member/ หรือ /admin/ หลังเข้าสู่ระบบ" /></label>
-        <label class="security-website-wide">ข้อมูล Request Body<textarea name="requestData" class="form-control" rows="3" maxlength="4000">@(login?.RequestData??(member?"{\"membership_no\":\"{%username%}\",\"mem_password\":\"{%password%}\"}":"username={%username%}&password={%password%}"))</textarea></label>
+        <label class="security-website-wide">ข้อมูล Request Body<textarea name="requestData" class="form-control" rows="3" maxlength="4000">@(login?.RequestData??(member?"{\"membership_no\":\"{%username%}\",\"mem_password\":\"{%password%}\"}":"username={%username%}&password={%password%}&submit=Login"))</textarea></label>
         }
         <button type="submit" class="btn btn-primary">บันทึก @SecurityValues.SectionLabel(t.Section)</button>
     </form>

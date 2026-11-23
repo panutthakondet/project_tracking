@@ -31,3 +31,13 @@ assert.equal(formOnly.hidden,false);assert.equal(jsonOnly.hidden,true);
 loginType.value='JsonBearer';loginType.events.change();assert.equal(formOnly.hidden,true);assert.equal(jsonOnly.hidden,false);assert.ok(requestBody.value.includes('membership_no'));
 requestBody.value='{"custom":"{%username%}","pass":"{%password%}"}';loginType.value='Form';loginType.events.change();assert.ok(requestBody.value.includes('custom'));
 console.log('PASS Website Login type toggles relevant fields and preserves customized request bodies');
+
+const adminType=node({value:'JsonCookie'}),adminBody=node({value:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}'});
+const preset=node(),adminPath=node({value:'/custom-admin-login'}),adminUser=node({value:'fixture-user'}),adminPassword=node({value:''});
+const adminFields={'[data-website-login-type]':adminType,'[name="requestData"]':adminBody,'[data-admin-form-preset]':preset,'[name="loginPath"]':adminPath};
+const adminForm={dataset:{websiteSection:'WebAdmin'},querySelector:s=>adminFields[s]||null,querySelectorAll:()=>[]};
+const adminRoot={dataset:{projectId:'1'},querySelector:()=>null,querySelectorAll:s=>s==='[data-website-login-form]'?[adminForm]:[]};
+vm.runInNewContext(fs.readFileSync('wwwroot/js/security-workspace.js','utf8'),{document:{querySelector:()=>adminRoot},sessionStorage:{getItem:()=>null}});
+adminType.value='JsonBearer';adminType.events.change();assert.ok(adminBody.value.includes('"username"'));assert.ok(!adminBody.value.includes('membership_no'));
+preset.events.click();assert.equal(adminType.value,'Form');assert.equal(adminBody.value,'username={%username%}&password={%password%}&submit=Login');assert.equal(adminPath.value,'/custom-admin-login');assert.equal(adminUser.value,'fixture-user');assert.equal(adminPassword.value,'');
+console.log('PASS Admin defaults use username and Form preset preserves existing Login path');
