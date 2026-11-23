@@ -272,6 +272,57 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var progress=await db.SecurityScanProgressRows.AsNoTracking().Where(x=>ids.Contains(x.ScanId)).ToListAsync(ct);
         return Json(run.IsWebsiteBatch?ScanProgressPage.FromRun(run,progress):ScanProgressPage.From(scope.Value.Scan,progress.FirstOrDefault()));
     }
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
+    public async Task<IActionResult> EditSystem(long systemId,string name,string? targetUrl,CancellationToken ct)
+    {
+        var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);
+        if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest();
+        try{
+            if(string.IsNullOrWhiteSpace(name)||name.Trim().Length>160)throw new InvalidOperationException("กรอกชื่อระบบไม่เกิน 160 ตัวอักษร");
+            if(!SecurityValues.IsMobile(system.Kind))SecurityScanService.ValidateUrl(targetUrl);
+            system.Name=name.Trim();system.TargetUrl=SecurityValues.IsMobile(system.Kind)?null:targetUrl?.Trim();
+            await db.SaveChangesAsync(ct);TempData["Success"]="แก้ไขระบบแล้ว กรุณาตรวจ URL และ Login ของแต่ละส่วนก่อนสแกนรอบใหม่";
+        }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
+    }
+
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
+    public async Task<IActionResult> EditVersion(long versionId,string versionName,string? buildNumber,string? gitCommit,string environment,string? changeNotes,CancellationToken ct)
+    {
+        var version=await db.SecurityVersionRows.SingleOrDefaultAsync(x=>x.Id==versionId,ct);
+        if(version==null)return NotFound();
+        var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest();
+        try{
+            await using var tx=await db.Database.BeginTransactionAsync(ct);
+            await db.SecurityVersionRows.Where(x=>x.Id==versionId).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.CreatedBy,v=>v.CreatedBy),ct);
+            if(string.IsNullOrWhiteSpace(versionName)||versionName.Length>100||buildNumber?.Length>100||gitCommit?.Length>64||changeNotes?.Length>4000||environment is not ("UAT" or "Production"))throw new InvalidOperationException("ข้อมูลเวอร์ชันไม่ถูกต้อง");
+            if(environment!=version.Environment&&await db.SecurityScanRows.AnyAsync(x=>x.VersionId==versionId,ct))throw new InvalidOperationException("เวอร์ชันมีประวัติสแกนแล้ว ไม่สามารถเปลี่ยนสภาพแวดล้อมได้ กรุณาเพิ่มเวอร์ชันใหม่");
+            version.VersionName=versionName.Trim();version.BuildNumber=buildNumber?.Trim();version.GitCommit=gitCommit?.Trim();version.Environment=environment;version.ChangeNotes=changeNotes?.Trim();
+            await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);TempData["Success"]="แก้ไขเวอร์ชันแล้ว";
+        }catch(InvalidOperationException e){TempData["Error"]=e.Message;}
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
+    }
+
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
+    public async Task<IActionResult> DeleteVersion(long versionId,CancellationToken ct)
+    {
+        var version=await db.SecurityVersionRows.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==versionId,ct);
+        if(version==null)return NotFound();
+        var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);
+        if(await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest();
+        IReadOnlyList<string> files;
+        try{files=await scans.DeleteVersionAsync(versionId,ct);}
+        catch(InvalidOperationException e){TempData["Error"]=e.Message;return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});}
+        var cleanupFailed=false;
+        foreach(var file in files.Distinct())try{storage.Delete(file);}catch(Exception e)when(e is IOException or UnauthorizedAccessException or InvalidOperationException){cleanupFailed=true;logger?.LogWarning(e,"Could not remove file for deleted version {VersionId}",versionId);}
+        TempData[cleanupFailed?"Error":"Success"]=cleanupFailed?"ลบเวอร์ชันแล้ว แต่ลบไฟล์บางไฟล์ไม่ได้ กรุณาให้ผู้ดูแลตรวจสอบ":"ลบเวอร์ชัน ไฟล์ และประวัติสแกนแล้ว โดยเก็บ Issue และประเด็นติดตามเดิมไว้";
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
+    }
+
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
     public async Task<IActionResult> DeleteSystem(long systemId,CancellationToken ct)
     {

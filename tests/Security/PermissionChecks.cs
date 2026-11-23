@@ -22,6 +22,12 @@ public static class PermissionChecks
    foreach(var attr in type.GetCustomAttributes<RequireMenuAttribute>().Concat(type.GetMethod(action)!.GetCustomAttributes<RequireMenuAttribute>())){attr.OnAuthorization(context);if(context.Result!=null)return false;}
    return true;
   }
+  foreach(var action in new[]{"EditSystem","EditVersion","DeleteVersion"}){
+   var grant=action=="DeleteVersion"?"Delete":"Edit";
+   Check(!Allowed(action,"SecurityScans.Index"),action+" rejects read-only permission");
+   Check(Allowed(action,"SecurityScans.Index,SecurityScans."+grant),action+" uses the correct permission");
+   Check(typeof(SecurityScansController).GetMethod(action)!.IsDefined(typeof(ValidateAntiForgeryTokenAttribute)),action+" validates CSRF");
+  }
   Check(!Allowed("DeleteSystem","SecurityScans.Index,SecurityScans.Edit"),"system deletion requires delete grant, not editing alone");
   Check(Allowed("DeleteSystem","SecurityScans.Index,SecurityScans.Delete"),"delete grant permits system deletion");
   Check(typeof(SecurityScansController).GetMethod("DeleteSystem")!.IsDefined(typeof(ValidateAntiForgeryTokenAttribute)),"system deletion validates CSRF");

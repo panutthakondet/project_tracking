@@ -181,6 +181,29 @@ await transaction.CommitAsync(ct);return ids;
             await transaction.CommitAsync(ct);
         }catch{storage.Delete(file.Key);throw;}
     }
+    public async Task<IReadOnlyList<string>> DeleteVersionAsync(long versionId,CancellationToken ct)
+    {
+        await using var tx=await db.Database.BeginTransactionAsync(ct);
+        var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==versionId,ct);
+        await db.SecuritySystemRows.Where(x=>x.Id==version.SystemId).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.CreatedBy,v=>v.CreatedBy),ct);
+        await db.SecurityVersionRows.Where(x=>x.Id==versionId).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.CreatedBy,v=>v.CreatedBy),ct);
+        var ids=await db.SecurityScanRows.Where(x=>x.VersionId==versionId).Select(x=>x.Id).ToListAsync(ct);
+        await db.SecurityScanRows.Where(x=>ids.Contains(x.Id)).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.Status,v=>v.Status),ct);
+        if(await db.SecurityScanRows.AnyAsync(x=>ids.Contains(x.Id)&&x.Status!="Completed"&&x.Status!="Failed"&&x.Status!="Cancelled",ct))
+            throw new InvalidOperationException("เวอร์ชันมีงานในคิวหรือกำลังสแกน กรุณายกเลิกหรือรอให้เสร็จก่อนลบ");
+        var files=await db.SecurityArtifactRows.Where(x=>x.VersionId==versionId).Select(x=>x.StorageKey).ToListAsync(ct);
+        files.AddRange(await db.SecurityReportRows.Where(x=>ids.Contains(x.ScanId)).Select(x=>x.StorageKey).ToListAsync(ct));
+        await db.SecurityWebsiteScanParts.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanProgressRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanFindingRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityReportRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanRows.Where(x=>ids.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.SecurityArtifactRows.Where(x=>x.VersionId==versionId).ExecuteDeleteAsync(ct);
+        await db.SecurityVersionRows.Where(x=>x.Id==versionId).ExecuteDeleteAsync(ct);
+        await tx.CommitAsync(ct);
+        return files;
+    }
+
     public static string IssueDetailsForStorage(string details,long scanId)
     {
         // Existing ProjectIssues.IssueDetail is MySQL TEXT: reserve room below its 65,535-byte limit.

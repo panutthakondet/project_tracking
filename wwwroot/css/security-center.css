@@ -214,3 +214,9 @@ html body main .security-center .security-website-part[data-section]>summary{bor
 @media(max-width:720px){.security-assignment-summary{margin:12px 14px;padding:12px;gap:10px}.security-assignment-summary>div{width:100%}}
 
 .security-finding-origin{font-size:13px;font-weight:600;color:var(--pt-surface-contrast-muted,#47515c);margin:10px 0}
+
+/* Compact version management; forms expand only when requested. */
+.security-version-tools{display:flex;align-items:flex-start;gap:12px;padding:10px 16px;border-bottom:1px solid var(--pt-border,#c2ccd8)}
+.security-workspace .security-version-tools>.security-disclosure{flex:1;min-width:0;margin:0;padding:0 12px}
+.security-version-tools>form{flex-shrink:0}
+@media(max-width:720px){.security-version-tools{flex-wrap:wrap}.security-workspace .security-version-tools>.security-disclosure{flex-basis:100%}}

@@ -86,6 +86,14 @@ public static class AutoIssueChecks
   if((await db.SecurityFindingRows.SingleAsync(x=>x.Id==recurringLink.FindingId)).ReviewStatus!="InProgress")throw new Exception("Old Issue must not overwrite the current recurrence status");
   await CheckAccepted(nextVersion.Id,5);
   Console.WriteLine("PASS recurring PASS finding creates one new Issue, keeps original Issue/link and ignores stale status updates; REJECT persists");
+  var queuedForDelete=await service.QueueAsync(nextVersion.Id,"Passive",Guid.NewGuid().ToString(),1,default);
+  try{await service.DeleteVersionAsync(nextVersion.Id,default);throw new Exception("Queued version deleted");}catch(InvalidOperationException){}
+  if(!await db.SecurityVersionRows.AnyAsync(x=>x.Id==nextVersion.Id))throw new Exception("Blocked deletion must preserve version");
+  await db.SecurityScanRows.Where(x=>x.Id==queuedForDelete).ExecuteUpdateAsync(x=>x.SetProperty(s=>s.Status,"Cancelled"));
+  var countBeforeDelete=await db.ProjectIssues.CountAsync();
+  var filesForCleanup=await service.DeleteVersionAsync(nextVersion.Id,default);
+  if(await db.SecurityVersionRows.AnyAsync(x=>x.Id==nextVersion.Id)||await db.SecurityScanRows.AnyAsync(x=>x.VersionId==nextVersion.Id)||await db.ProjectIssues.CountAsync()!=countBeforeDelete||!await db.SecurityVersionRows.AnyAsync(x=>x.Id==version.Id)||filesForCleanup.Count==0)throw new Exception("Version deletion must remove its history/reports while preserving Issues and other versions");
+  Console.WriteLine("PASS version deletion blocks pending scans, deletes terminal history and preserves Issues/other versions");
   Console.WriteLine("PASS automatic Issues: Critical/High/Medium/Low, excluded Info, copied assignee/dates, atomic completion retry and finding deduplication");
  }
 }

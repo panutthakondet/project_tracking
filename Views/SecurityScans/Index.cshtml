@@ -47,6 +47,14 @@
         var savedLogin=Model.CanManage&&Model.LoginSettings.TryGetValue(system.Id,out var storedLogin)?storedLogin:null;
         var latestScan=runs.Select(x=>x.Scan).FirstOrDefault(x=>versions.Any(v=>v.Id==x.VersionId));
         <details class="security-card security-system" name="security-system" data-system-id="@system.Id" data-system-kind="@SecurityValues.Category(system.Kind)"><summary class="security-card-head"><div class="security-system-title"><span class="security-system-icon" aria-hidden="true">@(SecurityValues.IsMobile(system.Kind)?"▣":"◎")</span><div><h2>@system.Name</h2><div class="security-system-meta"><span class="security-chip">@SecurityValues.Category(system.Kind)</span>@if(!string.IsNullOrWhiteSpace(system.TargetUrl)){<span class="security-target">@system.TargetUrl</span>}@if(system.RequiresLogin){<span class="security-login-note">ต้อง Login ก่อนสแกน</span>}</div></div></div><div class="security-system-overview"><span class="security-chip">@versions.Count เวอร์ชัน</span>@if(latestScan!=null){<span class="security-status" data-state="@latestScan.Status">ล่าสุด: @SecurityValues.StatusLabel(latestScan.Status)</span>}<span class="security-expand-hint" aria-hidden="true">เปิดดูรายละเอียด</span></div></summary>
+        @if(Model.CanManage){<details class="security-disclosure security-edit-system"><summary>แก้ไขระบบ</summary>
+            <form asp-action="EditSystem" method="post" asp-route-workflow="@Model.Workflow" class="security-form">
+                <input type="hidden" name="systemId" value="@system.Id" />
+                <label>ชื่อระบบ<input class="form-control" name="name" value="@system.Name" maxlength="160" required /></label>
+                @if(!mobile){<label>URL หลัก<input type="url" class="form-control" name="targetUrl" value="@system.TargetUrl" maxlength="2000" required /></label>}
+                <button class="btn btn-primary" type="submit">บันทึกระบบ</button>
+            </form>
+        </details>}
         @if(Model.CanDeleteScans){<form asp-action="DeleteSystem" asp-route-workflow="@Model.Workflow" method="post" class="security-delete-system" onsubmit="return confirm('ลบระบบนี้ รวมเวอร์ชัน ไฟล์ Login และประวัติสแกนทั้งหมด? Issue ที่สร้างไว้จะยังคงอยู่ และย้อนกลับไม่ได้');"><input type="hidden" name="systemId" value="@system.Id" /><button type="submit" class="btn btn-outline-danger btn-sm">ลบระบบ</button></form>}
         @{var issueDefaults=Model.IssueDefaults.FirstOrDefault(x=>x.SystemId==system.Id);}
         @if(issueDefaults!=null&&Model.Workflow=="Formal"){
@@ -78,6 +86,20 @@
             var artifact=Model.Artifacts.FirstOrDefault(x=>x.VersionId==version.Id);
             <details class="security-version-entry" open="@(version.Id==versions[0].Id)">
                 <summary class="security-version-toggle"><strong>Version @version.VersionName</strong><span class="security-chip">@version.Environment</span>@if(version.Id==versions[0].Id){<small>ล่าสุด</small>}</summary>
+            <div class="security-version-tools">
+            @if(Model.CanManage){<details class="security-disclosure"><summary>แก้ไขเวอร์ชัน</summary>
+                <form asp-action="EditVersion" method="post" asp-route-workflow="@Model.Workflow" class="security-form">
+                    <input type="hidden" name="versionId" value="@version.Id" />
+                    <label>Version<input class="form-control" name="versionName" value="@version.VersionName" maxlength="100" required /></label>
+                    <label>Build Number<input class="form-control" name="buildNumber" value="@version.BuildNumber" maxlength="100" /></label>
+                    <label>Git Commit<input class="form-control" name="gitCommit" value="@version.GitCommit" maxlength="64" /></label>
+                    <label>สภาพแวดล้อม<select class="form-select" name="environment"><option selected="@(version.Environment=="UAT")">UAT</option><option selected="@(version.Environment=="Production")">Production</option></select></label>
+                    <label>รายละเอียดการเปลี่ยนแปลง<textarea class="form-control" name="changeNotes" maxlength="4000">@version.ChangeNotes</textarea></label>
+                    <button class="btn btn-primary" type="submit">บันทึกเวอร์ชัน</button>
+                </form>
+            </details>}
+            @if(Model.CanDeleteScans){<form asp-action="DeleteVersion" method="post" asp-route-workflow="@Model.Workflow" onsubmit="return confirm('ลบเวอร์ชันนี้ รวมไฟล์แอปและประวัติสแกนของเวอร์ชันนี้? Issue เดิมยังคงอยู่ และย้อนกลับไม่ได้');"><input type="hidden" name="versionId" value="@version.Id" /><button class="btn btn-outline-danger btn-sm" type="submit">ลบเวอร์ชัน</button></form>}
+            </div>
             <article class="security-version">
                 <div class="security-version-info">
 
