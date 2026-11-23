@@ -74,6 +74,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var system=await db.SecuritySystemRows.SingleOrDefaultAsync(x=>x.Id==systemId,ct);
         if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
         if(SecurityValues.IsMobile(system.Kind)||!SecurityValues.WebsiteSections.Contains(section))return BadRequest();
+        if(section=="WebInfo")requiresLogin=false;
         login.AuthenticationType??="Form";login.TokenPath??="token";login.LoginUrl??="";login.Username??="";login.Password??="";login.LoggedInRegex??="";
         login.RequestData??=login.AuthenticationType=="JsonBearer"?"{\"username\":\"{%username%}\",\"password\":\"{%password%}\"}":"username={%username%}&password={%password%}";
         string? newProfile=null;

@@ -34,6 +34,7 @@
     });
     root.querySelectorAll('[data-website-login-form]').forEach(form=>{
         const type=form.querySelector('[data-website-login-type]');
+        if(!type)return;
         const body=form.querySelector('[name="requestData"]');
         const defaults={JsonCookie:'{"membership_no":"{%username%}","password":"{%password%}","des":"","remember":false}',Form:'username={%username%}&password={%password%}',JsonBearer:'{"membership_no":"{%username%}","mem_password":"{%password%}"}'};
         let previous=type.value;
