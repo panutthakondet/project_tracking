@@ -247,6 +247,50 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         return Json(ScanProgressPage.From(scope.Value.Scan,progress));
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
+    public async Task<IActionResult> DeleteSystem(long systemId,CancellationToken ct)
+    {
+        var system=await db.SecuritySystemRows.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==systemId,ct);
+        if(system==null||await AllowedProject(system.ProjectId,ct)==null)return NotFound();
+        if(system.Workflow!=SelectedWorkflow)return BadRequest();
+        await using var transaction=await db.Database.BeginTransactionAsync(ct);
+        await db.SecuritySystemRows.Where(x=>x.Id==systemId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Name,x=>x.Name),ct);
+        var versionIds=await db.SecurityVersionRows.Where(x=>x.SystemId==systemId).Select(x=>x.Id).ToListAsync(ct);
+        var scanIds=await db.SecurityScanRows.Where(x=>versionIds.Contains(x.VersionId)).Select(x=>x.Id).ToListAsync(ct);
+        // Lock scans against worker claims before checking their terminal state.
+        await db.SecurityScanRows.Where(x=>scanIds.Contains(x.Id)).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,x=>x.Status),ct);
+        if(await db.SecurityScanRows.AnyAsync(x=>scanIds.Contains(x.Id)&&(x.Status=="Queued"||x.Status=="Running"),ct)){
+            TempData["Error"]="ระบบมีงานในคิวหรือกำลังสแกน กรุณายกเลิกหรือรอให้เสร็จก่อนลบ";
+            return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
+        }
+        var files=await db.SecurityArtifactRows.Where(x=>versionIds.Contains(x.VersionId)).Select(x=>x.StorageKey).ToListAsync(ct);
+        files.AddRange(await db.SecurityReportRows.Where(x=>scanIds.Contains(x.ScanId)).Select(x=>x.StorageKey).ToListAsync(ct));
+        var profiles=await db.SecurityWebsiteTargets.Where(x=>x.SystemId==systemId).Select(x=>x.AuthProfile).ToListAsync(ct);
+        profiles.Add(system.AuthProfile);
+        profiles.AddRange(await db.SecurityScanRows.Where(x=>scanIds.Contains(x.Id)).Select(x=>x.AuthProfile).ToListAsync(ct));
+        var findingIds=await db.SecurityFindingRows.Where(x=>x.SystemId==systemId).Select(x=>x.Id).ToListAsync(ct);
+        await db.SecurityWebsiteScanParts.Where(x=>scanIds.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanProgressRows.Where(x=>scanIds.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanFindingRows.Where(x=>scanIds.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityReportRows.Where(x=>scanIds.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanRows.Where(x=>scanIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.SecurityFindingHistoryRows.Where(x=>findingIds.Contains(x.FindingId)).ExecuteDeleteAsync(ct);
+        await db.SecurityFindingIssueLinkRows.Where(x=>findingIds.Contains(x.FindingId)).ExecuteDeleteAsync(ct);
+        await db.SecurityFindingRows.Where(x=>findingIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.SecurityArtifactRows.Where(x=>versionIds.Contains(x.VersionId)).ExecuteDeleteAsync(ct);
+        await db.SecurityVersionRows.Where(x=>x.SystemId==systemId).ExecuteDeleteAsync(ct);
+        await db.SecurityWebsiteTargets.Where(x=>x.SystemId==systemId).ExecuteDeleteAsync(ct);
+        await db.SecurityIssueDefaults.Where(x=>x.SystemId==systemId).ExecuteDeleteAsync(ct);
+        await db.SecuritySystemRows.Where(x=>x.Id==systemId).ExecuteDeleteAsync(ct);
+        await transaction.CommitAsync(ct);
+        files.AddRange(profiles.Where(SecurityLoginStore.IsManaged).Select(x=>x![4..]+".login"));
+        var cleanupFailed=false;
+        foreach(var key in files.Distinct())try{storage.Delete(key);}catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or InvalidOperationException){cleanupFailed=true;logger?.LogWarning(ex,"Could not remove file for deleted security system {SystemId}",systemId);}
+        logger?.LogInformation("Security system {SystemId} deleted by user {UserId}",systemId,UserId);
+        TempData[cleanupFailed?"Error":"Success"]=cleanupFailed?"ลบระบบแล้ว แต่ลบไฟล์บางไฟล์ไม่ได้ กรุณาให้ผู้ดูแลตรวจสอบ":"ลบระบบ เวอร์ชัน และประวัติสแกนแล้ว โดยเก็บ Issue เดิมไว้";
+        return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
+    }
+
+    [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
     public async Task<IActionResult> DeleteScan(long id,CancellationToken ct)
     {
         var scope=await Scope(id,ct);

@@ -22,6 +22,9 @@ public static class PermissionChecks
    foreach(var attr in type.GetCustomAttributes<RequireMenuAttribute>().Concat(type.GetMethod(action)!.GetCustomAttributes<RequireMenuAttribute>())){attr.OnAuthorization(context);if(context.Result!=null)return false;}
    return true;
   }
+  Check(!Allowed("DeleteSystem","SecurityScans.Index,SecurityScans.Edit"),"system deletion requires delete grant, not editing alone");
+  Check(Allowed("DeleteSystem","SecurityScans.Index,SecurityScans.Delete"),"delete grant permits system deletion");
+  Check(typeof(SecurityScansController).GetMethod("DeleteSystem")!.IsDefined(typeof(ValidateAntiForgeryTokenAttribute)),"system deletion validates CSRF");
   Check(!Allowed("DeleteScan","SecurityScans.Index,SecurityScans.Edit"),"scan editors cannot delete history without delete grant");
   Check(Allowed("DeleteScan","SecurityScans.Index,SecurityScans.Delete"),"separate delete grant permits history deletion");
   Check(!Allowed("ApproveHost","SecurityScans.Index,SecurityScans.Edit"),"scan editor cannot approve a new target without separate grant");

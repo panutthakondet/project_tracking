@@ -203,3 +203,5 @@ html body main .security-center .security-workflow-button:hover{border-color:var
 .security-website-part[data-section="WebAdmin"]{--website-area-color:var(--pt-chart-purple,#9655ff)}
 html body main .security-center .security-website-part[data-section]{border-color:color-mix(in srgb,var(--website-area-color) 45%,var(--pt-border,#c2ccd8));border-left:4px solid var(--website-area-color);background:color-mix(in srgb,var(--website-area-color) 7%,var(--pt-surface,#fff));color:var(--pt-surface-contrast,#17212b)}
 html body main .security-center .security-website-part[data-section]>summary{border-radius:6px;background:color-mix(in srgb,var(--website-area-color) 10%,var(--pt-surface,#fff));padding:12px;align-items:center}
+
+.security-delete-system{display:flex;justify-content:flex-end;padding:12px 20px 0}
