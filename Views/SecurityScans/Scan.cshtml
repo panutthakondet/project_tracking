@@ -6,36 +6,32 @@
 <header class="index-hero">
     <div class="index-hero__content">
         <span class="index-eyebrow">Security Scan #@Model.Scan.Id · @(Model.Scan.Workflow=="Development"?"สแกนระหว่างพัฒนา":"สแกนจริง")</span>
-        <h1 class="index-title">@Model.System.Name @if(Model.WebsitePart!=null){<span> · @SecurityValues.SectionLabel(Model.WebsitePart.Section)</span>}</h1>
+        <h1 class="index-title">@Model.System.Name @if(Model.Run?.IsWebsiteBatch==true){<span> · Website รวม @Model.Run.Scans.Count ส่วน</span>}</h1>
         <p class="index-subtitle">@Model.Project.ProjectDisplayName<br />Version @Model.Version.VersionName / Build @Model.Version.BuildNumber · @Model.Version.Environment</p>
     </div>
     <div class="index-actions">
         <a class="btn btn-outline-light" asp-action="Index" asp-route-projectId="@Model.Project.ProjectId" asp-route-workflow="@Model.Scan.Workflow">กลับศูนย์สแกน</a>
     </div>
 </header>
-@if(Model.WebsiteBatchParts.Count>0){
-    <nav class="security-history-types" aria-label="ผลสแกนส่วนอื่นใน Website รอบเดียวกัน">
-        @foreach(var part in Model.WebsiteBatchParts.OrderBy(x=>Array.IndexOf(SecurityValues.WebsiteSections,x.Section))){
-            <a class="security-history-type" asp-action="Scan" asp-route-id="@part.ScanId" aria-current="@(part.ScanId==Model.Scan.Id?"page":null)">@SecurityValues.SectionLabel(part.Section) · #@part.ScanId</a>
-        }
-    </nav>
-}
 @if(Model.Scan.Workflow=="Development"){<div class="alert alert-info">ผลสแกนระหว่างพัฒนา ไม่สร้างหรือเชื่อม Issue และไม่รวมกับประวัติสแกนจริง</div>}
 @if(TempData["Success"] is string success){<div class="alert alert-success">@success</div>}@if(TempData["Error"] is string error){<div class="alert alert-danger">@error</div>}
 <section class="security-card"><div class="security-card-head"><h2 data-scan-status>@SecurityValues.StatusLabel(Model.Scan.Status)</h2><div class="security-inline"><a class="btn btn-outline-primary" asp-action="Scan" asp-route-id="@Model.Scan.Id">รีเฟรชสถานะ</a>@if(Model.CanManage&&(Model.Scan.Status is "Queued" or "Running")){<form asp-action="Cancel" method="post" data-scan-cancel><input type="hidden" name="id" value="@Model.Scan.Id" /><button type="submit" class="btn btn-outline-danger">ยกเลิกรอบนี้</button></form>}</div></div>
-@await Html.PartialAsync("_Progress",ProjectTracking.ViewModels.Security.ScanProgressPage.From(Model.Scan,Model.Progress))
+@await Html.PartialAsync("_Progress",Model.RunProgress??ProjectTracking.ViewModels.Security.ScanProgressPage.From(Model.Scan,Model.Progress))
 <div class="security-scan-meta"><div><span>เครื่องมือ / โหมด</span><strong>@Model.Scan.Engine · @Model.Scan.Mode</strong><small>@Model.Scan.EngineVersion</small></div><div><span>ขอบเขตการตรวจ</span><p>@(string.IsNullOrWhiteSpace(Model.Scan.Coverage)?"รอรายละเอียดจากเครื่องสแกน":Model.Scan.Coverage)</p></div></div><div class="alert alert-danger" data-scan-error hidden="@(Model.Scan.Error==null)">@Model.Scan.Error</div>
 <div class="security-scan-meta"><div><span>เริ่มตรวจ (UTC)</span><strong data-scan-started>@Model.Scan.StartedAt?.ToString("yyyy-MM-dd HH:mm")</strong></div><div><span>สิ้นสุด (UTC)</span><strong data-scan-finished>@Model.Scan.FinishedAt?.ToString("yyyy-MM-dd HH:mm")</strong></div><div><span>เป้าหมาย</span><strong>@(string.IsNullOrWhiteSpace(Model.Scan.TargetUrl)?Model.System.Name:Model.Scan.TargetUrl)</strong></div></div>
-@if(Model.Scan.Status=="Completed"){<div class="security-inline"><a class="btn btn-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="json">ดาวน์โหลด JSON ต้นฉบับ</a><a class="btn btn-outline-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="pdf">ดาวน์โหลดรายงาน PDF</a><a class="btn btn-outline-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="md">ดาวน์โหลด Markdown (.md)</a></div>}
+@if(Model.HasResults){<div class="security-inline"><a class="btn btn-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="json">ดาวน์โหลด JSON</a><a class="btn btn-outline-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="pdf">ดาวน์โหลดรายงาน PDF</a><a class="btn btn-outline-primary" data-scan-download asp-action="Report" asp-route-id="@Model.Scan.Id" asp-route-format="md">ดาวน์โหลด Markdown (.md)</a></div>}
 @if(Model.Scan.Status is "Queued" or "Running"){<p data-scan-running-note>งานทำบนเครื่องสแกนแยก สามารถปิดหน้านี้แล้วกลับมาตรวจภายหลังได้</p>}
 </section>
-@if(Model.Scan.Status=="Completed"){
+@if(Model.HasResults){
+@if(Model.Scan.Status!="Completed"){<div class="alert alert-warning">ผลรวมยังไม่ครบทุกส่วน กรุณาตรวจสถานะด้านบน รายการด้านล่างรวมเฉพาะส่วนที่สแกนสำเร็จ</div>}
 <div class="security-summary">@foreach(var severity in new[]{"Critical","High","Medium","Low","Info"}){<div><strong>@(Model.SeverityCounts.TryGetValue(severity,out var count)?count:Model.Observations.Count(x=>x.Severity==severity))</strong> @severity</div>}</div>
+@if(Model.Scan.Status=="Completed"){
 <section class="security-card"><h2>เปรียบเทียบรอบตรวจ</h2>
 @if(Model.Baselines.Count==0){<p role="status">ยังไม่มีรอบสแกนสำเร็จอื่นที่เทียบได้ ต้องเป็นระบบ ส่วนเว็บไซต์ เป้าหมาย เครื่องมือ โหมด สภาพแวดล้อม และรูปแบบการทำงานเดียวกัน</p>}else{<form method="get" class="security-inline"><input type="hidden" name="id" value="@Model.Scan.Id" /><select class="form-select" name="baselineId" aria-label="รอบก่อนหน้า"><option value="">เลือกรอบที่เครื่องมือ โหมด เป้าหมาย และสภาพแวดล้อมเดียวกัน</option>@foreach(var scan in Model.Baselines){<option value="@scan.Id" selected="@(Model.BaselineId==scan.Id)">#@scan.Id · @scan.CreatedAt.ToString("yyyy-MM-dd HH:mm")</option>}</select><button type="submit" class="btn btn-outline-primary">เปรียบเทียบ</button></form>}
-@if(baseline!=null&&Model.Baselines.FirstOrDefault(x=>x.Id==Model.BaselineId)?.AuthProfile!=Model.Scan.AuthProfile){<p class="alert alert-warning">การตั้งค่า Login ต่างจากรอบที่เลือก กรุณาตรวจว่าบัญชีและสิทธิ์เข้าถึงครอบคลุมเท่ากันก่อนสรุปผล</p>}
+@if(baseline!=null&&Model.LoginComparisonChanged){<p class="alert alert-warning">การตั้งค่า Login ต่างจากรอบที่เลือก กรุณาตรวจว่าบัญชีและสิทธิ์เข้าถึงครอบคลุมเท่ากันก่อนสรุปผล</p>}
 @if(baseline!=null){<p>พบใหม่ <strong>@seen.Except(baseline).Count()</strong> · ยังพบ <strong>@seen.Intersect(baseline).Count()</strong> · ไม่พบในรอบล่าสุด <strong>@baseline.Except(seen).Count()</strong></p><p>“ไม่พบในรอบล่าสุด” ไม่ได้เปลี่ยนสถานะเป็นแก้ไขแล้วอัตโนมัติ ต้องตรวจความครอบคลุมและยืนยันผลก่อน</p>}
 </section>
+}
 @if(Model.CanCreateIssue){<form asp-action="CreateIssues" method="post" id="securityIssueBatch" data-loading-delay="0" data-loading-message="กำลังสร้าง / เชื่อม Issue…" class="security-card security-form"><input type="hidden" name="scanId" value="@Model.Scan.Id" /><h2>สร้าง Issues จากประเด็นที่เลือก</h2><label>ผู้รับผิดชอบ<select class="form-select" name="employeeId" required><option value="">เลือกพนักงาน</option>@foreach(var emp in Model.Employees){<option value="@emp.EmpId">@emp.EmpName</option>}</select></label><label>วันเริ่ม<input type="date" class="form-control" name="startDate" required /></label><label>กำหนดส่ง<input type="date" class="form-control" name="endDate" required /></label><button class="btn btn-primary" type="submit">สร้าง / เชื่อม Issue เดิมจากรายการที่เลือก</button><small>เลือกช่องหน้าประเด็นด้านล่าง สูงสุด 50 รายการ ประเด็นที่มี Issue แล้วจะไม่สร้างซ้ำ</small></form>}
 <div id="security-findings">
 @await Html.PartialAsync("_FindingPagination",Model)
@@ -47,6 +43,7 @@
      ("PASS",_)=>"PASS", ("REJECT",_)=>"REJECT", (_,"FIXED")=>"FIXED", ("FAIL",_)=>"FAIL", (_,"WIP")=>"WIP", _=>"OPEN"
  };
  <article class="security-card security-finding @(linkedIssue!=null?"is-issue-linked":"")" data-issue-state="@(linkedIssue!=null?issueState:null)"><header class="security-card-head"><h2>@if(Model.CanCreateIssue){<input type="checkbox" name="observationIds" form="securityIssueBatch" value="@item.Id" aria-label="เลือก @item.Title" />} <span class="security-severity security-severity-@item.Severity.ToLowerInvariant()">@item.Severity</span> @item.Title</h2><div class="security-finding-state"><span>@SecurityValues.StatusLabel(reviewStatus)</span>@if(linkedIssue!=null){<small>Issue: @linkedIssue.IssueStatus · Dev: @linkedIssue.DevStatus</small>}</div></header>
+ @if(Model.Run?.IsWebsiteBatch==true){<p class="security-finding-origin">@SecurityValues.SectionLabel(Model.Run.Section(item.ScanId))</p>}
  <p><code>@item.RuleId</code> · CWE @item.Cwe<br /><strong>@item.Location</strong></p><p class="security-text">@item.Description</p>
  <details><summary>หลักฐาน</summary><pre>@item.Evidence</pre></details><h3>แนวทางแก้ไขจากเครื่องมือ</h3><p class="security-text">@(string.IsNullOrWhiteSpace(item.Remediation)?"เครื่องมือไม่ได้ให้คำแนะนำเฉพาะ กรุณาตรวจเอกสารอ้างอิงและให้ผู้ตรวจวิเคราะห์เพิ่มเติม":item.Remediation)</p><details><summary>เอกสารอ้างอิง</summary><pre>@item.References</pre></details>
  @if(link!=null){<p><a class="btn btn-outline-primary" asp-controller="ProjectIssues" asp-action="DevDetails" asp-route-id="@link.IssueId">เปิด Issue #@link.IssueId</a></p>}

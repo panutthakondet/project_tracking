@@ -212,3 +212,5 @@ html body main .security-center .security-website-part[data-section]>summary{bor
 .security-assignment-summary dd{margin:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}
 .security-assignment-summary time{display:inline-block;font-variant-numeric:tabular-nums}
 @media(max-width:720px){.security-assignment-summary{margin:12px 14px;padding:12px;gap:10px}.security-assignment-summary>div{width:100%}}
+
+.security-finding-origin{font-size:13px;font-weight:600;color:var(--pt-surface-contrast-muted,#47515c);margin:10px 0}

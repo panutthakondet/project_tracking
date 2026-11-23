@@ -2,15 +2,15 @@
 @{
     var active = !Model.Terminal;
     var determinate = Model.Percent.HasValue;
-    var counter = Model.Stage=="Completed" ? "เสร็จสิ้นครบทุกขั้นตอน" : Model.StepIndex>=0 ? $"ขั้นตอน {Model.StepIndex+1} จาก {Model.Steps.Length}" : "รอรายละเอียดขั้นตอน";
+    var counter = Model.IsBatch ? "ความคืบหน้ารวม Website" : Model.Stage=="Completed" ? "เสร็จสิ้นครบทุกขั้นตอน" : Model.StepIndex>=0 ? $"ขั้นตอน {Model.StepIndex+1} จาก {Model.Steps.Length}" : "รอรายละเอียดขั้นตอน";
 }
 <div class="security-progress @(determinate?"":"is-indeterminate") @(Model.Terminal?"is-terminal":"")" data-scan-progress data-url="@Url.Action("Progress","SecurityScans",new{id=Model.Id})" data-state="@Model.Status" data-stage="@Model.Stage" data-initial-state="@Model.Status" data-started-at="@Model.StartedAt?.ToString("O")" data-finished-at="@Model.FinishedAt?.ToString("O")">
     <div class="security-progress-head"><div><small data-progress-counter>@counter</small><h3 data-progress-label>@Model.Label</h3></div><strong data-progress-percent>@(determinate?$"{Model.Percent}%":Model.Terminal?Model.StatusLabel:Model.Stage=="Queued"?"รอคิว":"กำลังทำงาน")</strong></div>
     <div class="security-progress-track" role="progressbar" aria-label="ความคืบหน้าขั้นตอนสแกน" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@(determinate?Model.Percent:null)" aria-valuetext="@Model.Label">
         <div class="security-progress-fill" style="width:@(determinate?$"{Model.Percent}%":"100%")"></div>
     </div>
-    <p class="security-progress-detail" data-progress-detail>@(Model.Stage=="Analyzing"?"MobSF กำลังวิเคราะห์ไฟล์ — เครื่องมือไม่รายงานเปอร์เซ็นต์รวมในขั้นตอนนี้":Model.Stage=="Completed"?"เปิดรายงานผลสแกนด้านล่างได้แล้ว":Model.Stage=="Queued"?"ระบบจะเริ่มเมื่อ Worker พร้อมและถึงคิวของรอบนี้":"แสดงเปอร์เซ็นต์ของขั้นตอนปัจจุบันเมื่อวัดได้จริง")</p>
-    <ol class="security-progress-steps">@for(var i=0;i<Model.Steps.Length;i++){var step=Model.Steps[i];var done=Model.Status=="Completed"||Model.StepIndex>i;var current=Model.StepIndex==i;<li data-progress-step="@step.Stage" class="@(done?"is-done":current?"is-current":"")" aria-current="@(current?"step":null)"><span data-step-mark>@(done?"✓":(i+1).ToString())</span><span>@step.Label</span></li>}</ol>
+    <p class="security-progress-detail" data-progress-detail>@(Model.IsBatch?"เปอร์เซ็นต์แสดงจำนวนส่วนที่สิ้นสุดการทำงาน ตรวจสถานะสำเร็จหรือไม่สำเร็จของแต่ละส่วนด้านล่าง":Model.Stage=="Analyzing"?"MobSF กำลังวิเคราะห์ไฟล์ — เครื่องมือไม่รายงานเปอร์เซ็นต์รวมในขั้นตอนนี้":Model.Stage=="Completed"?"เปิดรายงานผลสแกนด้านล่างได้แล้ว":Model.Stage=="Queued"?"ระบบจะเริ่มเมื่อ Worker พร้อมและถึงคิวของรอบนี้":"แสดงเปอร์เซ็นต์ของขั้นตอนปัจจุบันเมื่อวัดได้จริง")</p>
+    <ol class="security-progress-steps">@for(var i=0;i<Model.Steps.Length;i++){var step=Model.Steps[i];var done=Model.IsBatch?Model.StepStates[i]=="Completed":Model.Status=="Completed"||Model.StepIndex>i;var current=Model.StepIndex==i;<li data-progress-step="@step.Stage" class="@(done?"is-done":current?"is-current":"")" aria-current="@(current?"step":null)"><span data-step-mark>@(done?"✓":(i+1).ToString())</span><span>@step.Label</span></li>}</ol>
     <div class="security-progress-foot"><span>เวลาที่ใช้ <strong data-progress-elapsed>—</strong></span><span data-progress-contact>@(active?"ตรวจสถานะอัตโนมัติทุก 3 วินาที":"สิ้นสุดรอบสแกนแล้ว")</span></div>
     <p class="security-progress-connection" data-progress-connection role="status" hidden></p>
 </div>

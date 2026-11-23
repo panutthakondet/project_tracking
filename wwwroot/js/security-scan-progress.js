@@ -26,20 +26,21 @@
             const percent=Number.isInteger(data.percent)&&data.percent>=0&&data.percent<=100?data.percent:null;
             root.classList.toggle('is-terminal',terminal);root.classList.toggle('is-indeterminate',percent===null);
             text('[data-progress-label]',data.label);
-            text('[data-progress-counter]',state==='Completed'?'เสร็จสิ้นครบทุกขั้นตอน':data.stepIndex>=0?'ขั้นตอน '+(data.stepIndex+1)+' จาก '+data.steps.length:'รอรายละเอียดขั้นตอน');
+            text('[data-progress-counter]',data.isBatch?'ความคืบหน้ารวม Website':state==='Completed'?'เสร็จสิ้นครบทุกขั้นตอน':data.stepIndex>=0?'ขั้นตอน '+(data.stepIndex+1)+' จาก '+data.steps.length:'รอรายละเอียดขั้นตอน');
             text('[data-progress-percent]',percent!==null?percent+'%':terminal?data.statusLabel:data.stage==='Queued'?'รอคิว':'กำลังทำงาน');
             track.setAttribute('aria-valuetext',data.label);
             if(percent!==null)track.setAttribute('aria-valuenow',String(percent));else track.removeAttribute('aria-valuenow');
             fill.style.width=(percent===null?100:percent)+'%';
-            let detail=data.stage==='Analyzing'?'MobSF กำลังวิเคราะห์ไฟล์ — เครื่องมือไม่รายงานเปอร์เซ็นต์รวมในขั้นตอนนี้':state==='Completed'?'เปิดรายงานผลสแกนด้านล่างได้แล้ว':state==='Queued'?'ระบบจะเริ่มเมื่อ Worker พร้อมและถึงคิวของรอบนี้':'เปอร์เซ็นต์นี้เป็นของขั้นตอนปัจจุบัน ไม่ใช่เปอร์เซ็นต์รวมทั้งงาน';
+            let detail=data.isBatch?'เปอร์เซ็นต์แสดงจำนวนส่วนที่สิ้นสุดการทำงาน ตรวจสถานะสำเร็จหรือไม่สำเร็จของแต่ละส่วนด้านล่าง':data.stage==='Analyzing'?'MobSF กำลังวิเคราะห์ไฟล์ — เครื่องมือไม่รายงานเปอร์เซ็นต์รวมในขั้นตอนนี้':state==='Completed'?'เปิดรายงานผลสแกนด้านล่างได้แล้ว':state==='Queued'?'ระบบจะเริ่มเมื่อ Worker พร้อมและถึงคิวของรอบนี้':'เปอร์เซ็นต์นี้เป็นของขั้นตอนปัจจุบัน ไม่ใช่เปอร์เซ็นต์รวมทั้งงาน';
             if(data.bytesDone!==null&&['Downloading','Uploading'].includes(data.stage))detail=mb(data.bytesDone)+(data.bytesTotal?' / '+mb(data.bytesTotal):'')+' · '+detail;
             if(state==='Failed'||state==='Cancelled')detail=data.statusLabel+' · ขั้นตอนล่าสุด: '+data.label;
             text('[data-progress-detail]',detail);
             root.querySelectorAll('[data-progress-step]').forEach((step,index)=>{
-                const done=state==='Completed'||data.stepIndex>index,current=data.stepIndex===index;
+                const done=data.isBatch?data.stepStates[index]==='Completed':state==='Completed'||data.stepIndex>index,current=data.stepIndex===index;
                 step.classList.toggle('is-done',done);step.classList.toggle('is-current',current);
                 if(current)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');
                 step.querySelector('[data-step-mark]').textContent=done?'✓':String(index+1);
+                if(data.isBatch&&data.steps[index])step.querySelector('[data-step-mark]').nextElementSibling.textContent=data.steps[index].label;
             });
             text('[data-progress-contact]',terminal?'สิ้นสุดรอบสแกนแล้ว':data.updatedAt?'Worker อัปเดต '+new Date(data.updatedAt).toLocaleTimeString('th-TH'):'รอรายละเอียดจาก Worker');
             pageText('[data-scan-status]',stateLabels[state]||data.statusLabel);
@@ -50,7 +51,7 @@
             if(!terminal&&data.updatedAt&&Date.now()-Date.parse(data.updatedAt)>45000){connection.textContent='ยังไม่ได้รับอัปเดตจาก Worker เมื่อเร็ว ๆ นี้ กำลังรอการติดต่อกลับ';connection.hidden=false;}
             duration();
             if(terminal){clearTimeout(timer);clearInterval(clock);}
-            if(state==='Completed'&&root.dataset.initialState!=='Completed'&&!reloadScheduled){
+            if(terminal&&!terminalStates.has(root.dataset.initialState)&&!reloadScheduled){
                 reloadScheduled=true;setTimeout(()=>{if(!disposed)window.location.reload();},800);
             }
         }

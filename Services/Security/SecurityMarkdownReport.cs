@@ -6,7 +6,7 @@ namespace ProjectTracking.Services.Security;
 public static class SecurityMarkdownReport
 {
     public static string Create(SecurityScan scan, SecurityVersion version, SecuritySystem system,
-        string projectName, IReadOnlyCollection<SecurityScanFinding> findings)
+        string projectName, IReadOnlyCollection<SecurityScanFinding> findings, IReadOnlyDictionary<long,string>? sections=null)
     {
         var text = new StringBuilder();
         text.AppendLine($"# รายงานตรวจความปลอดภัย #{scan.Id}").AppendLine();
@@ -26,6 +26,7 @@ public static class SecurityMarkdownReport
         Field("เวอร์ชัน / Build / สภาพแวดล้อม", $"{version.VersionName} / {version.BuildNumber} / {version.Environment}");
         Field("เครื่องมือ / โหมด / เวอร์ชันเครื่องมือ", $"{scan.Engine} / {scan.Mode} / {scan.EngineVersion}");
         Field("เป้าหมาย", scan.TargetUrl);
+        Field("สถานะรอบตรวจ", SecurityValues.StatusLabel(scan.Status));
         Field("ขอบเขตการตรวจ", scan.Coverage);
         Field("เริ่ม / สิ้นสุด (UTC)", $"{scan.StartedAt:yyyy-MM-dd HH:mm:ss} / {scan.FinishedAt:yyyy-MM-dd HH:mm:ss}");
         text.AppendLine($"## สรุปผล — {findings.Count} รายการ").AppendLine();
@@ -36,6 +37,7 @@ public static class SecurityMarkdownReport
         foreach (var item in findings.OrderByDescending(x => SecurityValues.Rank(x.Severity)).ThenBy(x => x.Title).ThenBy(x => x.Id))
         {
             text.AppendLine($"## รายการที่ {++number}").AppendLine();
+            if(sections?.TryGetValue(item.ScanId,out var section)==true)Field("ส่วนเว็บไซต์",section);
             Field("หัวข้อ", item.Title);
             Field("ระดับความรุนแรง / Rule / CWE", $"{item.Severity} / {item.RuleId} / {item.Cwe}");
             Field("ตำแหน่ง", item.Location);

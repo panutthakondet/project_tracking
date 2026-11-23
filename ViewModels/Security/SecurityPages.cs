@@ -2,6 +2,7 @@ using ProjectTracking.Models;
 namespace ProjectTracking.ViewModels.Security;
 public class SecurityProjectPage
 {
+    public List<ProjectTracking.Services.Security.SecurityScanRun> Runs => ProjectTracking.Services.Security.SecurityScanRun.Group(Scans,WebsiteScanParts);
     public string Workflow { get; set; }="Formal";
     public List<SecuritySystem> HistorySystems { get; set; }=[];
     public List<SecurityVersion> HistoryVersions { get; set; }=[];
@@ -27,6 +28,10 @@ public class SecurityProjectPage
 }
 public class SecurityScanPage
 {
+    public ProjectTracking.Services.Security.SecurityScanRun? Run { get; set; }
+    public ScanProgressPage? RunProgress { get; set; }
+    public bool HasResults => Run?.HasResults ?? Scan.Status=="Completed";
+    public bool LoginComparisonChanged { get; set; }
     public SecurityWebsiteScanPart? WebsitePart { get; set; }
     public List<SecurityWebsiteScanPart> WebsiteBatchParts { get; set; }=[];
     public int TotalObservations { get; set; }

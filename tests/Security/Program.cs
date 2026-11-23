@@ -131,6 +131,7 @@ await EngineChecks.Run();
 await LoginChecks.Run(root);
 await WebsiteChecks.Run(root);
 await AutoIssueChecks.Run(root);
+await ScanRunChecks.Run();
 await JsonCookieChecks.Run();
 QuestPDF.Settings.License=QuestPDF.Infrastructure.LicenseType.Community;
 Directory.CreateDirectory("output/pdf");

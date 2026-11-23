@@ -45,6 +45,11 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var project=await AllowedProject(projectId,ct);if(project==null)return NotFound();
         var systems=await db.SecuritySystemRows.AsNoTracking().Where(x=>x.ProjectId==projectId&&x.Workflow==workflow).OrderBy(x=>x.Name).ToListAsync(ct);var ids=systems.Select(x=>x.Id).ToArray();var versions=await db.SecurityVersionRows.AsNoTracking().Where(x=>ids.Contains(x.SystemId)).OrderByDescending(x=>x.CreatedAt).ToListAsync(ct);var vids=versions.Select(x=>x.Id).ToArray();
         var history=await (from scan in db.SecurityScanRows join version in db.SecurityVersionRows on scan.VersionId equals version.Id join system in db.SecuritySystemRows on version.SystemId equals system.Id where system.ProjectId==projectId&&scan.Workflow==workflow orderby scan.CreatedAt descending select scan).AsNoTracking().Take(200).ToListAsync(ct);
+        // Fill sibling jobs so the 200-row window never shows a partial Website run.
+        var seedIds=history.Select(x=>x.Id).ToArray();
+        var batchKeys=await db.SecurityWebsiteScanParts.Where(x=>seedIds.Contains(x.ScanId)).Select(x=>x.BatchKey).Distinct().ToListAsync(ct);
+        var siblings=await (from part in db.SecurityWebsiteScanParts join scan in db.SecurityScanRows on part.ScanId equals scan.Id join version in db.SecurityVersionRows on scan.VersionId equals version.Id join system in db.SecuritySystemRows on version.SystemId equals system.Id where batchKeys.Contains(part.BatchKey)&&system.ProjectId==projectId&&scan.Workflow==workflow select scan).AsNoTracking().ToListAsync(ct);
+        history=history.Concat(siblings).DistinctBy(x=>x.Id).OrderByDescending(x=>x.CreatedAt).ToList();
         var historyVersionIds=history.Select(x=>x.VersionId).Distinct().ToArray();
         var historyVersions=await db.SecurityVersionRows.AsNoTracking().Where(x=>historyVersionIds.Contains(x.Id)).ToListAsync(ct);
         var historySystemIds=historyVersions.Select(x=>x.SystemId).Distinct().ToArray();
@@ -228,23 +233,44 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     public async Task<IActionResult> Scan(long id,long? baselineId,CancellationToken ct,int page=1)
     {
         var scope=await Scope(id,ct);if(scope==null)return NotFound();var (scan,version,system,project)=scope.Value;
-        var observationQuery=db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==id);
+        var run=await SecurityScanRun.LoadAsync(db,scan,ct);
+        var runIds=run.Ids;
+        var observationQuery=db.SecurityScanFindingRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId));
         var counts=await observationQuery.GroupBy(x=>x.Severity).Select(g=>new{Severity=g.Key,Count=g.Count()}).ToDictionaryAsync(x=>x.Severity,x=>x.Count,ct);
         var total=counts.Values.Sum();const int pageSize=50;
         var pageNumber=Math.Clamp(page,1,Math.Max(1,(int)Math.Ceiling(total/(double)pageSize)));
         var allFindingIds=await observationQuery.Select(x=>x.FindingId).ToListAsync(ct);
         var observations=await observationQuery.OrderByDescending(x=>x.Severity=="Critical"?5:x.Severity=="High"?4:x.Severity=="Medium"?3:x.Severity=="Low"?2:1).ThenBy(x=>x.Title).ThenBy(x=>x.Id).Skip((pageNumber-1)*pageSize).Take(pageSize).ToListAsync(ct);var fids=observations.Select(x=>x.FindingId).ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
-        var websitePart=await db.SecurityWebsiteScanParts.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct);
+        var websitePart=run.Parts.FirstOrDefault(x=>x.ScanId==id);
         var baselines=await SecurityScanComparison.Candidates(db.SecurityScanRows.AsNoTracking(),db.SecurityWebsiteScanParts.AsNoTracking(),versions.ToArray(),scan,scan.Engine=="ZAP"?websitePart?.Section??SecurityValues.LegacySection(system.Kind):null,SecurityValues.LegacySection(system.Kind)).ToListAsync(ct);
-        var batchParts=websitePart==null?new List<SecurityWebsiteScanPart>():await (from part in db.SecurityWebsiteScanParts join other in db.SecurityScanRows on part.ScanId equals other.Id where part.BatchKey==websitePart.BatchKey&&other.VersionId==version.Id select part).AsNoTracking().ToListAsync(ct);
-        return View(new SecurityScanPage{WebsitePart=websitePart,WebsiteBatchParts=batchParts,TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineId.HasValue&&baselines.Any(x=>x.Id==baselineId)?await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==baselineId).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct):null,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=scan.Workflow=="Formal"&&Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
+        SecurityScanRun? baselineRun=null;
+        if(run.IsWebsiteBatch){
+            var candidates=await db.SecurityScanRows.AsNoTracking().Where(x=>versions.Contains(x.VersionId)&&x.Workflow==scan.Workflow&&x.Engine==scan.Engine&&x.Mode==scan.Mode).ToListAsync(ct);
+            var candidateIds=candidates.Select(x=>x.Id).ToArray();
+            var candidateParts=await db.SecurityWebsiteScanParts.AsNoTracking().Where(x=>candidateIds.Contains(x.ScanId)).ToListAsync(ct);
+            var eligible=SecurityScanRun.Group(candidates,candidateParts).Where(x=>x.Scan.Id!=run.Scan.Id&&x.IsWebsiteBatch&&x.Scans.All(s=>s.Status=="Completed")&&x.ComparisonKey()==run.ComparisonKey()).Take(50).ToList();
+            baselines=eligible.Select(x=>x.Scan).ToList();
+            baselineRun=eligible.FirstOrDefault(x=>x.Scan.Id==baselineId);
+        }else{
+            var candidateIds=baselines.Select(x=>x.Id).ToArray();
+            var batchScanIds=await db.SecurityWebsiteScanParts.Where(x=>candidateIds.Contains(x.ScanId)).Select(x=>x.ScanId).ToListAsync(ct);
+            baselines=baselines.Where(x=>!batchScanIds.Contains(x.Id)).ToList();
+            if(baselines.FirstOrDefault(x=>x.Id==baselineId) is {} chosen)baselineRun=await SecurityScanRun.LoadAsync(db,chosen,ct);
+        }
+        var baselineIds=baselineRun?.Ids??Array.Empty<long>();
+        var baselineFindings=baselineRun==null?null:await db.SecurityScanFindingRows.AsNoTracking().Where(x=>baselineIds.Contains(x.ScanId)).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct);
+        var loginChanged=baselineRun!=null&&run.Scans.Any(current=>baselineRun.Scans.Any(old=>baselineRun.Section(old.Id)==run.Section(current.Id)&&old.AuthProfile!=current.AuthProfile));
+        var runProgress=run.IsWebsiteBatch?ScanProgressPage.FromRun(run,await db.SecurityScanProgressRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId)).ToListAsync(ct)):null;
+        return View(new SecurityScanPage{Run=run,RunProgress=runProgress,LoginComparisonChanged=loginChanged,WebsitePart=websitePart,WebsiteBatchParts=run.Parts.ToList(),TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=run.Scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineFindings,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=scan.Workflow=="Formal"&&Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
     }
     [HttpGet,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Progress(long id,CancellationToken ct)
     {
         var scope=await Scope(id,ct);if(scope==null)return NotFound();
-        var progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct);
-        return Json(ScanProgressPage.From(scope.Value.Scan,progress));
+        var run=await SecurityScanRun.LoadAsync(db,scope.Value.Scan,ct);
+        var ids=run.Ids;
+        var progress=await db.SecurityScanProgressRows.AsNoTracking().Where(x=>ids.Contains(x.ScanId)).ToListAsync(ct);
+        return Json(run.IsWebsiteBatch?ScanProgressPage.FromRun(run,progress):ScanProgressPage.From(scope.Value.Scan,progress.FirstOrDefault()));
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Delete")]
     public async Task<IActionResult> DeleteSystem(long systemId,CancellationToken ct)
@@ -297,16 +323,18 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         if(scope==null)return NotFound();
         var projectId=scope.Value.Project.ProjectId;
         await using var transaction=await db.Database.BeginTransactionAsync(ct);
-        // Acquire the row before deleting dependants; an active lease must never be removed.
-        var locked=await db.SecurityScanRows.Where(x=>x.Id==id&&(x.Status=="Completed"||x.Status=="Failed"||x.Status=="Cancelled"))
-            .ExecuteUpdateAsync(set=>set.SetProperty(x=>x.Status,x=>x.Status),ct);
-        if(locked==0){TempData["Error"]="ไม่สามารถลบรอบที่อยู่ในคิวหรือกำลังสแกนได้ กรุณายกเลิกงานก่อน";return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});}
-        var reports=await db.SecurityReportRows.Where(x=>x.ScanId==id).Select(x=>x.StorageKey).ToListAsync(ct);
-        await db.SecurityWebsiteScanParts.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
-        await db.SecurityScanProgressRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
-        await db.SecurityScanFindingRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
-        await db.SecurityReportRows.Where(x=>x.ScanId==id).ExecuteDeleteAsync(ct);
-        await db.SecurityScanRows.Where(x=>x.Id==id).ExecuteDeleteAsync(ct);
+        var run=await SecurityScanRun.LoadAsync(db,scope.Value.Scan,ct);
+        var ids=run.Ids;
+        await db.SecurityScanRows.Where(x=>ids.Contains(x.Id)).ExecuteUpdateAsync(set=>set.SetProperty(x=>x.Status,x=>x.Status),ct);
+        if(await db.SecurityScanRows.AnyAsync(x=>ids.Contains(x.Id)&&x.Status!="Completed"&&x.Status!="Failed"&&x.Status!="Cancelled",ct)){
+            TempData["Error"]="ไม่สามารถลบรอบที่อยู่ในคิวหรือกำลังสแกนได้ กรุณายกเลิกงานก่อน";return RedirectToAction(nameof(Index),new{projectId,workflow=SelectedWorkflow});
+        }
+        var reports=await db.SecurityReportRows.Where(x=>ids.Contains(x.ScanId)).Select(x=>x.StorageKey).ToListAsync(ct);
+        await db.SecurityWebsiteScanParts.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanProgressRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanFindingRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityReportRows.Where(x=>ids.Contains(x.ScanId)).ExecuteDeleteAsync(ct);
+        await db.SecurityScanRows.Where(x=>ids.Contains(x.Id)).ExecuteDeleteAsync(ct);
         await transaction.CommitAsync(ct);
         var fileCleanupFailed=false;
         foreach(var key in reports){
@@ -321,18 +349,19 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.Edit")]
     public async Task<IActionResult> Cancel(long id,CancellationToken ct)
     {
-        if(await Scope(id,ct)==null)return NotFound();await db.SecurityScanRows.Where(x=>x.Id==id&&(x.Status=="Queued"||x.Status=="Running")).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Cancelled").SetProperty(x=>x.FinishedAt,DateTime.UtcNow),ct);return RedirectToAction(nameof(Scan),new{id});
+        var scope=await Scope(id,ct);if(scope==null)return NotFound();var run=await SecurityScanRun.LoadAsync(db,scope.Value.Scan,ct);var ids=run.Ids;await db.SecurityScanRows.Where(x=>ids.Contains(x.Id)&&(x.Status=="Queued"||x.Status=="Running"||x.Status=="Processing")).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Cancelled").SetProperty(x=>x.FinishedAt,DateTime.UtcNow),ct);return RedirectToAction(nameof(Scan),new{id});
     }
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.CreateIssues"),RequireMenu("ProjectIssues.Create")]
     public async Task<IActionResult> CreateIssues(long scanId,long[] observationIds,int employeeId,DateTime startDate,DateTime endDate,CancellationToken ct)
     {
-        if(await Scope(scanId,ct)==null)return NotFound();
+        var scope=await Scope(scanId,ct);if(scope==null)return NotFound();
+        var run=await SecurityScanRun.LoadAsync(db,scope.Value.Scan,ct);var runIds=run.Ids;
         var ids=observationIds.Distinct().Take(51).ToArray();
         var completed=0;
         try{
             if(ids.Length==0)throw new InvalidOperationException("กรุณาเลือกรายการผลสแกนอย่างน้อย 1 รายการก่อนสร้าง Issue");
             if(ids.Length>50)throw new InvalidOperationException("เลือกสร้าง Issue ได้ครั้งละไม่เกิน 50 รายการ");
-            if(await db.SecurityScanFindingRows.CountAsync(x=>x.ScanId==scanId&&ids.Contains(x.Id),ct)!=ids.Length)return BadRequest();
+            if(await db.SecurityScanFindingRows.CountAsync(x=>runIds.Contains(x.ScanId)&&ids.Contains(x.Id),ct)!=ids.Length)return BadRequest();
             if(startDate==default||endDate==default)throw new InvalidOperationException("กรุณาระบุวันเริ่มและกำหนดส่ง");
             var creator=await EmployeeId(ct);
             foreach(var id in ids){await scans.CreateIssueAsync(id,employeeId,startDate,endDate,UserId,creator,ct);completed++;}
@@ -369,13 +398,31 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     }
     public async Task<IActionResult> Report(long id,string format="json",CancellationToken ct=default)
     {
-        var scope=await Scope(id,ct);if(scope==null||scope.Value.Scan.Status!="Completed")return NotFound();
-        if(format=="json"){var report=await db.SecurityReportRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id&&x.Format=="json",ct);if(report==null)return NotFound();return PhysicalFile(storage.PathFor(report.StorageKey),"application/json",$"security-scan-{id}.json");}
+        var scope=await Scope(id,ct);if(scope==null)return NotFound();
+        var run=await SecurityScanRun.LoadAsync(db,scope.Value.Scan,ct);
+        if(!run.HasResults)return NotFound();
+        var ids=run.Ids;
+        if(format=="json"){
+            if(!run.IsWebsiteBatch){var report=await db.SecurityReportRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id&&x.Format=="json",ct);if(report==null)return NotFound();return PhysicalFile(storage.PathFor(report.StorageKey),"application/json",$"security-scan-{id}.json");}
+            var reports=await db.SecurityReportRows.AsNoTracking().Where(x=>ids.Contains(x.ScanId)&&x.Format=="json").ToListAsync(ct);
+            var sections=new List<object>();
+            foreach(var scan in run.Scans){
+                System.Text.Json.JsonElement? original=null;
+                if(scan.Status=="Completed"){
+                    var report=reports.SingleOrDefault(x=>x.ScanId==scan.Id);if(report==null)return NotFound();
+                    await using var input=System.IO.File.OpenRead(storage.PathFor(report.StorageKey));
+                    using var document=await System.Text.Json.JsonDocument.ParseAsync(input,cancellationToken:ct);original=document.RootElement.Clone();
+                }
+                sections.Add(new{section=run.Section(scan.Id),scanId=scan.Id,status=scan.Status,targetUrl=scan.TargetUrl,error=scan.Error,report=original});
+            }
+            return File(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new{scanId=run.Scan.Id,status=run.Scan.Status,sections}),"application/json",$"security-scan-{run.Scan.Id}.json");
+        }
         if(format is not ("pdf" or "md"))return BadRequest();
-        var items=await db.SecurityScanFindingRows.AsNoTracking().Where(x=>x.ScanId==id).ToListAsync(ct);
-        if(format=="md")return File(System.Text.Encoding.UTF8.GetBytes(SecurityMarkdownReport.Create(scope.Value.Scan,scope.Value.Version,scope.Value.System,scope.Value.Project.ProjectDisplayName,items)),"text/markdown; charset=utf-8",$"security-scan-{id}.md");
+        var items=await db.SecurityScanFindingRows.AsNoTracking().Where(x=>ids.Contains(x.ScanId)).ToListAsync(ct);
+        var sectionNames=run.Parts.ToDictionary(x=>x.ScanId,x=>SecurityValues.SectionLabel(x.Section));
+        if(format=="md")return File(System.Text.Encoding.UTF8.GetBytes(SecurityMarkdownReport.Create(run.Scan,scope.Value.Version,scope.Value.System,scope.Value.Project.ProjectDisplayName,items,sectionNames)),"text/markdown; charset=utf-8",$"security-scan-{run.Scan.Id}.md");
         var font=Path.Combine(env.WebRootPath,"fonts","THSarabunNew.ttf");if(System.IO.File.Exists(font)){using var stream=System.IO.File.OpenRead(font);QuestPDF.Drawing.FontManager.RegisterFontWithCustomName("SecurityThai",stream);}
-        var pdf=QuestPDF.Fluent.Document.Create(container=>container.Page(page=>{page.Size(PageSizes.A4);page.Margin(28);page.DefaultTextStyle(x=>x.FontSize(12).FontFamily(System.IO.File.Exists(font)?"SecurityThai":"Lato"));page.Content().Column(column=>{column.Item().Text($"Security Scan #{id}").FontSize(22).Bold();column.Item().Text(scope.Value.Project.ProjectDisplayName);column.Item().Text($"{scope.Value.System.Name} / {scope.Value.Version.VersionName} / {scope.Value.Version.Environment}\n{scope.Value.Scan.Engine} {scope.Value.Scan.EngineVersion}\n{scope.Value.Scan.Coverage}\nUTC: {scope.Value.Scan.FinishedAt:yyyy-MM-dd HH:mm}");foreach(var item in items.OrderByDescending(x=>SecurityValues.Rank(x.Severity))){column.Item().PaddingTop(16).Text($"[{item.Severity}] {item.Title}").Bold();column.Item().Text($"{item.Location}\n{item.Description}\nEvidence: {item.Evidence}\nRemediation: {item.Remediation}\nReferences: {item.References}");}});page.Footer().AlignRight().Text(t=>{t.CurrentPageNumber();t.Span(" / ");t.TotalPages();});})).GeneratePdf();
+        var pdf=QuestPDF.Fluent.Document.Create(container=>container.Page(page=>{page.Size(PageSizes.A4);page.Margin(28);page.DefaultTextStyle(x=>x.FontSize(12).FontFamily(System.IO.File.Exists(font)?"SecurityThai":"Lato"));page.Content().Column(column=>{column.Item().Text($"Security Scan #{run.Scan.Id}").FontSize(22).Bold();column.Item().Text(scope.Value.Project.ProjectDisplayName);column.Item().Text($"สถานะ: {SecurityValues.StatusLabel(run.Scan.Status)}");column.Item().Text($"{scope.Value.System.Name} / {scope.Value.Version.VersionName} / {scope.Value.Version.Environment}\n{run.Scan.Engine} {run.Scan.EngineVersion}\n{run.Scan.Coverage}\nUTC: {run.Scan.FinishedAt:yyyy-MM-dd HH:mm}");foreach(var item in items.OrderByDescending(x=>SecurityValues.Rank(x.Severity))){column.Item().PaddingTop(16).Text($"[{item.Severity}] {item.Title}").Bold();if(sectionNames.TryGetValue(item.ScanId,out var section))column.Item().Text(section);column.Item().Text($"{item.Location}\n{item.Description}\nEvidence: {item.Evidence}\nRemediation: {item.Remediation}\nReferences: {item.References}");}});page.Footer().AlignRight().Text(t=>{t.CurrentPageNumber();t.Span(" / ");t.TotalPages();});})).GeneratePdf();
         return File(pdf,"application/pdf",$"security-scan-{id}.pdf");
     }
 }
