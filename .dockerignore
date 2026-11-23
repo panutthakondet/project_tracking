@@ -10,3 +10,6 @@
 !deploy/
 !deploy/security/
 !deploy/security/Dockerfile
+# macOS AppleDouble metadata can match the source allowlist above.
+**/._*
+**/.DS_Store
