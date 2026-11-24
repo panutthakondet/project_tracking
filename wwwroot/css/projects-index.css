@@ -1739,3 +1739,11 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-tor-detail { border-top: 1px solid var(--project-card-border); padding-top: 10px; }
 .project-tor-detail summary { cursor: pointer; font-weight: 700; }
 .project-tor-detail__text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 8px; line-height: 1.6; }
+
+.project-phase-actions .project-phase-tile--production-memo .project-phase-tile__title {
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+.project-phase-actions .project-phase-tile--production-memo .project-phase-tile__body {
+    gap: 4px;
+}
