@@ -9,6 +9,10 @@
     var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var projectDetail = Model.ProjectDetail?.Trim();
 
+    string TransferDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
+        ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(value) ? "-" : value),
+        @"font-size:\d+px !important;", "font-size:inherit !important;");
+
     string DateText(DateTime? value)
     {
         if (!value.HasValue) return "-";
@@ -280,7 +284,8 @@
                 page-break-inside: avoid;
             }
         }
-        .transfer-letter { font-size: 13pt; line-height: 1.42; }
+        .transfer-letter, .transfer-attachment { font-size: 13pt; line-height: 1.42; }
+        .transfer-attachment :is(.memo-stack-label, .memo-stack-value, .owner-line, .owner-list) { font-size: inherit; line-height: 1.42; }
         .transfer-letter p { margin: 10pt 0; text-indent: 2em; text-align: justify; }
         .transfer-letter .letter-meta { display: grid; grid-template-columns: 48px 1fr; gap: 6px; margin-bottom: 8pt; }
         .transfer-signature { text-align: center; width: 58%; margin: 18pt 0 0 auto; line-height: 1.7; break-inside: avoid; }
@@ -338,8 +343,8 @@
                 <div class="memo-stack"><div class="memo-stack-label">ฝ่าย</div><div class="memo-stack-value">@departmentName</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">วันที่เริ่มสัญญา</div><div class="memo-stack-value">@DateText(Model.StartDate)</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">วันที่สิ้นสุดสัญญา</div><div class="memo-stack-value">@DateText(Model.EndDate)</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(Model.TorDetail) ? "-" : Model.TorDetail))</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(Model.ExtraTorDetail) ? "-" : Model.ExtraTorDetail))</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.TorDetail))</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.ExtraTorDetail))</div></div>
             </section>
         }
         else
