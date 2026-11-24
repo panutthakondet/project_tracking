@@ -9,7 +9,7 @@
     var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var extraTorDetail = Model.ExtraTorDetail?.Trim();
 
-    string TransferDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
+    string ReportDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
         ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(value) ? "-" : value),
         @"font-size:\d+px !important;", "font-size:inherit !important;");
 
@@ -320,8 +320,8 @@
             <h2 class="title">รายละเอียดประกอบการส่งมอบและโอนย้ายฝ่าย</h2>
             <section class="detail-block">
                 <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.TorDetail))</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.ExtraTorDetail))</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.ExtraTorDetail))</div></div>
             </section>
         }
         else
@@ -342,7 +342,7 @@
             {
                 <div class="memo-stack">
                     <div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div>
-                    <div class="memo-stack-value memo-project-detail">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(extraTorDetail))</div>
+                    <div class="memo-stack-value memo-project-detail">@Html.Raw(ReportDetail(extraTorDetail))</div>
                 </div>
             }
 
