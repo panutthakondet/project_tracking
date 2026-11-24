@@ -59,7 +59,7 @@ public static class RazorChecks
    if(pair.Item1=="Scan"&&(!html.Contains("page=2")||!html.Contains("10,001")))throw new Exception("Paged scan must retain navigation and whole-run totals");
    if(pair.Item1=="Index-batch"&&(System.Text.RegularExpressions.Regex.Matches(html,"data-history-row").Count!=1||!html.Contains("Website รวม 3 ส่วน")))throw new Exception("Website batch must render one history row");
    if(pair.Item1=="Scan-batch"&&(!html.Contains("fixture combined finding")||!html.Contains("ผลรวมยังไม่ครบทุกส่วน")||!html.Contains("fixture partial failure")||html.Contains("aria-label=\"ผลสแกนส่วนอื่น")))throw new Exception("Partial batch must render combined findings and failure warning without separate result tabs");
-   if(pair.Item1=="Transfer-report" && (!System.Net.WebUtility.HtmlDecode(html).Contains("ขอส่งมอบและโอนย้ายความรับผิดชอบ") || !html.Contains("transfer-attachment") || !System.Net.WebUtility.HtmlDecode(html).Contains("ทีมพัฒนาทดสอบ")))throw new Exception("Transfer letter and attachment must render project team and page break");
+   if(pair.Item1=="Transfer-report" && (!System.Net.WebUtility.HtmlDecode(html).Contains("ขอส่งมอบและโอนย้ายความรับผิดชอบ") || !html.Contains("transfer-attachment") || !System.Net.WebUtility.HtmlDecode(html).Contains("เนื่องด้วยโครงการทดสอบส่งมอบ ของสหกรณ์ทดสอบ") || html.Contains("@projectName") || html.Contains("@coopName") || !System.Net.WebUtility.HtmlDecode(html).Contains("ทีมพัฒนาทดสอบ")))throw new Exception("Transfer letter and attachment must render project team and page break");
    Console.WriteLine("PASS compiled Razor "+pair.Item1+" renders with CSRF and routes");
   }
   File.Copy("wwwroot/css/site.css",Path.Combine(output,"site.css"),true);
