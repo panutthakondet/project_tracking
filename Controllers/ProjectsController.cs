@@ -487,6 +487,7 @@ namespace ProjectTracking.Controllers
                 ProjectDisplayName = project.ProjectDisplayName,
                 DepartmentName = project.DepartmentNames,
                 ProjectDetail = project.ProjectDetail,
+                ExtraTorDetail = project.ExtraTorDetail,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
                 TestAccount = project.TestAccount,
