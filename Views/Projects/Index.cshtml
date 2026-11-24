@@ -324,7 +324,7 @@
                  data-ba="@(p.BusinessAnalystNames.ToLower())"
                  data-pm="@(p.ProjectManagerNames.ToLower())"
                  data-status="@(projectStatusCode.ToLowerInvariant())"
-                data-search="@($"{projectDisplayName} {coopName} {p.DepartmentNames} {p.ProjectName} {p.ProjectDetail} {p.TorDetail} {p.ExtraTorDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
+                data-search="@($"{projectDisplayName} {coopName} {p.DepartmentNames} {p.ProjectName} {ProjectTracking.Services.ProjectRichText.PlainText(p.ProjectDetail)} {ProjectTracking.Services.ProjectRichText.PlainText(p.TorDetail)} {ProjectTracking.Services.ProjectRichText.PlainText(p.ExtraTorDetail)} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
 
                 <div class="project-team-header">
                     <span class="project-row-number" aria-label="ลำดับที่ @mobileRow">@mobileRow</span>
@@ -452,21 +452,21 @@
                             <div class="project-summary-row project-summary-detail">
                                 <span class="project-summary-icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
                                 <span class="project-summary-label">รายละเอียด:</span>
-                                <span class="project-summary-value">@p.ProjectDetail.Trim()</span>
+                                <span class="project-summary-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.ProjectDetail))</span>
                             </div>
                         }
                         @if (!string.IsNullOrWhiteSpace(p.TorDetail))
                         {
                             <details class="project-tor-detail">
                                 <summary>รายละเอียดตาม TOR</summary>
-                                <div class="project-tor-detail__text">@p.TorDetail</div>
+                                <div class="project-tor-detail__text">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.TorDetail))</div>
                             </details>
                         }
                         @if (!string.IsNullOrWhiteSpace(p.ExtraTorDetail))
                         {
                             <details class="project-tor-detail">
                                 <summary>รายละเอียดงานนอกเหนือ TOR</summary>
-                                <div class="project-tor-detail__text">@p.ExtraTorDetail</div>
+                                <div class="project-tor-detail__text">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.ExtraTorDetail))</div>
                             </details>
                         }
                     </section>

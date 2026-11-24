@@ -12,6 +12,11 @@ using System.Net;
 using System.Text;
 void Check(bool ok,string label){if(!ok)throw new Exception(label);Console.WriteLine("PASS "+label);}
 async Task Reject(Func<Task> action,string label){try{await action();}catch(InvalidOperationException){Check(true,label);return;}throw new Exception(label);}
+var projectRich = ProjectTracking.Services.ProjectRichText.Prefix + """{"version":2,"runs":[{"text":"หัวข้อ","bold":true},{"text":"\n    รายละเอียด <script>alert(1)</script>"}]}""";
+Check(ProjectTracking.Services.ProjectRichText.PlainText(projectRich)=="หัวข้อ\n    รายละเอียด <script>alert(1)</script>","Project rich text preserves paragraphs and indentation in plain text");
+var projectHtml=ProjectTracking.Services.ProjectRichText.ToHtml(projectRich);
+Check(projectHtml.Contains("font-weight:700")&&projectHtml.Contains("<br>")&&!projectHtml.Contains("<script>")&&projectHtml.Contains("&lt;script&gt;"),"Project rich text renders formatting while encoding HTML");
+Check(ProjectTracking.Services.ProjectRichText.ToHtml("เดิม <b>ข้อความ</b>").Contains("&lt;b&gt;"),"Legacy project details remain plain text");
 var markdownItems=Enumerable.Range(1,51).Select(i=>new SecurityScanFinding{Id=i,Title=$"ผลตรวจ {i}",Severity=i==51?"High":"Low",Evidence="```\n<script>alert(1)</script>\n```",Remediation="แก้ไขให้ปลอดภัย"}).ToList();
 var markdown=SecurityMarkdownReport.Create(new SecurityScan{Id=99,Engine="MobSF",Mode="Static"},new SecurityVersion{VersionName="1.0",Environment="UAT"},new SecuritySystem{Name="แอปทดสอบ"},"โครงการทดสอบ",markdownItems);
 Check(markdown.Contains("51 รายการ")&&markdown.IndexOf("ผลตรวจ 51",StringComparison.Ordinal)<markdown.IndexOf("ผลตรวจ 1\n",StringComparison.Ordinal)&&markdown.Contains("ผลตรวจ 50")&&markdown.Contains("แก้ไขให้ปลอดภัย"),"Markdown exports all findings beyond a page with severity ordering and Thai text");

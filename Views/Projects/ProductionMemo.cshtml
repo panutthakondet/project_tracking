@@ -316,7 +316,7 @@
             {
                 <div class="memo-stack">
                     <div class="memo-stack-label">รายละเอียดเพิ่มเติม</div>
-                    <div class="memo-stack-value memo-project-detail">@projectDetail</div>
+                    <div class="memo-stack-value memo-project-detail">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(projectDetail))</div>
                 </div>
             }
 
