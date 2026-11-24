@@ -338,8 +338,7 @@
             @:<section class="transfer-attachment">
             <h2 class="title">รายละเอียดประกอบการส่งมอบและโอนย้ายฝ่าย</h2>
             <section class="detail-block">
-                <div class="memo-stack"><div class="memo-stack-label">ชื่อสหกรณ์ฯ</div><div class="memo-stack-value">@coopName</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">ชื่อโครงการ</div><div class="memo-stack-value">@projectName</div></div>
+                <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.TorDetail))</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(TransferDetail(Model.ExtraTorDetail))</div></div>
             </section>
