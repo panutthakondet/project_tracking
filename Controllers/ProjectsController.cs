@@ -351,6 +351,39 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Projects.Index")]
+        public async Task<IActionResult> DepartmentTransfer(int id)
+        {
+            var project = await _context.Projects.AsNoTracking()
+                .Include(p => p.Coop).Include(p => p.Department)
+                .Include(p => p.DepartmentLinks).ThenInclude(l => l.Department)
+                .FirstOrDefaultAsync(p => p.ProjectId == id);
+            if (project == null) return NotFound();
+
+            var team = await (from assignment in _context.PhaseAssigns.AsNoTracking()
+                              join phase in _context.ProjectPhases.AsNoTracking() on assignment.PhaseId equals phase.PhaseId
+                              where phase.ProjectId == id
+                              select assignment.EmpId).Distinct().ToListAsync();
+            var members = await _context.ProjectTeamMembers.AsNoTracking()
+                .Where(m => m.ProjectId == id).Select(m => m.EmpId).ToListAsync();
+            team.AddRange(members);
+            if (project.BaEmpId.HasValue) team.Add(project.BaEmpId.Value);
+            if (project.PmEmpId.HasValue) team.Add(project.PmEmpId.Value);
+            var employees = await _context.Employees.AsNoTracking()
+                .Include(e => e.PositionDefinition).Where(e => team.Contains(e.EmpId))
+                .OrderBy(e => e.EmpName).ToListAsync();
+            return View("ProductionMemo", new ProjectProductionMemoViewModel
+            {
+                IsDepartmentTransfer = true, ProjectId = id,
+                CoopName = project.Coop?.CoopName ?? "", ProjectName = project.ProjectName,
+                DepartmentName = project.DepartmentNames,
+                StartDate = project.StartDate, EndDate = project.EndDate,
+                TorDetail = project.TorDetail, ExtraTorDetail = project.ExtraTorDetail,
+                Owners = employees.Select(e => new ProjectProductionMemoOwnerViewModel
+                    { Name = e.EmpName, Role = e.DisplayPosition }).ToList()
+            });
+        }
+
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> ProductionMemo(int id)
         {
             var project = await _context.Projects

@@ -655,6 +655,13 @@
 
                             </a>
                     }
+                    <a asp-action="DepartmentTransfer" asp-route-id="@p.ProjectId" target="_blank" rel="noopener" class="project-phase-tile">
+                        <span class="project-phase-tile__body">
+                            <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                            <span class="project-phase-tile__title">รายงาน - โอนย้ายฝ่าย</span>
+                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                        </span>
+                    </a>
                             </div>
                             <div class="project-shortcut-buttons project-shortcut-buttons--manage">
                     @if (CanMenu("Projects.Edit"))

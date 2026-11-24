@@ -3,6 +3,9 @@ namespace ProjectTracking.ViewModels
     public class ProjectProductionMemoViewModel
     {
         public int ProjectId { get; set; }
+        public bool IsDepartmentTransfer { get; set; }
+        public string? TorDetail { get; set; }
+        public string? ExtraTorDetail { get; set; }
         public string CoopName { get; set; } = "";
         public string ProjectName { get; set; } = "";
         public string ProjectDisplayName { get; set; } = "";

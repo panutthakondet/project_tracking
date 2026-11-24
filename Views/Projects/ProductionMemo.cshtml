@@ -41,7 +41,7 @@
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>บันทึกภายใน - @projectName</title>
+    <title>@(Model.IsDepartmentTransfer ? "รายงาน - โอนย้ายฝ่าย" : "บันทึกภายใน") - @projectName</title>
     <style>
         @@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
         @@page {
@@ -300,9 +300,23 @@
         </div>
         <hr />
 
-        <h1 class="title">บันทึกภายใน</h1>
+        <h1 class="title">@(Model.IsDepartmentTransfer ? "รายงานโอนย้ายฝ่าย" : "บันทึกภายใน")</h1>
         <div class="date">@DateText(Model.GeneratedAt)</div>
 
+        @if (Model.IsDepartmentTransfer)
+        {
+            <section class="detail-block">
+                <div class="memo-stack"><div class="memo-stack-label">ชื่อสหกรณ์ฯ</div><div class="memo-stack-value">@coopName</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">ชื่อโครงการ</div><div class="memo-stack-value">@projectName</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">ฝ่าย</div><div class="memo-stack-value">@departmentName</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">วันที่เริ่มสัญญา</div><div class="memo-stack-value">@DateText(Model.StartDate)</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">วันที่สิ้นสุดสัญญา</div><div class="memo-stack-value">@DateText(Model.EndDate)</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(Model.TorDetail) ? "-" : Model.TorDetail))</div></div>
+                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(Model.ExtraTorDetail) ? "-" : Model.ExtraTorDetail))</div></div>
+            </section>
+        }
+        else
+        {
         <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการ ฝ่ายพัฒนาธุรกิจ</span></div>
         <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน @projectName</span></div>
         <div class="memo-row"><span class="memo-label short">ฝ่าย</span><span class="memo-value">@departmentName</span></div>
@@ -348,10 +362,11 @@
             </div>
         </section>
 
+        }
         <section class="memo-tail">
             <section>
                 <div class="memo-stack">
-                    <div class="memo-stack-label">ผู้รับผิดชอบส่วนงาน</div>
+                    <div class="memo-stack-label">@(Model.IsDepartmentTransfer ? "ทีมงานพัฒนา / ตำแหน่ง" : "ผู้รับผิดชอบส่วนงาน")</div>
                 </div>
                 <div class="owner-list">
                     @if (Model.Owners.Any())
