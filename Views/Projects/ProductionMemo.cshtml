@@ -8,6 +8,7 @@
     var coopName = string.IsNullOrWhiteSpace(Model.CoopName) ? "-" : Model.CoopName.Trim();
     var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var extraTorDetail = Model.ExtraTorDetail?.Trim();
+    var hasExtraTorDetail = !string.IsNullOrWhiteSpace(ProjectTracking.Services.ProjectRichText.PlainText(extraTorDetail).Replace("\u200B", "").Replace("\uFEFF", ""));
 
     string ReportDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
         ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(value) ? "-" : value),
@@ -329,7 +330,10 @@
             <section class="detail-block">
                 <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
+                @if (hasExtraTorDetail)
+                {
                 <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.ExtraTorDetail))</div></div>
+                }
             </section>
         }
         else
@@ -346,7 +350,7 @@
         </p>
 
         <section class="detail-block">
-            @if (!string.IsNullOrWhiteSpace(extraTorDetail))
+            @if (hasExtraTorDetail)
             {
                 <div class="memo-stack">
                     <div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div>
