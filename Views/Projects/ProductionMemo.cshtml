@@ -20,25 +20,6 @@
         var date = value.Value;
         return $"{date.Day} {date.ToString("MMMM", th)} {date.Year + 543}";
     }
-
-    string ShortDateText(DateTime? value)
-    {
-        if (!value.HasValue) return "-";
-
-        var date = value.Value;
-        return $"{date.Day} {date.ToString("MMM", th)} {date.Year + 543}";
-    }
-
-    string DurationText(int? days)
-    {
-        return days.HasValue ? $"ระยะเวลา {days.Value:N0} วัน" : "ระยะเวลา - วัน";
-    }
-
-    string PhaseTitle(ProjectTracking.ViewModels.ProjectProductionMemoPhaseViewModel phase)
-    {
-        var label = $"ส่วนที่ {phase.PhaseOrder} งวดที่ {phase.PeriodOrder}";
-        return $"{label} {phase.PhaseName}";
-    }
 }
 
 <!DOCTYPE html>
@@ -345,12 +326,15 @@
         }
         else
         {
-        <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการ ฝ่ายพัฒนาธุรกิจ</span></div>
-        <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน @projectName</span></div>
+        <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการฝ่ายพัฒนาธุรกิจ</span></div>
+        <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน@(projectName)</span></div>
         <div class="memo-row"><span class="memo-label short">ฝ่าย</span><span class="memo-value">@departmentName</span></div>
 
         <p class="intro">
-            สืบเนื่องจากการพัฒนาระบบ @projectName @coopName ซึ่งทีมผู้พัฒนาได้ดำเนินงานถึงขั้นตอนการเตรียมระบบเพื่อติดตั้งบน Production มีรายละเอียด ดังนี้
+            ตามที่ฝ่ายพัฒนาธุรกิจได้รับมอบหมายให้ดำเนิน@(projectName) ให้แก่@(coopName) โดยทีมผู้พัฒนาได้ดำเนินการพัฒนาระบบตามขอบเขตงานที่กำหนด และปัจจุบันอยู่ระหว่างการเตรียมความพร้อมเพื่อติดตั้งและนำระบบขึ้นใช้งานจริง (Production) นั้น
+        </p>
+        <p class="intro">
+            เพื่อให้การดำเนินโครงการเป็นไปอย่างมีประสิทธิภาพ และเป็นไปตามแผนงานที่กำหนด จึงขอสรุปข้อมูลการดำเนินโครงการ ขอบเขตงานเพิ่มเติม กำหนดการส่งมอบงานตามสัญญา ตลอดจนรายชื่อผู้รับผิดชอบโครงการ เพื่อเสนอให้พิจารณาและรับทราบ โดยมีรายละเอียดดังต่อไปนี้
         </p>
 
         <section class="detail-block">
@@ -358,13 +342,14 @@
             {
                 <div class="memo-stack">
                     <div class="memo-stack-label">รายละเอียดเพิ่มเติม</div>
+                    <p class="intro">นอกเหนือจากขอบเขตงานพัฒนาระบบตามสัญญา ทีมผู้พัฒนาได้ดำเนินการพัฒนาระบบและฟังก์ชันเพิ่มเติม เพื่อเพิ่มประสิทธิภาพการให้บริการและอำนวยความสะดวกแก่สมาชิกสหกรณ์ โดยไม่มีค่าใช้จ่ายเพิ่มเติม ดังนี้</p>
                     <div class="memo-stack-value memo-project-detail">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(projectDetail))</div>
                 </div>
             }
 
             <div class="memo-stack">
                 <div class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</div>
-                <div class="memo-stack-value">@DateText(Model.StartDate) - @DateText(Model.EndDate)</div>
+                <div class="memo-stack-value">วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate)</div>
             </div>
 
             <div class="memo-stack">
@@ -378,8 +363,8 @@
                     {
                         var due = phase.PeriodEndDate ?? phase.PlanEnd;
                         <div class="phase-line">
-                            <div class="phase-title">@PhaseTitle(phase)</div>
-                            <div class="phase-meta">วันที่กำหนดส่งงาน @ShortDateText(due) @DurationText(phase.DurationDays)</div>
+                            <div class="phase-title"><strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName</div>
+                            <div class="phase-meta">กำหนดส่งมอบงานวันที่ @DateText(due) ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน</div>
                         </div>
                     }
                 }
@@ -399,9 +384,10 @@
                 <div class="owner-list">
                     @if (Model.Owners.Any())
                     {
-                        foreach (var owner in Model.Owners)
+                        for (var ownerIndex = 0; ownerIndex < Model.Owners.Count; ownerIndex++)
                         {
-                            <div class="owner-line">@owner.Name @(string.IsNullOrWhiteSpace(owner.Role) ? "" : $"(ตำแหน่ง {owner.Role})")</div>
+                            var owner = Model.Owners[ownerIndex];
+                            <div class="owner-line">@(Model.IsDepartmentTransfer ? "" : $"{ownerIndex + 1}. ")@owner.Name @(string.IsNullOrWhiteSpace(owner.Role) ? "" : Model.IsDepartmentTransfer ? $"(ตำแหน่ง {owner.Role})" : $"ตำแหน่ง {owner.Role}")</div>
                         }
                     }
                     else
@@ -413,6 +399,9 @@
 
             @if (!Model.IsDepartmentTransfer)
             {
+            <p class="intro">ทั้งนี้ ทีมผู้พัฒนาจะดำเนินการประสานงานและเตรียมความพร้อมในส่วนที่เกี่ยวข้อง เพื่อให้การติดตั้งและนำระบบขึ้นใช้งานจริงเป็นไปอย่างเรียบร้อย มีประสิทธิภาพ และสอดคล้องกับข้อกำหนดของโครงการ</p>
+            <p class="intro">จึงเรียนมาเพื่อโปรดทราบและพิจารณาให้ข้อเสนอแนะในการดำเนินงานต่อไป</p>
+
             <div class="comment-lines">
                 <div class="comment-line"><span class="comment-label">แสดงความคิดเห็น</span></div>
                 <div class="comment-line"></div>
