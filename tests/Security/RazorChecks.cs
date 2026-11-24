@@ -36,21 +36,21 @@ public static class RazorChecks
   var batchRun=ProjectTracking.Services.Security.SecurityScanRun.Create(batchScans,batchParts);
   var batchIndex=new SecurityProjectPage{Project=project,Systems=[system],Versions=[version],Scans=batchScans.ToList(),WebsiteScanParts=batchParts,CanManage=true};
   var batchPage=new SecurityScanPage{Project=project,System=system,Version=version,Scan=batchRun.Scan,Run=batchRun,RunProgress=ScanProgressPage.FromRun(batchRun,Array.Empty<SecurityScanProgress>()),Observations=[new(){Id=1,ScanId=201,FindingId=1,Title="fixture combined finding",Severity="High"}],Findings=[new(){Id=1,Title="fixture combined finding"}],SeverityCounts=new(){{"High",1}},TotalObservations=1};
-  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail),("Scan-running",running),("Index-development",index),("Scan-development",running),("Index-batch",batchIndex),("Scan-batch",batchPage)}){
+  foreach(var pair in new (string,object)[]{("Index",index),("Scan",detail),("Scan-running",running),("Index-development",index),("Scan-development",running),("Index-batch",batchIndex),("Scan-batch",batchPage),("Transfer-report",new ProjectTracking.ViewModels.ProjectProductionMemoViewModel{IsDepartmentTransfer=true,ProjectName="โครงการทดสอบส่งมอบ",CoopName="สหกรณ์ทดสอบ",TorDetail="รายละเอียด TOR ทดสอบ",ExtraTorDetail="งานเพิ่มเติมทดสอบ",Owners=[new(){Name="ทีมพัฒนาทดสอบ",Role="Developer"}]})}){
    if(pair.Item1=="Index-development")index.Workflow="Development";
    if(pair.Item1=="Scan-development")running.Scan.Workflow="Development";
    using var scope=app.Services.CreateScope();var http=new DefaultHttpContext{RequestServices=scope.ServiceProvider};http.Request.Scheme="http";http.Request.Host=new HostString("127.0.0.1",8766);
    var route=new RouteData();route.Routers.Add(new PreviewRouter());route.Values["controller"]="SecurityScans";route.Values["action"]=pair.Item1;
    var action=new ActionContext(http,route,new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
    Console.WriteLine("Razor: resolving view "+pair.Item1);
-   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,$"/Views/SecurityScans/{(pair.Item1.StartsWith("Index")?"Index":"Scan")}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
+   var engine=scope.ServiceProvider.GetRequiredService<IRazorViewEngine>();var view=engine.GetView(null,pair.Item1=="Transfer-report"?"/Views/Projects/ProductionMemo.cshtml":$"/Views/SecurityScans/{(pair.Item1.StartsWith("Index")?"Index":"Scan")}.cshtml",false);if(!view.Success)throw new Exception(string.Join(",",view.SearchedLocations));
    using var writer=new StringWriter();var data=new ViewDataDictionary(new EmptyModelMetadataProvider(),new ModelStateDictionary()){Model=pair.Item2};
    var temp=new TempDataDictionary(http,scope.ServiceProvider.GetRequiredService<ITempDataProvider>());
    Console.WriteLine("Razor: rendering "+pair.Item1);
    await view.View.RenderAsync(new ViewContext(action,view.View,data,temp,writer,new HtmlHelperOptions()));
    var html="<!doctype html><html lang='th'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='bootstrap.css'><link rel='stylesheet' href='site.css'><link rel='stylesheet' href='security.css'><style>body{padding:16px;background:#eef3f9}.index-hero{background:#10264b;color:white}main{max-width:1400px;margin:auto}</style><main>"+writer+"</main></html>";
    await File.WriteAllTextAsync(Path.Combine(output,pair.Item1+".html"),html);
-   if((pair.Item1!="Scan-batch"&&!html.Contains("__RequestVerificationToken"))||!html.Contains("SecurityScans/"))throw new Exception("Missing CSRF token or generated routes");
+   if(pair.Item1!="Transfer-report"&&((pair.Item1!="Scan-batch"&&!html.Contains("__RequestVerificationToken"))||!html.Contains("SecurityScans/")))throw new Exception("Missing CSRF token or generated routes");
    if(pair.Item1=="Index"&&(!html.Contains("fixture-display-user")||!html.Contains("value=\"/auth\"")||!html.Contains("data-website-password-saved=\"true\"")||!html.Contains("data.token")||!html.Contains("value=\"/member/\"")||html.Contains("fixture-secret")))throw new Exception("Login settings must be displayed without the password");
    if(pair.Item1=="Index"&&(!html.Contains("name=\"assignedEmpId\"")||!html.Contains("name=\"startDate\"")||!html.Contains("name=\"endDate\"")))throw new Exception("Automatic Issue assignment fields missing");
    if(pair.Item1=="Index"&&(!html.Contains("name=\"targetUrl\"")||html.Contains("name=\"targetPath\"")))throw new Exception("Website targets must display full URLs");
@@ -59,6 +59,7 @@ public static class RazorChecks
    if(pair.Item1=="Scan"&&(!html.Contains("page=2")||!html.Contains("10,001")))throw new Exception("Paged scan must retain navigation and whole-run totals");
    if(pair.Item1=="Index-batch"&&(System.Text.RegularExpressions.Regex.Matches(html,"data-history-row").Count!=1||!html.Contains("Website รวม 3 ส่วน")))throw new Exception("Website batch must render one history row");
    if(pair.Item1=="Scan-batch"&&(!html.Contains("fixture combined finding")||!html.Contains("ผลรวมยังไม่ครบทุกส่วน")||!html.Contains("fixture partial failure")||html.Contains("aria-label=\"ผลสแกนส่วนอื่น")))throw new Exception("Partial batch must render combined findings and failure warning without separate result tabs");
+   if(pair.Item1=="Transfer-report" && (!System.Net.WebUtility.HtmlDecode(html).Contains("ขอส่งมอบและโอนย้ายความรับผิดชอบ") || !html.Contains("transfer-attachment") || !System.Net.WebUtility.HtmlDecode(html).Contains("ทีมพัฒนาทดสอบ")))throw new Exception("Transfer letter and attachment must render project team and page break");
    Console.WriteLine("PASS compiled Razor "+pair.Item1+" renders with CSRF and routes");
   }
   File.Copy("wwwroot/css/site.css",Path.Combine(output,"site.css"),true);

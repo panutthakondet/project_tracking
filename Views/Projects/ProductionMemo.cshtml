@@ -280,10 +280,20 @@
                 page-break-inside: avoid;
             }
         }
+        .transfer-letter { font-size: 13pt; line-height: 1.42; }
+        .transfer-letter p { margin: 10pt 0; text-indent: 2em; text-align: justify; }
+        .transfer-letter .letter-meta { display: grid; grid-template-columns: 48px 1fr; gap: 6px; margin-bottom: 8pt; }
+        .transfer-signature { text-align: center; width: 58%; margin: 18pt 0 0 auto; line-height: 1.7; break-inside: avoid; }
+        .transfer-attachment { margin-top: 40px; border-top: 1px solid #bbb; padding-top: 24px; }
+        .transfer-report .memo-tail { break-inside: auto; page-break-inside: auto; }
+        @@media print {
+            body.transfer-report { zoom: 1; }
+            .transfer-attachment { break-before: page; page-break-before: always; margin-top: 0; border: 0; padding-top: 0; }
+        }
     </style>
 @await Html.PartialAsync("_GlobalLoading")
 </head>
-<body>
+<body class="@(Model.IsDepartmentTransfer ? "transfer-report" : "production-report")">
     <div class="no-print">
         <button type="button" class="report-btn primary" onclick="window.print()">พิมพ์</button>
         <a asp-action="Index" class="report-btn">กลับหน้าโครงการ</a>
@@ -305,6 +315,24 @@
 
         @if (Model.IsDepartmentTransfer)
         {
+            <section class="transfer-letter">
+                <div class="letter-meta"><strong>เรื่อง</strong><span>ขอส่งมอบและโอนย้ายความรับผิดชอบในการดูแลระบบภายหลังสิ้นสุดระยะเวลารับประกัน</span></div>
+                <div class="letter-meta"><strong>เรียน</strong><span>ผู้จัดการฝ่ายพัฒนาธุรกิจ</span></div>
+                <div class="letter-meta"><strong>อ้างถึง</strong><span>@projectName @coopName</span></div>
+                <p>เนื่องด้วย@projectName ของ@coopName ซึ่งฝ่ายพัฒนาระบบได้รับมอบหมายให้ดำเนินการพัฒนาระบบ ติดตั้งระบบเพื่อใช้งานจริง ตลอดจนให้บริการดูแล บำรุงรักษา และแก้ไขปัญหาที่เกิดขึ้นในระหว่างระยะเวลารับประกันนั้น</p>
+                <p>บัดนี้ ฝ่ายพัฒนาระบบได้ดำเนินงานตามขอบเขตความรับผิดชอบดังกล่าวเสร็จสิ้นเรียบร้อยแล้ว และโครงการได้สิ้นสุดระยะเวลารับประกันตามเงื่อนไขที่กำหนด จึงเห็นควรให้มีการส่งมอบและโอนย้ายความรับผิดชอบในการดูแลระบบจากฝ่ายพัฒนาระบบไปยังฝ่ายบริการลูกค้า เพื่อให้การให้บริการ การรับแจ้งปัญหา การประสานงาน และการดูแลลูกค้าภายหลังสิ้นสุดระยะเวลารับประกันเป็นไปอย่างต่อเนื่องและมีประสิทธิภาพ</p>
+                <p>ในการนี้ ฝ่ายพัฒนาระบบจึงขอส่งมอบงานโครงการดังกล่าวให้ฝ่ายบริการลูกค้าเป็นผู้รับผิดชอบหลักในการดูแลและประสานงานกับลูกค้านับตั้งแต่วันที่ได้รับการอนุมัติส่งมอบงานเป็นต้นไป ทั้งนี้ หากมีประเด็นปัญหาทางเทคนิคที่จำเป็นต้องได้รับการสนับสนุนจากฝ่ายพัฒนาระบบ สามารถประสานงานตามขั้นตอนการดำเนินงานภายในบริษัทต่อไป</p>
+                <p>จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติการส่งมอบและโอนย้ายความรับผิดชอบในการดูแลระบบดังกล่าวให้ฝ่ายบริการลูกค้าดำเนินการต่อไป</p>
+                <div class="transfer-signature">
+                    <div>ขอแสดงความนับถือ</div><br />
+                    <div>………………………………………………….</div>
+                    <div>(………………………………………………..)</div>
+                    <div>ตำแหน่ง …………………………………………</div>
+                    <div>ฝ่ายพัฒนาระบบ</div>
+                </div>
+            </section>
+            @:<section class="transfer-attachment">
+            <h2 class="title">รายละเอียดประกอบการส่งมอบและโอนย้ายฝ่าย</h2>
             <section class="detail-block">
                 <div class="memo-stack"><div class="memo-stack-label">ชื่อสหกรณ์ฯ</div><div class="memo-stack-value">@coopName</div></div>
                 <div class="memo-stack"><div class="memo-stack-label">ชื่อโครงการ</div><div class="memo-stack-value">@projectName</div></div>
@@ -383,6 +411,8 @@
                 </div>
             </section>
 
+            @if (!Model.IsDepartmentTransfer)
+            {
             <div class="comment-lines">
                 <div class="comment-line"><span class="comment-label">แสดงความคิดเห็น</span></div>
                 <div class="comment-line"></div>
@@ -396,7 +426,12 @@
                 <div>คุณสอง ยาสมุทร</div>
                 <div>ผู้จัดการฝ่ายพัฒนาธุรกิจ</div>
             </div>
+            }
         </section>
+        @if (Model.IsDepartmentTransfer)
+        {
+            @:</section>
+        }
     </main>
 </body>
 </html>
