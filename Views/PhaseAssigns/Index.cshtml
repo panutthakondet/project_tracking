@@ -451,13 +451,14 @@ thead .sticky-col { z-index: 5; }
         font-weight: 700;
     }
 
-    .assign-period-meta {
+    .assign-period-description {
         display: flex;
         flex-wrap: wrap;
         column-gap: 16px;
         margin-block-start: 4px;
         font-size: .875rem;
-        font-weight: 400;
+        color: #000;
+        font-weight: 500;
         overflow-wrap: anywhere;
     }
 
@@ -880,7 +881,7 @@ thead .sticky-col { z-index: 5; }
                 {
                     if (metadata.Name != "-" || metadata.DueDate.HasValue)
                     {
-                        <span class="assign-period-meta">
+                        <span class="assign-period-description">
                             @if (metadata.Name != "-")
                             {
                                 <span>ชื่องวดงาน @metadata.Name</span>
