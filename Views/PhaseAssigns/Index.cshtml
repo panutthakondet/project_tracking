@@ -941,6 +941,22 @@ thead .sticky-col { z-index: 5; }
                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                         <span><strong class="assign-card-label">ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                     </span>
+                    <span class="assign-meta-text text-muted">
+                        <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
+                        @if (!string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <span>@presentationRemark</span>
+                            @if (presentationResult.Length > 0){<text> · </text>}
+                        }
+                        @if (presentationResult.Length > 0)
+                        {
+                            <b class="@presentationResultClass">@presentationResult</b>
+                        }
+                        else if (string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <text>-</text>
+                        }
+                    </span>
                     <span class="assign-status-row">
                         <strong class="assign-card-label">สถานะงาน:</strong>
                         <span class="assign-status-badges">
@@ -963,22 +979,6 @@ thead .sticky-col { z-index: 5; }
                                 </span>
                             }
                         </span>
-                    </span>
-                    <span class="assign-meta-text text-muted">
-                        <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
-                        @if (!string.IsNullOrWhiteSpace(presentationRemark))
-                        {
-                            <span>@presentationRemark</span>
-                            @if (presentationResult.Length > 0){<text> · </text>}
-                        }
-                        @if (presentationResult.Length > 0)
-                        {
-                            <b class="@presentationResultClass">@presentationResult</b>
-                        }
-                        else if (string.IsNullOrWhiteSpace(presentationRemark))
-                        {
-                            <text>-</text>
-                        }
                     </span>
                 </header>
                 <section class="assign-card-left">
