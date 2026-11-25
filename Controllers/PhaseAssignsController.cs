@@ -983,6 +983,52 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index), new { projectId });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("PhaseAssigns.Edit")]
+        public async Task<IActionResult> CompleteAssignment(int id, int? empId)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var assignments = _context.PhaseAssigns.Where(a => a.AssignId == id);
+            await assignments.ExecuteUpdateAsync(update => update.SetProperty(a => a.WorkStatus, a => a.WorkStatus));
+            var assignment = await assignments.Include(a => a.StatusDefinition).Include(a => a.Phase).SingleOrDefaultAsync();
+            if (assignment?.Phase is not { } phase) return NotFound();
+
+            var statusCode = assignment.StatusDefinition?.StatusCode ?? WorkflowStatusPresentation.Code(assignment.WorkStatus);
+            var pending = await _context.StatusApprovalRequests.AnyAsync(r =>
+                r.TargetType == StatusApprovalService.TargetPhaseAssign && r.TargetId == id
+                && r.RequestStatus == StatusApprovalService.RequestPending);
+            if (statusCode != "IN_PROGRESS" || pending)
+            {
+                TempData["Error"] = "บันทึกได้เฉพาะงานที่กำลังดำเนินการและยังไม่มีคำขอรออนุมัติ";
+                return RedirectToAction(nameof(Index), new { projectId = phase.ProjectId, empId });
+            }
+
+            const string completedStatus = "DONE";
+            if (await _statusApprovalService.CanApplyCompletionStatusImmediatelyAsync(phase.ProjectId))
+            {
+                assignment.StatusId = await _workflowStatusService.ResolveIdAsync(WorkflowStatusTypes.PhaseAssign, completedStatus);
+                assignment.WorkStatus = completedStatus;
+                assignment.CreatedAt = DateTime.Now;
+                assignment.EntryId = await GetCurrentEntryIdAsync();
+                SyncActualPeriod(assignment);
+                TempData["Success"] = "บันทึกสถานะเสร็จสิ้นแล้ว";
+            }
+            else
+            {
+                var project = await _context.Projects.AsNoTracking().Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == phase.ProjectId);
+                await _statusApprovalService.QueueCompletionRequestAsync(
+                    StatusApprovalService.TargetPhaseAssign, id, phase.ProjectId, project?.ProjectDisplayName,
+                    assignment.Role, assignment.WorkStatus, completedStatus, "ขอปรับสถานะมอบหมายงานเป็นเสร็จสิ้น");
+                TempData["Success"] = "ส่งคำขออนุมัติสถานะเสร็จสิ้นให้ PM แล้ว";
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return RedirectToAction(nameof(Index), new { projectId = phase.ProjectId, empId });
+        }
+
         // =====================================================
         // SAVE LOG (PASS / REWORK)
         // =====================================================

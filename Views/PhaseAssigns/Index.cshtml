@@ -404,6 +404,15 @@ html body main.route-controller-phaseassigns :is(
     </div>
 </aside>
 
+@if (TempData["Success"] is string successMessage)
+{
+    <div class="alert alert-success" role="status">@successMessage</div>
+}
+@if (TempData["Error"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
 <form method="get" class="assign-filter-form mb-4" id="filterForm">
     <div class="assign-filter-row">
         <label class="form-label fw-bold">🏢 สหกรณ์</label>
@@ -821,6 +830,10 @@ html body main.route-controller-phaseassigns :is(
         margin-top: 0;
     }
 
+    .assign-card .assign-card-actions {
+        flex-wrap: wrap !important;
+    }
+
     .assign-card-actions form {
         margin: 0;
     }
@@ -1020,6 +1033,16 @@ html body main.route-controller-phaseassigns :is(
                             <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
                                 ลบการ์ด
                             </button>
+                        }
+
+                        @if (CanMenu("PhaseAssigns.Edit") && workStatusCode == "IN_PROGRESS" && !hasPendingApproval)
+                        {
+                            <form asp-action="CompleteAssignment" method="post"
+                                  onsubmit="return confirm('ยืนยันการบันทึกสถานะงานเป็นเสร็จสิ้น?');">
+                                <input type="hidden" name="id" value="@a.AssignId" />
+                                <input type="hidden" name="empId" value="@ViewBag.SelectedEmpId" />
+                                <button type="submit" class="btn btn-outline-success btn-sm">เสร็จสิ้น</button>
+                            </form>
                         }
 
                         @* ===== PASS ===== *@
