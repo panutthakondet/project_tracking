@@ -4561,3 +4561,20 @@ html body main :is(
   color: #0f172a !important;
   font-weight: 400 !important;
 }
+
+/* Keep phase and assignment card actions in one row. */
+:is(.phase-card, .assign-card) > .phase-work-card-actions {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 8px 18px 14px;
+  overflow-x: auto;
+  flex-wrap: nowrap !important;
+  justify-content: safe flex-end !important;
+}
+
+:is(.phase-card, .assign-card) > .phase-work-card-actions .btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding-inline: .85rem !important;
+}

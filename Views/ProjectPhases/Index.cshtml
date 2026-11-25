@@ -136,7 +136,7 @@
 
     .phase-card {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(340px, .42fr);
+        grid-template-columns: minmax(0, 1fr);
         background: #fff;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
@@ -320,18 +320,6 @@
     }
 
     .phase-card-content,
-    .phase-card-side {
-        min-width: 0;
-        padding: 18px;
-    }
-
-    .phase-card-side {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 14px;
-    }
-
     .phase-card-head {
         display: flex;
         align-items: flex-start;
@@ -500,38 +488,6 @@
         border: 1px solid #fed7aa;
         box-shadow: 0 4px 10px rgba(194, 65, 12, .10);
         font-weight: 900;
-    }
-
-    .phase-card-actions {
-        display: flex;
-        flex-wrap: nowrap;
-        justify-content: flex-end;
-        gap: 6px;
-    }
-
-    .phase-card-actions form {
-        margin: 0;
-    }
-
-    .phase-card-actions .btn {
-        flex: 0 0 108px;
-        width: 108px;
-        min-height: 38px;
-        padding: .4rem .55rem;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: .8rem;
-        font-weight: 800;
-        line-height: 1.15;
-        white-space: nowrap;
-    }
-
-    .phase-card-actions .btn.phase-submit-installment {
-        flex: 0 0 auto !important;
-        width: auto !important;
-        padding-inline: 1rem !important;
     }
 
     .thai-calendar-note {
@@ -856,20 +812,6 @@
     }
 
     @@media (max-width: 991.98px) {
-        .phase-card {
-            grid-template-columns: 1fr;
-        }
-
-        .phase-card-side {
-            border-left: 0;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .phase-card-actions {
-            flex-wrap: nowrap;
-            justify-content: flex-start;
-        }
-
         .phase-assign-item {
             grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr);
         }
@@ -894,15 +836,6 @@
 
         .thai-calendar-grid {
             grid-template-columns: 1fr;
-        }
-
-        .phase-card-actions {
-            flex-wrap: wrap;
-        }
-
-        .phase-card-actions .btn {
-            flex: 1 1 calc(50% - 6px);
-            width: auto;
         }
 
         .phase-assign-item {
@@ -1405,58 +1338,6 @@ else
                 }
             </section>
 
-            <aside class="phase-card-side">
-                <div class="phase-card-actions">
-                    @if (CanMenu("ProjectPhases.Edit"))
-                    {
-                        <a asp-action="Edit"
-                           asp-route-id="@phase.PhaseId"
-                           class="btn btn-outline-primary btn-sm">
-                            แก้ไข
-                        </a>
-                    }
-                    else
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            แก้ไข
-                        </button>
-                    }
-
-                    @if (CanMenu("ProjectPhases.Edit") && !hasPendingApproval &&
-                         (phase.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(phase.PhaseStatus)) == "IN_PROGRESS")
-                    {
-                        <form asp-action="SubmitInstallment" method="post"
-                              onsubmit="return confirm('ยืนยันการบันทึกว่าส่งงวดงานแล้ว?');">
-                            <input type="hidden" name="id" value="@phase.PhaseId" />
-                            <button type="submit" class="btn btn-success btn-sm phase-submit-installment">ส่งงวดงานแล้ว</button>
-                        </form>
-                    }
-
-                    @if (CanMenu("ProjectPhases.Delete"))
-                    {
-                        <form asp-action="Delete"
-                              method="post"
-                              class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@phase.PhaseId" />
-                            <input type="hidden" name="projectId"
-                                   value="@selectedProject.ProjectId" />
-
-                            <button type="submit"
-                                    class="btn btn-outline-danger btn-sm"
-                                    onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
-                                ลบการ์ด
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            ลบการ์ด
-                        </button>
-                    }
-                </div>
-            </aside>
 
             @if (CanMenu("PhaseAssigns.Index"))
             {
@@ -1507,6 +1388,56 @@ else
                     </div>
                 </section>
             }
+            <div class="phase-card-actions phase-work-card-actions">
+                @if (CanMenu("ProjectPhases.Edit") && !hasPendingApproval &&
+                     (phase.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(phase.PhaseStatus)) == "IN_PROGRESS")
+                {
+                    <form asp-action="SubmitInstallment" method="post"
+                          onsubmit="return confirm('ยืนยันการบันทึกว่าส่งงวดงานแล้ว?');">
+                        <input type="hidden" name="id" value="@phase.PhaseId" />
+                        <button type="submit" class="btn btn-success btn-sm phase-submit-installment">ส่งงวดงานแล้ว</button>
+                    </form>
+                }
+
+                @if (CanMenu("ProjectPhases.Edit"))
+                {
+                    <a asp-action="Edit"
+                       asp-route-id="@phase.PhaseId"
+                       class="btn btn-outline-primary btn-sm">
+                        แก้ไข
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                        แก้ไข
+                    </button>
+                }
+
+                @if (CanMenu("ProjectPhases.Delete"))
+                {
+                    <form asp-action="Delete"
+                          method="post"
+                          class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@phase.PhaseId" />
+                        <input type="hidden" name="projectId"
+                               value="@selectedProject.ProjectId" />
+
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
+                            ลบการ์ด
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                        ลบการ์ด
+                    </button>
+                }
+            </div>
         </div>
     }
 }

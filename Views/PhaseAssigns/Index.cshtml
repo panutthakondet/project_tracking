@@ -544,16 +544,6 @@ html body main.route-controller-phaseassigns :is(
         background: inherit;
         border-radius: 1rem 0 0 1rem;
     }
-    .assign-card .assign-card-right {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: flex-end;
-        min-width: 160px;
-        padding: 1rem 1.25rem 1rem 0.75rem;
-        background: inherit;
-        border-radius: 0 1rem 1rem 0;
-    }
     .assign-card-header-row {
         display: flex;
         flex-wrap: wrap;
@@ -607,13 +597,6 @@ html body main.route-controller-phaseassigns :is(
         font-size: 0.98rem;
         vertical-align: middle;
     }
-    .assign-card-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4em;
-        margin-top: 0.5em;
-        align-items: center;
-    }
     .assign-card-status-badge {
         font-size: 1.01rem;
         padding: 0.35em 1.1em;
@@ -622,21 +605,13 @@ html body main.route-controller-phaseassigns :is(
         margin-bottom: 0.25em;
         white-space: nowrap;
     }
-    .assign-card .assign-card-right {
-        min-width: 175px;
-        max-width: 220px;
-    }
     @@media (max-width: 768px) {
         .assign-card {
             flex-direction: column;
         }
-        .assign-card .assign-card-left, .assign-card .assign-card-right {
+        .assign-card .assign-card-left {
             border-radius: 1rem !important;
             padding: 1rem 1.1rem;
-        }
-        .assign-card .assign-card-right {
-            align-items: stretch;
-            min-width: 0;
         }
     }
 
@@ -647,7 +622,7 @@ html body main.route-controller-phaseassigns :is(
 
     .assign-card {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(420px, .48fr);
+        grid-template-columns: minmax(0, 1fr);
         color: #000;
         font-size: 1rem;
         align-items: stretch;
@@ -665,25 +640,12 @@ html body main.route-controller-phaseassigns :is(
         box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
     }
 
-    .assign-card .assign-card-left,
-    .assign-card .assign-card-right {
+    .assign-card .assign-card-left {
         min-width: 0;
         padding: 18px;
         background: transparent;
         border-radius: 0;
-    }
-
-    .assign-card .assign-card-left {
         display: block;
-    }
-
-    .assign-card .assign-card-right {
-        max-width: none;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: stretch;
-        gap: 14px;
     }
 
     .assign-title-line {
@@ -822,64 +784,6 @@ html body main.route-controller-phaseassigns :is(
         font-weight: 900;
     }
 
-    .assign-card-actions {
-        display: flex;
-        flex-wrap: nowrap;
-        justify-content: flex-end;
-        gap: 6px;
-        margin-top: 0;
-    }
-
-    .assign-card .assign-card-actions {
-        flex-wrap: wrap !important;
-    }
-
-    .assign-card-actions form {
-        margin: 0;
-    }
-
-    .assign-card-actions .btn {
-        flex: 0 0 90px;
-        width: 90px;
-        min-height: 38px;
-        padding: .4rem .55rem;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: .8rem;
-        font-weight: 800;
-        line-height: 1.15;
-        white-space: nowrap;
-    }
-
-    @@media (max-width: 991.98px) {
-        .assign-card {
-            grid-template-columns: 1fr;
-        }
-
-        .assign-card .assign-card-right {
-            border-left: 0;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .assign-card-actions {
-            flex-wrap: nowrap;
-            justify-content: flex-start;
-        }
-    }
-
-    @@media (max-width: 575.98px) {
-        .assign-card-actions {
-            flex-wrap: wrap;
-        }
-
-        .assign-card-actions .btn {
-            flex: 1 1 calc(50% - 6px);
-            width: auto;
-        }
-    }
-
     </style>
 
     @* Card layout for assign records *@
@@ -996,88 +900,6 @@ html body main.route-controller-phaseassigns :is(
 
                 </section>
 
-                <aside class="assign-card-right">
-                    <div class="assign-card-actions">
-                        @* ===== Edit ===== *@
-                        @if (CanMenu("PhaseAssigns.Edit"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@a.AssignId"
-                               class="btn btn-sm btn-outline-primary"
-                               title="แก้ไขข้อมูล">
-                                แก้ไข
-                            </a>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                แก้ไข
-                            </button>
-                        }
-
-                        @* ===== Delete ===== *@
-                        @if (CanMenu("PhaseAssigns.Delete"))
-                        {
-                            <form asp-action="Delete" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@a.AssignId" />
-                                <button type="submit"
-                                        class="btn btn-sm btn-outline-danger"
-                                        title="ลบการ์ด"
-                                        onclick="return confirm('ยืนยันการลบ Assign นี้?');">
-                                    ลบการ์ด
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                ลบการ์ด
-                            </button>
-                        }
-
-                        @if (CanMenu("PhaseAssigns.Edit") && workStatusCode == "IN_PROGRESS" && !hasPendingApproval)
-                        {
-                            <form asp-action="CompleteAssignment" method="post"
-                                  onsubmit="return confirm('ยืนยันการบันทึกสถานะงานเป็นเสร็จสิ้น?');">
-                                <input type="hidden" name="id" value="@a.AssignId" />
-                                <input type="hidden" name="empId" value="@ViewBag.SelectedEmpId" />
-                                <button type="submit" class="btn btn-outline-success btn-sm">เสร็จสิ้น</button>
-                            </form>
-                        }
-
-                        @* ===== PASS ===== *@
-                        @if (CanMenu("PhaseAssigns.Edit"))
-                        {
-                            <button type="button"
-                                    class="btn btn-sm btn-success"
-                                    title="บันทึกผล: ผ่าน"
-                                    data-result-button
-                                    onclick="confirmLog(this, @a.AssignId, 'PASS')">
-                                ผ่าน
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกผ่าน">ผ่าน</button>
-                        }
-
-                        @* ===== REWORK ===== *@
-                        @if (CanMenu("PhaseAssigns.Edit"))
-                        {
-                            <button type="button"
-                                    class="btn btn-sm btn-warning"
-                                    title="บันทึกผล: ปรับปรุง"
-                                    data-result-button
-                                    onclick="confirmLog(this, @a.AssignId, 'REWORK')">
-                                ปรับปรุง
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกปรับปรุง">ปรับปรุง</button>
-                        }
-                    </div>
-                </aside>
                 <div class="assign-card-footer assign-card-remark">
                     <div class="assign-footer-presentation">
                         <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
@@ -1096,6 +918,86 @@ html body main.route-controller-phaseassigns :is(
                         }
                     </div>
                     <div><strong class="assign-card-label">หมายเหตุ:</strong> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                </div>
+                <div class="assign-card-actions phase-work-card-actions">
+                    @if (CanMenu("PhaseAssigns.Edit") && workStatusCode == "IN_PROGRESS" && !hasPendingApproval)
+                    {
+                        <form asp-action="CompleteAssignment" method="post"
+                              onsubmit="return confirm('ยืนยันการบันทึกสถานะงานเป็นเสร็จสิ้น?');">
+                            <input type="hidden" name="id" value="@a.AssignId" />
+                            <input type="hidden" name="empId" value="@ViewBag.SelectedEmpId" />
+                            <button type="submit" class="btn btn-outline-success btn-sm">เสร็จสิ้น</button>
+                        </form>
+                    }
+
+                    @* ===== PASS ===== *@
+                    @if (CanMenu("PhaseAssigns.Edit"))
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-success"
+                                title="บันทึกผล: ผ่าน"
+                                data-result-button
+                                onclick="confirmLog(this, @a.AssignId, 'PASS')">
+                            ผ่าน
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกผ่าน">ผ่าน</button>
+                    }
+
+                    @* ===== REWORK ===== *@
+                    @if (CanMenu("PhaseAssigns.Edit"))
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-warning"
+                                title="บันทึกผล: ปรับปรุง"
+                                data-result-button
+                                onclick="confirmLog(this, @a.AssignId, 'REWORK')">
+                            ปรับปรุง
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกปรับปรุง">ปรับปรุง</button>
+                    }
+
+                    @* ===== Edit ===== *@
+                    @if (CanMenu("PhaseAssigns.Edit"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@a.AssignId"
+                           class="btn btn-sm btn-outline-primary"
+                           title="แก้ไขข้อมูล">
+                            แก้ไข
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                            แก้ไข
+                        </button>
+                    }
+
+                    @* ===== Delete ===== *@
+                    @if (CanMenu("PhaseAssigns.Delete"))
+                    {
+                        <form asp-action="Delete" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.AssignId" />
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    title="ลบการ์ด"
+                                    onclick="return confirm('ยืนยันการลบ Assign นี้?');">
+                                ลบการ์ด
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                            ลบการ์ด
+                        </button>
+                    }
                 </div>
             </div>
             row++;
