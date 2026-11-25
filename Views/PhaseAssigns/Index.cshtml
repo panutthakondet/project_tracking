@@ -552,13 +552,11 @@ thead .sticky-col { z-index: 5; }
     }
     .assign-card-role {
         font-size: 0.97rem;
-        color: #0f172a;
         font-weight: 400;
         margin-bottom: 0.2em;
     }
     .assign-card-remark {
         font-size: 0.96rem;
-        color: #0f172a;
         font-weight: 400;
         margin-bottom: 0.2em;
         margin-top: 0.2em;
@@ -609,6 +607,8 @@ thead .sticky-col { z-index: 5; }
     .assign-card {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(420px, .48fr);
+        color: #0f172a;
+        font-size: 1rem;
         align-items: stretch;
         min-height: 0;
         background: #fff;
@@ -700,8 +700,6 @@ thead .sticky-col { z-index: 5; }
         gap: 4px 16px;
         margin-top: 8px;
         margin-bottom: 6px;
-        color: #0f172a;
-        font-size: .92rem;
         line-height: 1.35;
     }
 
@@ -711,24 +709,14 @@ thead .sticky-col { z-index: 5; }
         gap: 4px;
         min-height: 0;
         padding: 0;
-        color: #0f172a;
         background: transparent;
         border: 0;
         border-radius: 0;
-        font-size: .92rem;
         font-weight: 400;
-    }
-
-    .assign-meta-text strong,
-    .assign-card-role strong {
-        color: #0f172a;
-        font-weight: 900;
     }
 
     .assign-card-role,
     .assign-card-remark {
-        color: #0f172a;
-        font-size: .93rem;
         font-weight: 400;
         line-height: 1.38;
         overflow-wrap: anywhere;
@@ -739,7 +727,6 @@ thead .sticky-col { z-index: 5; }
         align-items: center;
         gap: 10px;
         min-width: 0;
-        color: #0f172a;
         font-weight: 400;
         line-height: 1.25;
     }
@@ -759,15 +746,7 @@ thead .sticky-col { z-index: 5; }
     }
 
     .assign-card .assign-card-label {
-        font-size: 1rem;
-        color: #0f172a;
         font-weight: 600;
-    }
-
-    .assign-card-role .text-dark,
-    .assign-card-remark .text-dark {
-        color: #0f172a !important;
-        font-weight: 400;
     }
 
     .assign-status-row {
@@ -787,6 +766,7 @@ thead .sticky-col { z-index: 5; }
     }
 
     .assign-status-row .badge {
+        font-size: inherit;
         min-height: 26px;
         display: inline-flex;
         align-items: center;
@@ -973,13 +953,13 @@ thead .sticky-col { z-index: 5; }
                 <section class="assign-card-left">
                     <div class="assign-card-dates">
                         <span class="assign-meta-text">
-                            <strong>กำหนดวันที่:</strong>
+                            <strong class="assign-card-label">กำหนดวันที่:</strong>
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
                             -
                             @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
                     </div>
-                    <div class="assign-card-role"><strong>งานที่รับผิดชอบ:</strong> <span class="text-dark">@a.Role</span></div>
+                    <div class="assign-card-role"><strong class="assign-card-label">งานที่รับผิดชอบ:</strong> @a.Role</div>
 
                 </section>
 
@@ -1056,7 +1036,7 @@ thead .sticky-col { z-index: 5; }
                     </div>
                 </aside>
                 <div class="assign-card-footer assign-card-remark">
-                    <div class="assign-footer-presentation text-muted">
+                    <div class="assign-footer-presentation">
                         <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
                         @if (!string.IsNullOrWhiteSpace(presentationRemark))
                         {
@@ -1072,7 +1052,7 @@ thead .sticky-col { z-index: 5; }
                             <text>-</text>
                         }
                     </div>
-                    <div><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                    <div><strong class="assign-card-label">หมายเหตุ:</strong> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
                 </div>
             </div>
             row++;
