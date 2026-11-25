@@ -422,7 +422,7 @@ thead .sticky-col { z-index: 5; }
 {
     <style>
     /* Card-style layout for assign cards */
-    .assign-card > .assign-presentation-log {
+    .assign-card > .assign-card-footer {
         grid-column: 1 / -1;
         padding: 10px 18px;
         border-top: 1px solid var(--pt-border, #d8e3ef);
@@ -953,6 +953,7 @@ thead .sticky-col { z-index: 5; }
                                         }
                                     </span>
                                 </span>
+                                <span class="assign-meta-text text-muted"><b>บันทึกการนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
                             </div>
                         </div>
                     </div>
@@ -966,9 +967,6 @@ thead .sticky-col { z-index: 5; }
                         </span>
                     </div>
                     <div class="assign-card-role"><strong>งานที่รับผิดชอบ:</strong> <span class="text-dark">@a.Role</span></div>
-                    <div class="assign-card-remark">
-                        <div><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
-                    </div>
 
                 </section>
 
@@ -1044,7 +1042,7 @@ thead .sticky-col { z-index: 5; }
                         }
                     </div>
                 </aside>
-                <div class="assign-presentation-log assign-meta-text text-muted"><b>บันทึกการนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</div>
+                <div class="assign-card-footer assign-card-remark"><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
             </div>
             row++;
             }
