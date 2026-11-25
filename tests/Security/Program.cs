@@ -12,6 +12,13 @@ using System.Net;
 using System.Text;
 void Check(bool ok,string label){if(!ok)throw new Exception(label);Console.WriteLine("PASS "+label);}
 async Task Reject(Func<Task> action,string label){try{await action();}catch(InvalidOperationException){Check(true,label);return;}throw new Exception(label);}
+var workerHttp = new Microsoft.AspNetCore.Http.DefaultHttpContext { TraceIdentifier = "worker-test-trace" };
+var workerAction = new Microsoft.AspNetCore.Mvc.ActionContext(workerHttp, new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor());
+var workerFailure = new Microsoft.AspNetCore.Mvc.Filters.ExceptionContext(workerAction, new List<Microsoft.AspNetCore.Mvc.Filters.IFilterMetadata>()) { Exception = new IOException("private database details") };
+new SecurityWorkerExceptionFilter(Microsoft.Extensions.Logging.Abstractions.NullLogger<SecurityWorkerExceptionFilter>.Instance).OnException(workerFailure);
+var workerProblem = (workerFailure.Result as Microsoft.AspNetCore.Mvc.ObjectResult)?.Value as Microsoft.AspNetCore.Mvc.ProblemDetails;
+Check(workerFailure.ExceptionHandled && workerProblem?.Status == 500 && (string?)workerProblem.Extensions["traceId"] == "worker-test-trace"
+    && !System.Text.Json.JsonSerializer.Serialize(workerProblem).Contains("private database details"), "Worker server failures return a safe JSON error with trace reference instead of an HTML redirect");
 var projectRich = ProjectTracking.Services.ProjectRichText.Prefix + """{"version":2,"runs":[{"text":"หัวข้อ","bold":true},{"text":"\n    รายละเอียด <script>alert(1)</script>"}]}""";
 Check(ProjectTracking.Services.ProjectRichText.PlainText(projectRich)=="หัวข้อ\n    รายละเอียด <script>alert(1)</script>","Project rich text preserves paragraphs and indentation in plain text");
 var projectHtml=ProjectTracking.Services.ProjectRichText.ToHtml(projectRich);

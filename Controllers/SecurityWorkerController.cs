@@ -5,6 +5,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Services.Security;
 namespace ProjectTracking.Controllers;
 [AllowAnonymous,SecurityWorkerKey,Route("api/security-worker")]
+[TypeFilter(typeof(SecurityWorkerExceptionFilter))]
 public class SecurityWorkerController(SecurityScanService scans,AppDbContext db,SecurityStorage storage):Controller
 {
     public record LeaseRequest(string LeaseToken,string? Error=null,ScanProgressUpdate? Progress=null);
