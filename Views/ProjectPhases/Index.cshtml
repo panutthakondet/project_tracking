@@ -82,6 +82,26 @@
 }
 
 <style>
+    html body main.route-controller-projectphases .phase-filter-form :is(
+        label, input, select, option, .pt-search-select__input,
+        .pt-search-select__option, .pt-search-select__empty
+    ),
+    html body main.route-controller-projectphases .phase-selected-people :is(
+        .phase-selected-person-label, .phase-selected-person-name
+    ),
+    #phaseCardContainer :is(
+        .phase-no, .phase-period, .phase-period > strong,
+        .phase-name-label, .phase-name-value, .phase-info-label, .phase-info-value,
+        .phase-status-row > small, .phase-assign-toggle-count,
+        .phase-assign-details-head :is(h3, h4, h5, strong, span, p),
+        .phase-assign-person strong, .phase-assign-position,
+        .phase-assign-work strong, .phase-assign-remark,
+        .phase-assign-date, .phase-assign-date > strong, .phase-assign-empty
+    ) {
+        color: #000 !important;
+        -webkit-text-fill-color: #000 !important;
+    }
+
     table tbody tr.phase-main > td {
         background-color: #ffffff !important;
     }
