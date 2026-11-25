@@ -449,11 +449,10 @@
                         </div>
                         @if (!string.IsNullOrWhiteSpace(p.ProjectDetail) && p.ProjectDetail.Trim() != "-")
                         {
-                            <div class="project-summary-row project-summary-detail">
-                                <span class="project-summary-icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
-                                <span class="project-summary-label">รายละเอียด:</span>
-                                <span class="project-summary-value">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.ProjectDetail))</span>
-                            </div>
+                            <details class="project-tor-detail">
+                                <summary>รายละเอียด</summary>
+                                <div class="project-tor-detail__text">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.ProjectDetail))</div>
+                            </details>
                         }
                         @if (!string.IsNullOrWhiteSpace(p.TorDetail))
                         {
@@ -759,11 +758,10 @@
                             <span class="project-tech-label">ฐานข้อมูล:</span>
                             <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)</span>
                         </div>
-                        <div class="project-tech-row">
-                            <span class="project-tech-icon project-local-icon project-local-icon--account" aria-hidden="true"></span>
-                            <span class="project-tech-label">ทะเบียนทดสอบ:</span>
-                            <span class="project-tech-value project-preserve-lines">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</span>
-                        </div>
+                        <details class="project-tor-detail">
+                            <summary>ทะเบียนทดสอบ</summary>
+                            <div class="project-tor-detail__text project-preserve-lines">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</div>
+                        </details>
                     </div>
                     <div class="project-tech-column">
                         <div class="project-tech-row">
