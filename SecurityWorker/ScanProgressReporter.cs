@@ -30,6 +30,13 @@ public sealed class ScanProgressReporter : IDisposable
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (Exception error) when (Volatile.Read(ref current).Stage == "SavingResults"
+            && error is HttpRequestException or OperationCanceledException)
+        {
+            // Completion holds the scan row lock until its transaction finishes.
+            // Let the completion request report its own outcome if the heartbeat times out.
+            Console.Error.WriteLine($"Scan {job.Id}: heartbeat unavailable while saving results; awaiting completion response");
+        }
         catch { Console.Error.WriteLine($"Scan {job.Id}: heartbeat unavailable; stopping scan");work.Cancel(); }
     }
     public void Dispose()=>changed.Dispose();
