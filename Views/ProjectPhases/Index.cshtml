@@ -1416,6 +1416,16 @@ else
                         </button>
                     }
 
+                    @if (CanMenu("ProjectPhases.Edit") && !hasPendingApproval &&
+                         (phase.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(phase.PhaseStatus)) == "IN_PROGRESS")
+                    {
+                        <form asp-action="SubmitInstallment" method="post"
+                              onsubmit="return confirm('ยืนยันการบันทึกว่าส่งงวดงานแล้ว?');">
+                            <input type="hidden" name="id" value="@phase.PhaseId" />
+                            <button type="submit" class="btn btn-success btn-sm">ส่งงวดงานแล้ว</button>
+                        </form>
+                    }
+
                     @if (CanMenu("ProjectPhases.Delete"))
                     {
                         <form asp-action="Delete"

@@ -547,6 +547,51 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index), new { projectId = existing.ProjectId });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("ProjectPhases.Edit")]
+        public async Task<IActionResult> SubmitInstallment(int id)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var phases = _context.ProjectPhases.Where(p => p.PhaseId == id);
+            await phases.ExecuteUpdateAsync(update => update.SetProperty(p => p.PhaseStatus, p => p.PhaseStatus));
+            var phase = await phases.Include(p => p.StatusDefinition).SingleOrDefaultAsync();
+            if (phase == null) return NotFound();
+
+            var statusCode = phase.StatusDefinition?.StatusCode ?? WorkflowStatusPresentation.Code(phase.PhaseStatus);
+            var pending = await _context.StatusApprovalRequests.AnyAsync(r =>
+                r.TargetType == StatusApprovalService.TargetProjectPhase && r.TargetId == id
+                && r.RequestStatus == StatusApprovalService.RequestPending);
+            if (statusCode != "IN_PROGRESS" || pending)
+            {
+                TempData["Error"] = "ส่งได้เฉพาะงวดงานที่กำลังดำเนินการและยังไม่มีคำขอรออนุมัติ";
+                return RedirectToAction(nameof(Index), new { projectId = phase.ProjectId });
+            }
+
+            if (await _statusApprovalService.CanApplyCompletionStatusImmediatelyAsync(phase.ProjectId))
+            {
+                phase.StatusId = await _workflowStatusService.ResolveIdAsync(WorkflowStatusTypes.ProjectPhase, "SUBMITTED");
+                phase.PhaseStatus = SubmittedStatus;
+                phase.CreatedAt = DateTime.Now;
+                phase.EntryId = await GetCurrentEntryIdAsync();
+                await _statusApprovalService.SyncProjectStatusFromPhasesAsync(phase.ProjectId, phase.EntryId, phase.CreatedAt);
+                TempData["Success"] = "บันทึกสถานะส่งงวดงานแล้ว";
+            }
+            else
+            {
+                var project = await _context.Projects.AsNoTracking().Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == phase.ProjectId);
+                await _statusApprovalService.QueueCompletionRequestAsync(
+                    StatusApprovalService.TargetProjectPhase, id, phase.ProjectId, project?.ProjectDisplayName,
+                    phase.PhaseDisplayName, phase.PhaseStatus, SubmittedStatus, "ขออนุมัติสถานะส่งงวดงานแล้ว");
+                TempData["Success"] = "ส่งคำขออนุมัติสถานะส่งงวดงานให้ PM แล้ว";
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return RedirectToAction(nameof(Index), new { projectId = phase.ProjectId });
+        }
+
         // ===========================
         // DELETE
         // ===========================
