@@ -424,17 +424,22 @@ thead .sticky-col { z-index: 5; }
     /* Card-style layout for assign cards */
     .assign-period-group {
         min-width: 0;
+        border: 1px solid var(--pt-border, #d8e3ef);
+        border-inline-start: 4px solid var(--pt-accent, #2563eb);
+        border-radius: 10px;
+        background: var(--pt-surface, #fff);
     }
 
     .assign-period-heading {
-        margin: 0 0 10px;
-        padding: 8px 12px;
-        border-left: 4px solid var(--pt-accent, #2563eb);
-        border-radius: 8px;
-        background: var(--pt-surface-soft, #f1f5f9);
+        padding: 10px 12px;
+        cursor: pointer;
         color: var(--pt-surface-contrast, #10233f);
         font-size: 1rem;
         font-weight: 700;
+    }
+
+    .assign-period-group > .assign-card-list {
+        padding: 0 12px 12px;
     }
 
     .assign-card-list {
@@ -944,8 +949,8 @@ thead .sticky-col { z-index: 5; }
                 : phaseOrder.HasValue ? $"ส่วนที่ {phaseOrder}"
                 : periodOrder.HasValue ? $"งวดที่ {periodOrder}"
                 : "ไม่ระบุส่วนและงวดงาน";
-            <section class="assign-period-group">
-            <h2 class="assign-period-heading">@heading</h2>
+            <details class="assign-period-group">
+            <summary class="assign-period-heading">@heading</summary>
             <div class="assign-card-list" data-assign-group>
             @foreach (var a in group.OrderBy(a => a.PhaseSort ?? int.MaxValue).ThenBy(a => a.AssignId))
             {
@@ -1099,7 +1104,7 @@ thead .sticky-col { z-index: 5; }
             row++;
             }
             </div>
-            </section>
+            </details>
         }
         </div>
     }
