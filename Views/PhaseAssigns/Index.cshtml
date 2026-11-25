@@ -73,7 +73,7 @@
         return string.IsNullOrWhiteSpace(v) ? "-" : v!;
     }
 
-    private static string GetPhasePeriodSafe(object a)
+    private static (int? Phase, int? Period) GetPhasePeriod(object a)
     {
         var phaseOrder = ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
                       ?? ReadNestedInt(a, "Phase", "PhaseOrder")
@@ -82,10 +82,7 @@
         var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
                        ?? ReadNestedInt(a, "Phase", "PeriodOrder");
 
-        if (!phaseOrder.HasValue && !periodOrder.HasValue) return "-";
-        if (!periodOrder.HasValue) return $"ส่วนที่ {phaseOrder}";
-        if (!phaseOrder.HasValue) return $"งวดที่ {periodOrder}";
-        return $"ส่วนที่ {phaseOrder} / งวดที่ {periodOrder}";
+        return (phaseOrder, periodOrder);
     }
 
     private static string ProfileImage(ProjectTracking.Models.Employee? employee)
@@ -425,6 +422,21 @@ thead .sticky-col { z-index: 5; }
 {
     <style>
     /* Card-style layout for assign cards */
+    .assign-period-group {
+        min-width: 0;
+    }
+
+    .assign-period-heading {
+        margin: 0 0 10px;
+        padding: 8px 12px;
+        border-left: 4px solid var(--pt-accent, #2563eb);
+        border-radius: 8px;
+        background: var(--pt-surface-soft, #f1f5f9);
+        color: var(--pt-surface-contrast, #10233f);
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
     .assign-card-list {
         display: flex;
         flex-direction: column;
@@ -674,26 +686,6 @@ thead .sticky-col { z-index: 5; }
         overflow-wrap: anywhere;
     }
 
-    .assign-phase-part {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        min-height: 0;
-        padding: 0;
-        color: #0f172a;
-        background: transparent;
-        border: 0;
-        border-radius: 0;
-        font-size: .9rem;
-        font-weight: 400;
-        line-height: 1.35;
-    }
-
-    .assign-phase-part strong {
-        color: #0f172a;
-        font-weight: 700;
-    }
-
     .assign-phase-name {
         color: #334155;
         font-weight: 400;
@@ -933,17 +925,10 @@ thead .sticky-col { z-index: 5; }
 
     @* Card layout for assign records *@
     var row = 1;
-    var ordered = Model
-        .OrderBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
-                   ?? ReadNestedInt(a, "Phase", "PhaseOrder")
-                   ?? ReadNestedInt(a, "PhaseOrder")
-                   ?? int.MaxValue)
-        .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
-                  ?? ReadNestedInt(a, "Phase", "PeriodOrder")
-                  ?? int.MaxValue)
-        .ThenBy(a => a.PhaseSort ?? int.MaxValue)
-        .ThenBy(a => a.AssignId)
-        .ToList();
+    var groups = Model
+        .GroupBy(a => GetPhasePeriod(a))
+        .OrderBy(group => group.Key.Phase ?? int.MaxValue)
+        .ThenBy(group => group.Key.Period ?? int.MaxValue);
     @if (!Model.Any())
     {
         <div class="alert alert-secondary text-center py-4 mb-4">— No assignment —</div>
@@ -951,16 +936,22 @@ thead .sticky-col { z-index: 5; }
     else
     {
         <div class="assign-card-list" id="assign-tbody">
-        @foreach (var a in ordered)
+        @foreach (var group in groups)
         {
+            var (phaseOrder, periodOrder) = group.Key;
+            var heading = phaseOrder.HasValue && periodOrder.HasValue
+                ? $"ส่วนที่ {phaseOrder} / งวดที่ {periodOrder}"
+                : phaseOrder.HasValue ? $"ส่วนที่ {phaseOrder}"
+                : periodOrder.HasValue ? $"งวดที่ {periodOrder}"
+                : "ไม่ระบุส่วนและงวดงาน";
+            <section class="assign-period-group">
+            <h2 class="assign-period-heading">@heading</h2>
+            <div class="assign-card-list" data-assign-group>
+            @foreach (var a in group.OrderBy(a => a.PhaseSort ?? int.MaxValue).ThenBy(a => a.AssignId))
+            {
             var lastLog = a.Logs?.OrderByDescending(l => l.RoundNo).FirstOrDefault();
             var statusText = lastLog?.Status == "PASS" ? "ผ่าน" : lastLog != null ? "แก้ไข และนำเสนอใหม่" : null;
             var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
-            var phaseOrder = ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
-                          ?? ReadNestedInt(a, "Phase", "PhaseOrder")
-                          ?? ReadNestedInt(a, "PhaseOrder");
-            var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
-                           ?? ReadNestedInt(a, "Phase", "PeriodOrder");
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
             <div class="assign-card @(workStatusCode == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
@@ -970,18 +961,6 @@ thead .sticky-col { z-index: 5; }
                             <div class="assign-title-line">
                                 <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
                                 <span class="assign-card-index">#@row</span>
-                                @if (phaseOrder.HasValue)
-                                {
-                                    <span class="assign-phase-part"><strong>ส่วนที่</strong> @phaseOrder</span>
-                                }
-                                @if (periodOrder.HasValue)
-                                {
-                                    <span class="assign-phase-part"><strong>งวดที่</strong> @periodOrder</span>
-                                }
-                                @if (!phaseOrder.HasValue && !periodOrder.HasValue)
-                                {
-                                    <span class="assign-phase-part">-</span>
-                                }
                             </div>
                             <div class="assign-card-phase">
                                 <span class="assign-phase-name-label">ชื่องวดงาน:</span>
@@ -1118,6 +1097,9 @@ thead .sticky-col { z-index: 5; }
                 </aside>
             </div>
             row++;
+            }
+            </div>
+            </section>
         }
         </div>
     }
@@ -1385,7 +1367,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return true;
     }
 
-    Sortable.create(tbody, {
+    tbody.querySelectorAll('[data-assign-group]').forEach(group => Sortable.create(group, {
+        draggable: '.assign-card',
         animation: 150,
         handle: '.drag-handle',
         ghostClass: 'sortable-ghost',
@@ -1405,7 +1388,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             refreshRowNumbers();
         }
-    });
+    }));
 
     refreshRowNumbers();
 })();
