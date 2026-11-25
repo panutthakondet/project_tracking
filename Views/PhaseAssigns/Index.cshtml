@@ -113,6 +113,31 @@ thead .sticky-col { z-index: 5; }
 .dragging-row { opacity: .65; }
 .sortable-ghost { opacity: .35; }
 
+/* Keep light-surface copy independent of theme text colors. */
+html body main.route-controller-phaseassigns :is(.assign-filter-form, .assign-period-group) {
+    --pt-detail-color: #000;
+    --pt-label-color: #000;
+}
+
+html body main.route-controller-phaseassigns :is(
+    .assign-filter-form .form-label,
+    .assign-filter-form .form-select,
+    .assign-filter-form .pt-search-select__input,
+    .assign-filter-form .pt-search-select__option,
+    .assign-filter-form .pt-search-select__empty,
+    .assign-period-heading,
+    .assign-period-description,
+    .assign-card .assign-card-label,
+    .assign-card-index,
+    .assign-card-person,
+    .assign-card-dates,
+    .assign-card-role,
+    .assign-card-footer
+) {
+    color: #000 !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
 .assign-filter-form {
     width: 100%;
     background: #fff;
@@ -432,8 +457,6 @@ thead .sticky-col { z-index: 5; }
     }
 
     .assign-period-group {
-        --pt-detail-color: #000;
-        --pt-label-color: #000;
         min-width: 0;
         border: 1px solid var(--pt-border, #d8e3ef);
         border-inline-start: 4px solid var(--pt-accent, #2563eb);
