@@ -828,7 +828,6 @@ thead .sticky-col { z-index: 5; }
     </style>
 
     @* Card layout for assign records *@
-    var row = 1;
     var groups = Model
         .GroupBy(a => GetPhasePeriod(a))
         .OrderBy(group => group.Key.Phase ?? int.MaxValue)
@@ -842,6 +841,7 @@ thead .sticky-col { z-index: 5; }
         <div class="assign-card-list">
         @foreach (var group in groups)
         {
+            var row = 1;
             var (phaseOrder, periodOrder) = group.Key;
             var heading = phaseOrder.HasValue && periodOrder.HasValue
                 ? $"ส่วนที่ {phaseOrder} / งวดที่ {periodOrder}"
