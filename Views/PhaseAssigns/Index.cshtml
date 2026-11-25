@@ -923,6 +923,7 @@ thead .sticky-col { z-index: 5; }
                                          onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                     <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                                 </span>
+                                <span class="assign-meta-text text-muted"><b>บันทึกการนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
                                 <span class="assign-status-row">
                                     <small>สถานะงาน:</small>
                                     <span class="assign-status-badges">
@@ -961,7 +962,6 @@ thead .sticky-col { z-index: 5; }
                     <div class="assign-card-role"><strong>งานที่รับผิดชอบ:</strong> <span class="text-dark">@a.Role</span></div>
                     <div class="assign-card-remark">
                         <div><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
-                        <div class="text-muted"><b>บันทึกการนำเสนองาน:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
                     </div>
 
                 </section>
