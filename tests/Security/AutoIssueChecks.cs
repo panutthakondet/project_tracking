@@ -48,9 +48,12 @@ public static class AutoIssueChecks
   Console.WriteLine("PASS Development scan separates history and finding identity; no automatic or manual Issues; request retry cannot change workflow");
   employee.Status="INACTIVE";await db.SaveChangesAsync();
   var failedId=await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var failedJob=await service.ClaimAsync(default);
-  try{await service.CompleteAsync(failedId,failedJob!.LeaseToken,json,new("fake","fake"),default);throw new Exception("Inactive assignee was accepted");}catch(InvalidOperationException){}
+  await service.CompleteAsync(failedId,failedJob!.LeaseToken,json,new("fake","fake"),default);
   db.ChangeTracker.Clear();
-  if(await db.SecurityReportRows.CountAsync()!=3||await db.ProjectIssues.CountAsync()!=4||await db.SecurityScanFindingRows.AnyAsync(x=>x.ScanId==failedId))throw new Exception("Failed auto assignment left partial results");
+  var savedScan = await db.SecurityScanRows.SingleAsync(x => x.Id == failedId);
+  if(savedScan.Status!="Completed" || string.IsNullOrEmpty(savedScan.Error)
+      || !await db.SecurityReportRows.AnyAsync(x=>x.ScanId==failedId) || await db.ProjectIssues.CountAsync()!=4)
+      throw new Exception("Failed auto assignment must preserve the scan report and show a warning");
   employee=await db.Employees.SingleAsync();employee.Status="ACTIVE";await db.SaveChangesAsync();
   var rejectedIssue=await db.ProjectIssues.OrderBy(x=>x.IssueId).FirstAsync();
   rejectedIssue.IssueStatus="REJECT";

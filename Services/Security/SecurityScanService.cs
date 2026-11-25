@@ -4,7 +4,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using System.Text;
 namespace ProjectTracking.Services.Security;
-public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfiguration config,SecurityLoginStore? loginStore=null)
+public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfiguration config,SecurityLoginStore? loginStore=null, ILogger<SecurityScanService>? logger=null)
 {
     private int? issueNameLimit;
 
@@ -196,13 +196,28 @@ await transaction.CommitAsync(ct);return ids;
             // ExecuteUpdate bypasses tracking; explicitly persist the completed state.
             db.Entry(scan).Property(x=>x.Status).IsModified=true;
             await db.SaveChangesAsync(ct);
-            var defaults=await db.SecurityIssueDefaults.AsNoTracking().SingleOrDefaultAsync(x=>x.SystemId==version.SystemId,ct);
-            if(defaults!=null&&scan.Workflow=="Formal"){
-                var autoIds=await db.SecurityScanFindingRows.Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low")).Select(x=>x.Id).ToListAsync(ct);
-                foreach(var observationId in autoIds)await CreateIssueAsync(observationId,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
-            }
             await transaction.CommitAsync(ct);
         }catch{storage.Delete(file.Key);throw;}
+
+        if (scan.Workflow != "Formal") return;
+        try
+        {
+            var defaults=await db.SecurityIssueDefaults.AsNoTracking().SingleOrDefaultAsync(x=>x.SystemId==version.SystemId,ct);
+            if(defaults!=null){
+                await using var issueTransaction = await db.Database.BeginTransactionAsync(ct);
+                var autoIds=await db.SecurityScanFindingRows.Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low")).Select(x=>x.Id).ToListAsync(ct);
+                foreach(var observationId in autoIds)await CreateIssueAsync(observationId,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
+                await issueTransaction.CommitAsync(ct);
+            }
+        }
+        catch (Exception error)
+        {
+            db.ChangeTracker.Clear();
+            logger?.LogError(error, "Automatic Issue creation failed for scan {ScanId}", id);
+            await db.SecurityScanRows.Where(x => x.Id == id && x.Status == "Completed")
+                .ExecuteUpdateAsync(set => set.SetProperty(x => x.Error,
+                    "บันทึกผลสแกนแล้ว แต่สร้าง Issue อัตโนมัติไม่สำเร็จ สามารถสร้าง Issue จากหน้าผลสแกนได้"), CancellationToken.None);
+        }
     }
     public async Task<IReadOnlyList<string>> DeleteVersionAsync(long versionId,CancellationToken ct)
     {
