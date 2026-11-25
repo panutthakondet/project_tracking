@@ -641,18 +641,14 @@ thead .sticky-col { z-index: 5; }
         gap: 14px;
     }
 
-    .assign-card-header-row {
-        flex-wrap: nowrap;
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-
     .assign-title-line {
+        grid-column: 1 / -1;
+        min-width: 0;
+        padding: 18px 18px 0;
         display: flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 8px;
     }
 
     .assign-card-index {
@@ -916,48 +912,43 @@ thead .sticky-col { z-index: 5; }
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
             <div class="assign-card" data-assign-id="@a.AssignId">
+                <header class="assign-title-line">
+                    <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
+                    <span class="assign-card-index">#@row</span>
+                    <span class="assign-card-person">
+                        <img class="pt-owner-avatar"
+                             src="@ProfileImage(a.Employee)"
+                             alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                             loading="lazy"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
+                    </span>
+                    <span class="assign-status-row">
+                        <small>สถานะงาน:</small>
+                        <span class="assign-status-badges">
+                            @if (workStatusCode == "DONE")
+                            {
+                                <span class="badge bg-success">@a.StatusDescription</span>
+                            }
+                            else if (workStatusCode == "IN_PROGRESS")
+                            {
+                                <span class="badge bg-warning text-dark">@a.StatusDescription</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@a.StatusDescription</span>
+                            }
+                            @if (hasPendingApproval)
+                            {
+                                <span class="badge assign-approval-pending-badge">
+                                    รออนุมัติ
+                                </span>
+                            }
+                        </span>
+                    </span>
+                    <span class="assign-meta-text text-muted"><b>สถานะนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
+                </header>
                 <section class="assign-card-left">
-                    <div class="assign-card-header-row align-items-center mb-1">
-                        <div class="min-w-0">
-                            <div class="assign-title-line">
-                                <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
-                                <span class="assign-card-index">#@row</span>
-                                <span class="assign-card-person">
-                                    <img class="pt-owner-avatar"
-                                         src="@ProfileImage(a.Employee)"
-                                         alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
-                                         loading="lazy"
-                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
-                                </span>
-                                <span class="assign-status-row">
-                                    <small>สถานะงาน:</small>
-                                    <span class="assign-status-badges">
-                                        @if (workStatusCode == "DONE")
-                                        {
-                                            <span class="badge bg-success">@a.StatusDescription</span>
-                                        }
-                                        else if (workStatusCode == "IN_PROGRESS")
-                                        {
-                                            <span class="badge bg-warning text-dark">@a.StatusDescription</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">@a.StatusDescription</span>
-                                        }
-                                        @if (hasPendingApproval)
-                                        {
-                                            <span class="badge assign-approval-pending-badge">
-                                                รออนุมัติ
-                                            </span>
-                                        }
-                                    </span>
-                                </span>
-                                <span class="assign-meta-text text-muted"><b>สถานะนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="assign-card-dates">
                         <span class="assign-meta-text">
                             <strong>กำหนดวันที่:</strong>
