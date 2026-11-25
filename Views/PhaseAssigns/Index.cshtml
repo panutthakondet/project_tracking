@@ -432,7 +432,7 @@ thead .sticky-col { z-index: 5; }
 
     .assign-period-heading {
         padding: 10px 12px;
-        cursor: pointer;
+        margin: 0;
         color: var(--pt-surface-contrast, #10233f);
         font-size: 1rem;
         font-weight: 700;
@@ -927,8 +927,8 @@ thead .sticky-col { z-index: 5; }
                 : phaseOrder.HasValue ? $"ส่วนที่ {phaseOrder}"
                 : periodOrder.HasValue ? $"งวดที่ {periodOrder}"
                 : "ไม่ระบุส่วนและงวดงาน";
-            <details class="assign-period-group">
-            <summary class="assign-period-heading">
+            <section class="assign-period-group">
+            <h2 class="assign-period-heading">
                 @heading
                 @foreach (var metadata in group.Select(a => (Name: GetPhaseNameSafe(a), DueDate: a.Phase?.PeriodEndDate)).Distinct())
                 {
@@ -946,7 +946,7 @@ thead .sticky-col { z-index: 5; }
                         </span>
                     }
                 }
-            </summary>
+            </h2>
             <div class="assign-card-list" data-assign-group>
             @foreach (var a in group.OrderBy(a => a.PhaseSort ?? int.MaxValue).ThenBy(a => a.AssignId))
             {
@@ -1092,7 +1092,7 @@ thead .sticky-col { z-index: 5; }
             row++;
             }
             </div>
-            </details>
+            </section>
         }
         </div>
     }
