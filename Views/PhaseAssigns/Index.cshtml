@@ -438,6 +438,16 @@ thead .sticky-col { z-index: 5; }
         font-weight: 700;
     }
 
+    .assign-period-meta {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 16px;
+        margin-block-start: 4px;
+        font-size: .875rem;
+        font-weight: 400;
+        overflow-wrap: anywhere;
+    }
+
     .assign-period-group > .assign-card-list {
         padding: 0 12px 12px;
     }
@@ -682,33 +692,6 @@ thead .sticky-col { z-index: 5; }
         margin-right: 0;
     }
 
-    .assign-card-phase {
-        display: block;
-        color: #334155;
-        font-size: .95rem;
-        font-weight: 400;
-        line-height: 1.45;
-        overflow-wrap: anywhere;
-    }
-
-    .assign-phase-name {
-        color: #334155;
-        font-weight: 400;
-        overflow-wrap: anywhere;
-    }
-
-    .assign-phase-name-label {
-        color: #0f172a;
-        font-weight: 900;
-    }
-
-    .assign-phase-name-value {
-        display: inline;
-        color: #0f172a;
-        font-weight: 400;
-        overflow-wrap: anywhere;
-    }
-
     .assign-card-dates {
         display: flex;
         flex-wrap: wrap;
@@ -950,7 +933,25 @@ thead .sticky-col { z-index: 5; }
                 : periodOrder.HasValue ? $"งวดที่ {periodOrder}"
                 : "ไม่ระบุส่วนและงวดงาน";
             <details class="assign-period-group">
-            <summary class="assign-period-heading">@heading</summary>
+            <summary class="assign-period-heading">
+                @heading
+                @foreach (var metadata in group.Select(a => (Name: GetPhaseNameSafe(a), DueDate: a.Phase?.PeriodEndDate)).Distinct())
+                {
+                    if (metadata.Name != "-" || metadata.DueDate.HasValue)
+                    {
+                        <span class="assign-period-meta">
+                            @if (metadata.Name != "-")
+                            {
+                                <span>ชื่องวดงาน @metadata.Name</span>
+                            }
+                            @if (metadata.DueDate.HasValue)
+                            {
+                                <span>กำหนดส่งงวด @metadata.DueDate.Value.ToString("dd MMM yyyy", th)</span>
+                            }
+                        </span>
+                    }
+                }
+            </summary>
             <div class="assign-card-list" data-assign-group>
             @foreach (var a in group.OrderBy(a => a.PhaseSort ?? int.MaxValue).ThenBy(a => a.AssignId))
             {
@@ -967,10 +968,6 @@ thead .sticky-col { z-index: 5; }
                                 <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
                                 <span class="assign-card-index">#@row</span>
                             </div>
-                            <div class="assign-card-phase">
-                                <span class="assign-phase-name-label">ชื่องวดงาน:</span>
-                                <span class="assign-phase-name-value">@GetPhaseNameSafe(a)</span>
-                            </div>
                         </div>
                     </div>
 
@@ -980,10 +977,6 @@ thead .sticky-col { z-index: 5; }
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
                             -
                             @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
-                        </span>
-                        <span class="assign-meta-text">
-                            <strong>กำหนดส่งวันที่:</strong>
-                            @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
                     </div>
                     <div class="assign-card-role"><strong>งานที่รับผิดชอบ:</strong> <span class="text-dark">@a.Role</span></div>
