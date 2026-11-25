@@ -10,6 +10,7 @@
         <input type="hidden" name="systemId" value="@Model.System.Id" />
         <input type="hidden" name="section" value="@t.Section" />
         <label class="security-check"><input type="checkbox" name="enabled" value="true" checked="@t.Enabled" /> รวมส่วนนี้เมื่อสแกน Website</label>
+        <input type="hidden" name="enabled" value="false" />
         <label class="security-website-wide">URL @SecurityValues.SectionLabel(t.Section)<input type="url" name="targetUrl" class="form-control" value="@targetUrl" maxlength="2000" placeholder="https://uat.example.com/" /></label>
         @if(t.Section!="WebInfo"){
         <label class="security-check"><input type="checkbox" name="requiresLogin" value="true" checked="@requires" /> Login ก่อนสแกนส่วนนี้</label>

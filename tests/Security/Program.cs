@@ -17,6 +17,25 @@ Check(ProjectTracking.Services.ProjectRichText.PlainText(projectRich)=="หั�
 var projectHtml=ProjectTracking.Services.ProjectRichText.ToHtml(projectRich);
 Check(projectHtml.Contains("font-weight:700")&&projectHtml.Contains("<br>")&&!projectHtml.Contains("<script>")&&projectHtml.Contains("&lt;script&gt;"),"Project rich text renders formatting while encoding HTML");
 Check(ProjectTracking.Services.ProjectRichText.ToHtml("เดิม <b>ข้อความ</b>").Contains("&lt;b&gt;"),"Legacy project details remain plain text");
+var weekFixture = ProjectTracking.Services.ExecutiveWorkSchedule.Create(new ProjectTracking.ViewModels.ExecutiveWorkItemViewModel[] {
+    new(){Title="current",StartDate=new DateTime(2026,11,23),EndDate=new DateTime(2026,11,29)},
+    new(){Title="overdue",StartDate=new DateTime(2026,11,1),EndDate=new DateTime(2026,11,20)},
+    new(){Title="next",StartDate=new DateTime(2026,11,30),EndDate=new DateTime(2026,12,6)},
+    new(){Title="spanning",StartDate=new DateTime(2026,11,20),EndDate=new DateTime(2026,12,4)},
+    new(){Title="undated"},new(){Title="later",StartDate=new DateTime(2026,12,7)}
+},new DateTime(2026,11,25,0,30,0),null,new(),"test");
+Check(weekFixture.WeekStart==new DateTime(2026,11,23)&&weekFixture.ThisWeek.Select(x=>x.Title).Order().SequenceEqual(new[]{"current","overdue","spanning"}),"Executive current week carries overdue work and respects Monday/Sunday boundary");
+Check(weekFixture.NextWeek.Select(x=>x.Title).Order().SequenceEqual(new[]{"next","spanning"})&&weekFixture.AllWork.Count==6,"Executive next week overlaps scheduled ranges and retains undated work only in full list");
+Check(ProjectTracking.Services.ExecutiveWorkSchedule.IsClosed("DONE")&&ProjectTracking.Services.ExecutiveWorkSchedule.IsClosed("เสร็จสิ้น")&&!ProjectTracking.Services.ExecutiveWorkSchedule.IsClosed("กำลังดำเนินการ"),"Executive excludes completed task statuses in Thai and English");
+var sortedExecutive = ProjectTracking.Services.ExecutiveWorkSchedule.Create(new ProjectTracking.ViewModels.ExecutiveWorkItemViewModel[] {
+    new(){Title="other-coop",CooperativeName="ข",PhaseOrder=1,PeriodOrder=1,EndDate=new DateTime(2026,11,1)},
+    new(){Title="part10",CooperativeName="ก",PhaseOrder=10,PeriodOrder=1},
+    new(){Title="period2",CooperativeName="ก",PhaseOrder=2,PeriodOrder=2},
+    new(){Title="late",CooperativeName="ก",PhaseOrder=2,PeriodOrder=1,EndDate=new DateTime(2026,11,26)},
+    new(){Title="undated",CooperativeName="ก",PhaseOrder=2,PeriodOrder=1},
+    new(){Title="early",CooperativeName="ก",PhaseOrder=2,PeriodOrder=1,EndDate=new DateTime(2026,11,25)}
+},new DateTime(2026,11,25),null,new(),"test");
+Check(sortedExecutive.AllWork.Select(x=>x.Title).SequenceEqual(new[]{"early","late","undated","period2","part10","other-coop"}),"Executive sorts by Thai cooperative, numeric phase, numeric period, then ascending due date with undated last");
 var markdownItems=Enumerable.Range(1,51).Select(i=>new SecurityScanFinding{Id=i,Title=$"ผลตรวจ {i}",Severity=i==51?"High":"Low",Evidence="```\n<script>alert(1)</script>\n```",Remediation="แก้ไขให้ปลอดภัย"}).ToList();
 var markdown=SecurityMarkdownReport.Create(new SecurityScan{Id=99,Engine="MobSF",Mode="Static"},new SecurityVersion{VersionName="1.0",Environment="UAT"},new SecuritySystem{Name="แอปทดสอบ"},"โครงการทดสอบ",markdownItems);
 Check(markdown.Contains("51 รายการ")&&markdown.IndexOf("ผลตรวจ 51",StringComparison.Ordinal)<markdown.IndexOf("ผลตรวจ 1\n",StringComparison.Ordinal)&&markdown.Contains("ผลตรวจ 50")&&markdown.Contains("แก้ไขให้ปลอดภัย"),"Markdown exports all findings beyond a page with severity ordering and Thai text");

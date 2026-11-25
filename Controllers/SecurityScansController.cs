@@ -107,13 +107,17 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(scanStartPath!=null)login.ScanStartUrl=string.IsNullOrWhiteSpace(scanStartPath)?null:SecurityValues.WebsiteUrl(system.TargetUrl,scanStartPath.Trim());
             if(enabled||!string.IsNullOrWhiteSpace(url))SecurityScanService.ValidateUrl(url);
             if(enabled&&section!="WebInfo"&&!requiresLogin)throw new InvalidOperationException("Web Member และ Web Admin ต้องตั้งค่า Login ก่อนเปิดสแกน");
-            if(requiresLogin&&(enabled||!string.IsNullOrWhiteSpace(login.Username)||!string.IsNullOrWhiteSpace(login.LoginUrl))){newProfile=await loginStore.SaveAsync(systemId,login,url,ct,target.AuthProfile);target.AuthProfile=newProfile;}
-            else if(enabled)target.AuthProfile=null;
+            // Selecting a section is independent of entering its credentials. QueueWebsiteAsync
+            // still requires a managed Login profile before Member/Admin jobs can be queued.
+            var hasLoginInput=!string.IsNullOrWhiteSpace(login.Username)||!string.IsNullOrWhiteSpace(login.Password)||!string.IsNullOrWhiteSpace(login.LoginUrl);
+            if(requiresLogin&&hasLoginInput){newProfile=await loginStore.SaveAsync(systemId,login,url,ct,target.AuthProfile);target.AuthProfile=newProfile;}
+            else if(!requiresLogin)target.AuthProfile=null;
             target.Enabled=enabled;
             target.TargetUrl=url;
             target.RequiresLogin=requiresLogin;
             await db.SaveChangesAsync(ct);
-            TempData["Success"]=$"บันทึก {SecurityValues.SectionLabel(section)} แล้ว";
+            TempData["Success"]=$"บันทึก {SecurityValues.SectionLabel(section)} แล้ว"+
+                (enabled&&requiresLogin&&!SecurityLoginStore.IsManaged(target.AuthProfile)?" กรุณาตั้งค่า Login ก่อนนำเข้าคิวสแกน":"");
         }catch(InvalidOperationException error){if(newProfile!=null)loginStore.DeleteUncommitted(newProfile);TempData["Error"]=error.Message;}
         catch{if(newProfile!=null)loginStore.DeleteUncommitted(newProfile);throw;}
         return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});

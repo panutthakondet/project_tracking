@@ -23,12 +23,37 @@ namespace ProjectTracking.ViewModels
         public bool IsPrimary { get; set; }
     }
 
+    public class ExecutiveWorkItemViewModel
+    {
+        public int ProjectId { get; set; }
+        public string CooperativeName { get; set; } = "";
+        public int PhaseOrder { get; set; }
+        public int PeriodOrder { get; set; }
+        public string Type { get; set; } = "";
+        public string ProjectName { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string OwnerName { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string StatusCode { get; set; } = "";
+        public string Note { get; set; } = "";
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public DateTime? PeriodEndDate { get; set; }
+    }
+
     public class ExecutiveReportViewModel
     {
+        public int? EmpId { get; set; }
+        public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public DateTime WeekStart { get; set; }
+        public List<ExecutiveWorkItemViewModel> ThisWeek { get; set; } = new();
+        public List<ExecutiveWorkItemViewModel> NextWeek { get; set; } = new();
+        public List<ExecutiveWorkItemViewModel> AllWork { get; set; } = new();
         public int? DepartmentId { get; set; }
         public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
         public DateTime GeneratedAt { get; set; }
         public string GeneratedBy { get; set; } = "";
+        public string GeneratedByPosition { get; set; } = "";
         public List<ExecutiveKpiViewModel> Kpis { get; set; } = new();
         public List<ExecutiveRiskProjectViewModel> RiskProjects { get; set; } = new();
         public List<ExecutiveDueItemViewModel> DueItems { get; set; } = new();

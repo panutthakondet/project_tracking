@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
@@ -40,8 +41,8 @@ namespace ProjectTracking.Controllers
                     new()
                     {
                         Group = "Executive",
-                        Title = "Executive Project Summary",
-                        Description = "ภาพรวมโครงการสำหรับผู้บริหาร รวมโครงการเสี่ยง งานล่าช้า Issue/Support ค้าง และภาระงานทีม",
+                        Title = "รายงานงานประจำสัปดาห์",
+                        Description = "งานมอบหมายสัปดาห์นี้ สัปดาห์หน้า และงานที่กำลังดำเนินการทั้งหมด",
                         Controller = "Reports",
                         Action = "Executive",
                         Icon = "/images/menu-icons/reports.svg",
@@ -190,9 +191,9 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Executive")]
-        public async Task<IActionResult> Executive(int? departmentId)
+        public async Task<IActionResult> Executive(int? departmentId, int? empId)
         {
-            return View(await BuildExecutiveReportAsync(departmentId));
+            return View(await BuildExecutiveReportAsync(departmentId, empId));
         }
 
         [RequireMenu("Home.Index")]
@@ -1111,265 +1112,63 @@ namespace ProjectTracking.Controllers
                 && end >= reportStart.Date;
         }
 
-        private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync(int? departmentId)
+        private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync(int? departmentId, int? empId)
         {
-            var departmentOptions = await GetDepartmentOptionsAsync();
-            departmentId = ValidateDepartmentId(departmentId, departmentOptions);
-            var today = DateTime.Today;
-            var next14Days = today.AddDays(14);
-            var username = HttpContext.Session.GetString("Username") ?? "-";
-
-            var projectQuery = _context.Projects
-                .Include(p => p.BA)
-                .Include(p => p.TeamMembers)
-                    .ThenInclude(m => m.Employee)
-                .Include(p => p.Coop)
-                .AsNoTracking().AsQueryable();
+            var options = await GetDepartmentOptionsAsync();
+            departmentId = ValidateDepartmentId(departmentId, options);
+            var now = DateTime.UtcNow.AddHours(7);
+            var projectsQuery = _context.Projects.AsNoTracking().Include(p => p.Coop).AsQueryable();
             if (departmentId.HasValue)
-                projectQuery = projectQuery.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                projectsQuery = projectsQuery.Where(p => p.DepartmentLinks.Any(l => l.DepartmentId == departmentId.Value)
                     || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
-            var projects = await projectQuery
-                .ToListAsync();
-            var projectIds = projects.Select(p => p.ProjectId).ToHashSet();
-
-            var phases = await _context.ProjectPhases
-                .AsNoTracking()
-                .Where(p => projectIds.Contains(p.ProjectId)).ToListAsync();
-
-            var assigns = await _context.PhaseAssigns
-                .Include(a => a.Employee)
-                .AsNoTracking()
-                .Where(a => a.Phase != null && projectIds.Contains(a.Phase.ProjectId)).ToListAsync();
-
-            var issues = await _context.ProjectIssues
-                .Include(i => i.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Include(i => i.Employee)
-                .AsNoTracking()
-                .Where(i => projectIds.Contains(i.ProjectId)).ToListAsync();
-
-            var supportOrders = await _context.ProjectSupportOrders
-                .Include(o => o.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Include(o => o.Employee)
-                .AsNoTracking()
-                .Where(o => projectIds.Contains(o.ProjectId)).ToListAsync();
-
-            var followups = await _context.ProjectFollowups
-                .Include(f => f.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Include(f => f.Owner)
-                .AsNoTracking()
-                .Where(f => f.ProjectId.HasValue && projectIds.Contains(f.ProjectId.Value)).ToListAsync();
-
-            var employees = await _context.Employees
-                .AsNoTracking()
-                .ToDictionaryAsync(e => e.EmpId, e => e.EmpName ?? "-");
-
-            var phasesByProject = phases
-                .GroupBy(p => p.ProjectId)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var phaseProjectMap = phases
-                .GroupBy(p => p.PhaseId)
-                .ToDictionary(g => g.Key, g => g.First().ProjectId);
-
-            var assignsByProject = assigns
-                .Select(a => new
-                {
-                    Assign = a,
-                    ProjectId = phaseProjectMap.TryGetValue(a.PhaseId, out var projectId) ? projectId : 0
-                })
-                .Where(x => x.ProjectId > 0)
-                .GroupBy(x => x.ProjectId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Assign).ToList());
-
-            var issuesByProject = issues
-                .GroupBy(i => i.ProjectId)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var supportByProject = supportOrders
-                .GroupBy(o => o.ProjectId)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var followupsByProject = followups
-                .Where(f => f.ProjectId.HasValue)
-                .GroupBy(f => f.ProjectId!.Value)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var openIssues = issues.Where(i => !IsIssueResolved(i)).ToList();
-            var urgentOpenIssues = openIssues.Where(i => IsHighPriority(i.IssuePriority)).ToList();
-            var openSupportOrders = supportOrders.Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus)).ToList();
-            var overdueSupportOrders = openSupportOrders.Where(o => o.EndDate?.Date < today).ToList();
-            var overdueFollowups = followups
-                .Where(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE")
-                .ToList();
-            var overduePhases = phases
-                .Where(p => p.PlanEnd?.Date < today && !IsPhaseDone(p.PhaseStatus))
-                .ToList();
-            var overdueAssigns = assigns
-                .Where(a => a.PlanEnd?.Date < today && Norm(a.WorkStatus) != "DONE")
-                .ToList();
-            var nearingPhases = phases
-                .Where(p => p.PlanEnd?.Date >= today && p.PlanEnd?.Date <= next14Days && !IsPhaseDone(p.PhaseStatus))
-                .ToList();
-
-            var riskProjects = projects
-                .Select(project =>
-                {
-                    phasesByProject.TryGetValue(project.ProjectId, out var projectPhases);
-                    assignsByProject.TryGetValue(project.ProjectId, out var projectAssigns);
-                    issuesByProject.TryGetValue(project.ProjectId, out var projectIssues);
-                    supportByProject.TryGetValue(project.ProjectId, out var projectSupportOrders);
-                    followupsByProject.TryGetValue(project.ProjectId, out var projectFollowups);
-
-                    projectPhases ??= new List<ProjectPhase>();
-                    projectAssigns ??= new List<PhaseAssign>();
-                    projectIssues ??= new List<ProjectIssue>();
-                    projectSupportOrders ??= new List<ProjectSupportOrder>();
-                    projectFollowups ??= new List<ProjectFollowup>();
-
-                    var projectOpenIssues = projectIssues.Count(i => !IsIssueResolved(i));
-                    var projectUrgentIssues = projectIssues.Count(i => !IsIssueResolved(i) && IsHighPriority(i.IssuePriority));
-                    var projectOverduePhases = projectPhases.Count(p => p.PlanEnd?.Date < today && !IsPhaseDone(p.PhaseStatus));
-                    var projectNearingPhases = projectPhases.Count(p => p.PlanEnd?.Date >= today && p.PlanEnd?.Date <= next14Days && !IsPhaseDone(p.PhaseStatus));
-                    var projectOverdueAssigns = projectAssigns.Count(a => a.PlanEnd?.Date < today && Norm(a.WorkStatus) != "DONE");
-                    var projectOpenSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus));
-                    var projectOverdueSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus) && o.EndDate?.Date < today);
-                    var projectOverdueFollowups = projectFollowups.Count(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE");
-                    var projectOverdue = project.EndDate?.Date < today && !IsProjectDone(project.Status);
-
-                    var score = 0;
-                    var reasons = new List<string>();
-
-                    if (projectOverdue)
-                    {
-                        score += 6;
-                        reasons.Add("โครงการเลยกำหนด");
-                    }
-
-                    if (projectOverduePhases > 0)
-                    {
-                        score += projectOverduePhases * 3;
-                        reasons.Add($"งวดล่าช้า {projectOverduePhases}");
-                    }
-
-                    if (projectOverdueAssigns > 0)
-                    {
-                        score += projectOverdueAssigns * 2;
-                        reasons.Add($"งานค้าง {projectOverdueAssigns}");
-                    }
-
-                    if (projectUrgentIssues > 0)
-                    {
-                        score += projectUrgentIssues * 4;
-                        reasons.Add($"Issue ด่วน {projectUrgentIssues}");
-                    }
-
-                    if (projectOpenIssues > 0)
-                    {
-                        score += projectOpenIssues;
-                        reasons.Add($"Issue เปิด {projectOpenIssues}");
-                    }
-
-                    if (projectOverdueSupport > 0)
-                    {
-                        score += projectOverdueSupport * 3;
-                        reasons.Add($"Support เลยกำหนด {projectOverdueSupport}");
-                    }
-
-                    if (projectOpenSupport > 0)
-                    {
-                        score += projectOpenSupport;
-                        reasons.Add($"Support ค้าง {projectOpenSupport}");
-                    }
-
-                    if (projectOverdueFollowups > 0)
-                    {
-                        score += projectOverdueFollowups * 2;
-                        reasons.Add($"Followup เลยกำหนด {projectOverdueFollowups}");
-                    }
-
-                    if (projectNearingPhases > 0)
-                    {
-                        score += projectNearingPhases;
-                        reasons.Add($"ใกล้ครบกำหนด {projectNearingPhases}");
-                    }
-
-                    if (score == 0)
-                    {
-                        return null;
-                    }
-
-                    var progress = CalculateProjectProgress(project.Status, projectPhases, projectAssigns);
-                    var riskLevel = score >= 12 ? "สูง" : score >= 6 ? "กลาง" : "เฝ้าระวัง";
-                    var riskTone = score >= 12 ? "danger" : score >= 6 ? "warning" : "info";
-                    var ownerName = !string.IsNullOrWhiteSpace(project.BusinessAnalystNames)
-                        ? project.BusinessAnalystNames
-                        : projectAssigns
-                            .GroupBy(a => a.EmpId)
-                            .OrderByDescending(g => g.Count())
-                            .Select(g => EmployeeName(employees, g.Key))
-                            .FirstOrDefault()
-                            ?? "-";
-
-                    return new ExecutiveRiskProjectViewModel
-                    {
-                        ProjectId = project.ProjectId,
-                        ProjectName = project.ProjectDisplayName,
-                        OwnerName = ownerName,
-                        Progress = progress,
-                        RiskLevel = riskLevel,
-                        RiskTone = riskTone,
-                        RiskScore = score,
-                        DueText = BuildDueText(project, projectPhases, projectAssigns, projectFollowups, projectSupportOrders, today),
-                        OpenIssues = projectOpenIssues,
-                        UrgentIssues = projectUrgentIssues,
-                        OverduePhases = projectOverduePhases,
-                        OverdueAssigns = projectOverdueAssigns,
-                        OpenSupportOrders = projectOpenSupport,
-                        OverdueFollowups = projectOverdueFollowups,
-                        Reasons = reasons.Distinct().Take(5).ToList()
-                    };
-                })
-                .Where(x => x != null)
-                .OrderByDescending(x => x!.RiskScore)
-                .ThenBy(x => x!.Progress)
-                .ThenBy(x => x!.ProjectName)
-                .Take(8)
-                .Select(x => x!)
-                .ToList();
-
-            var dueItems = BuildDueItems(today, overduePhases, overdueAssigns, overdueFollowups, overdueSupportOrders, phaseProjectMap, projects, employees)
-                .Take(12)
-                .ToList();
-
-            var agingItems = BuildAgingItems(today, openIssues, openSupportOrders)
-                .Take(12)
-                .ToList();
-
-            var teamWorkload = BuildTeamWorkload(assigns, openIssues, openSupportOrders, followups, employees);
-
-            return new ExecutiveReportViewModel
+            var projects = await projectsQuery.ToListAsync();
+            var ids = projects.Select(p => p.ProjectId).ToList();
+            var projectNames = projects.ToDictionary(p => p.ProjectId, p => p.ProjectDisplayName);
+            var cooperativeNames = projects.ToDictionary(p => p.ProjectId, p => p.Coop?.CoopName?.Trim() ?? "");
+            var projectNotes = projects.ToDictionary(p => p.ProjectId, p => ProjectRichText.PlainText(p.ProjectDetail));
+            var phases = await _context.ProjectPhases.AsNoTracking().Include(p => p.StatusDefinition).Where(p => ids.Contains(p.ProjectId)).ToListAsync();
+            var phaseMap = phases.ToDictionary(p => p.PhaseId);
+            var assigns = await _context.PhaseAssigns.AsNoTracking().Include(a => a.Employee).Include(a => a.StatusDefinition)
+                .Where(a => a.Phase != null && ids.Contains(a.Phase.ProjectId)).ToListAsync();
+            var employeeOptions = assigns.Where(a => a.Employee != null).DistinctBy(a => a.EmpId)
+                .OrderBy(a => a.Employee!.EmpName, StringComparer.Create(CultureInfo.GetCultureInfo("th-TH"), true))
+                .Select(a => new EmployeeReportOptionViewModel { EmpId = a.EmpId, EmpName = a.Employee!.EmpName }).ToList();
+            if (empId.HasValue && !employeeOptions.Any(e => e.EmpId == empId.Value)) empId = null;
+            var work = new List<ExecutiveWorkItemViewModel>();
+            foreach (var assign in assigns.Where(a => (!empId.HasValue || a.EmpId == empId.Value)
+                && !ExecutiveWorkSchedule.IsClosed(a.StatusDefinition?.StatusCode ?? a.WorkStatus)))
             {
-                DepartmentId = departmentId,
-                DepartmentOptions = departmentOptions,
-                GeneratedAt = DateTime.Now,
-                GeneratedBy = username,
-                Kpis = new List<ExecutiveKpiViewModel>
-                {
-                    new() { Label = "Projects", Value = projects.Count.ToString("N0"), Note = $"กำลังทำ {projects.Count(p => Norm(p.Status) == "IN_PROGRESS"):N0} / เสร็จ {projects.Count(p => IsProjectDone(p.Status)):N0}", Tone = "blue" },
-                    new() { Label = "Risk Projects", Value = riskProjects.Count.ToString("N0"), Note = "โครงการที่มีงานค้างหรือความเสี่ยง", Tone = "pink" },
-                    new() { Label = "Overdue Work", Value = (overduePhases.Count + overdueAssigns.Count + overdueFollowups.Count + overdueSupportOrders.Count).ToString("N0"), Note = "งวด งาน Followup และ Support เลยกำหนด", Tone = "orange" },
-                    new() { Label = "Open Issues", Value = openIssues.Count.ToString("N0"), Note = $"ด่วน {urgentOpenIssues.Count:N0} รายการ", Tone = "red" },
-                    new() { Label = "Open Support", Value = openSupportOrders.Count.ToString("N0"), Note = $"เลยกำหนด {overdueSupportOrders.Count:N0} รายการ", Tone = "green" },
-                    new() { Label = "Due Soon", Value = nearingPhases.Count.ToString("N0"), Note = "งวดใกล้ครบกำหนดใน 14 วัน", Tone = "cyan" }
-                },
-                RiskProjects = riskProjects,
-                DueItems = dueItems,
-                AgingItems = agingItems,
-                TeamWorkload = teamWorkload
-            };
+                if (!phaseMap.TryGetValue(assign.PhaseId, out var phase)) continue;
+                work.Add(new() { ProjectName = projectNames[phase.ProjectId],
+                    ProjectId = phase.ProjectId,
+                    CooperativeName = cooperativeNames[phase.ProjectId], PhaseOrder = assign.PhaseOrder ?? phase.PhaseOrder, PeriodOrder = phase.PeriodOrder,
+                    PeriodEndDate = phase.PeriodEndDate, Note = projectNotes[phase.ProjectId],
+                    Title = $"ส่วนที่ {assign.PhaseOrder ?? phase.PhaseOrder} / งวดที่ {phase.PeriodOrder} / {phase.PhaseName}"
+                        + (string.IsNullOrWhiteSpace(assign.Role) ? "" : $" — {assign.Role}"),
+                    OwnerName = assign.Employee?.EmpName ?? "ยังไม่ระบุ", Status = assign.StatusDescription,
+                    StatusCode = assign.StatusDefinition?.StatusCode ?? assign.WorkStatus ?? "",
+                    StartDate = assign.ActualStart ?? assign.PlanStart, EndDate = assign.PlanEnd });
+            }
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var employeeId = HttpContext.Session.GetInt32("EmpId");
+            if (!employeeId.HasValue && userId.HasValue)
+            {
+                employeeId = await _context.LoginUsers.AsNoTracking().Where(u => u.UserId == userId.Value)
+                    .Select(u => u.EmpId).FirstOrDefaultAsync()
+                    ?? await _context.Employees.AsNoTracking().Where(e => e.LoginUserId == userId.Value)
+                        .Select(e => (int?)e.EmpId).FirstOrDefaultAsync();
+            }
+            var author = employeeId.HasValue
+                ? await _context.Employees.AsNoTracking().Where(e => e.EmpId == employeeId.Value)
+                    .Select(e => new { Name = e.EmpName, Position = e.PositionDefinition != null ? e.PositionDefinition.PositionName : "" })
+                    .FirstOrDefaultAsync()
+                : null;
+            var report = ExecutiveWorkSchedule.Create(work, now, departmentId, options,
+                string.IsNullOrWhiteSpace(author?.Name) ? HttpContext.Session.GetString("Username") ?? "-" : author.Name);
+            report.GeneratedByPosition = string.IsNullOrWhiteSpace(author?.Position) ? "ยังไม่ระบุตำแหน่ง" : author.Position;
+            report.EmpId = empId;
+            report.EmployeeOptions = employeeOptions;
+            return report;
         }
 
         private static List<ExecutiveDueItemViewModel> BuildDueItems(

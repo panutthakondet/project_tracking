@@ -48,6 +48,19 @@ public static class WebsiteChecks
         var before=await db.SecurityScanRows.CountAsync();await service.SetHostApprovalAsync(7,"info.example.com",false,1,default);
         try{await service.QueueWebsiteAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);throw new Exception("Unapproved Website accepted");}catch(InvalidOperationException){}
         db.ChangeTracker.Clear();Check(await db.SecurityScanRows.CountAsync()==before,"invalid section rolls back the entire Website batch without a partial queue");
+        await service.SetHostApprovalAsync(7,"info.example.com",true,1,default);
+        foreach(var section in new[]{"WebMember","WebAdmin"}){
+            var selected=await db.SecurityWebsiteTargets.SingleAsync(x=>x.Section==section);
+            selected.Enabled=true;selected.RequiresLogin=true;selected.AuthProfile=null;
+            await db.SaveChangesAsync();db.ChangeTracker.Clear();
+            Check((await db.SecurityWebsiteTargets.SingleAsync(x=>x.Section==section)).Enabled,"section selection persists before Login is configured: "+section);
+            try{await service.QueueWebsiteAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);throw new Exception("Missing Login accepted");}
+            catch(InvalidOperationException){}
+            db.ChangeTracker.Clear();
+            Check(await db.SecurityScanRows.CountAsync()==before,"selected section without Login cannot queue a partial Website scan: "+section);
+            selected=await db.SecurityWebsiteTargets.SingleAsync(x=>x.Section==section);
+            selected.Enabled=false;await db.SaveChangesAsync();
+        }
         Check(SecurityValues.Kinds.SequenceEqual(new[]{"Website","Android","iOS"})&&SecurityValues.Category("WebAdmin")=="Website","three primary categories retain legacy website history");
     }
 }

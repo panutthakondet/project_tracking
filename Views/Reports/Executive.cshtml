@@ -1,406 +1,204 @@
 @model ProjectTracking.ViewModels.ExecutiveReportViewModel
 @using System.Globalization
-
 @{
     Layout = null;
-    var th = new CultureInfo("th-TH");
-    var report = Model ?? new ProjectTracking.ViewModels.ExecutiveReportViewModel();
-
-    string FormatDate(DateTime? value)
+    var th = CultureInfo.GetCultureInfo("th-TH");
+    string DateText(DateTime? date) => date?.ToString("d MMM yyyy", th) ?? "ไม่กำหนด";
+    string StatusTone(string status)
     {
-        return value?.ToString("dd MMM yyyy", th) ?? "-";
+        var code = ProjectTracking.Services.WorkflowStatusPresentation.Normalize(status);
+        return code switch {
+            "IN_PROGRESS" or "WORKING" or "WIP" => "working",
+            "PLAN" or "PLANNED" or "OPEN" or "PENDING" => "planned",
+            "DELAYED" or "OVERDUE" or "FAIL" or "REWORK" => "delayed",
+            "FIXED" or "REVIEW" => "review",
+            _ => "other"
+        };
     }
+    var sections = new[] {
+        (Title: "งานที่กำลังทำในสัปดาห์นี้", Period: $"{DateText(Model.WeekStart)} – {DateText(Model.WeekStart.AddDays(6))}", Items: Model.ThisWeek, Tone: "current"),
+        (Title: "งานที่ต้องทำในสัปดาห์หน้า", Period: $"{DateText(Model.WeekStart.AddDays(7))} – {DateText(Model.WeekStart.AddDays(13))}", Items: Model.NextWeek, Tone: "next"),
+        (Title: "งานที่กำลังดำเนินการทั้งหมด", Period: "งานมอบหมายที่ยังไม่เสร็จ", Items: Model.AllWork, Tone: "all")
+    };
 }
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>Executive Project Summary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>รายงานงานประจำสัปดาห์ - @DateText(Model.WeekStart)</title>
     <style>
-        @@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap");
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 16px;
-            color: #10233f;
-            background: #fff;
-            font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 11px;
+        @@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+        * { box-sizing:border-box; }
+        body { margin:0; padding:24px; background:#f3f6fa; color:#172b43; font:16px/1.5 'Sarabun',Tahoma,sans-serif; }
+        .report { max-width:1440px; margin:auto; }
+        .actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:18px; }
+        .filter { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-right:auto; }
+        button,select,.button { font:inherit; padding:8px 14px; border:1px solid #b6c6d8; border-radius:8px; background:white; color:#172b43; text-decoration:none; cursor:pointer; }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
         }
-        .report-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .department-filter { display:flex; align-items:center; gap:8px; margin-right:auto; }
-        .department-filter label { font-weight:700; }
-        .department-filter select { min-width:220px; min-height:34px; padding:6px 10px; border:1px solid #b9c9dc; background:#fff; color:#10233f; font:inherit; }
-        .report-btn {
+        .pt-search-select { position: relative; width: 100%; }
+        .pt-search-select__field { position: relative; }
+        .pt-search-select__input {
+            width: 100%;
             min-height: 34px;
-            padding: 7px 13px;
-            border: 1px solid #102443;
-            border-radius: 999px;
-            color: #102443;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
             background: #fff;
             font-family: 'Prompt', Tahoma, Arial, sans-serif;
             font-size: 12px;
-            font-weight: 900;
-            line-height: 1.1;
-            text-decoration: none;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Prompt', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
             cursor: pointer;
         }
-        .report-btn.primary {
-            color: #fff;
-            background: #102443;
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
         }
-        .print-header {
-            margin-bottom: 12px;
-            padding: 14px 16px;
-            color: #fff;
-            background: #102443;
-        }
-        .print-header h1 {
-            margin: 0 0 6px;
-            font-size: 22px;
-        }
-        .print-header div {
-            color: rgba(255,255,255,.82);
-            font-weight: 700;
-            line-height: 1.55;
-        }
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .kpi {
-            --kpi-tone: #14b8a6;
-            --kpi-soft: rgba(20, 184, 166, .18);
-            --kpi-faint: rgba(20, 184, 166, .045);
+        .pt-search-select__empty {
             padding: 10px;
-            border: 1px solid #d8e3ef;
-            border-color: color-mix(in srgb, var(--kpi-tone) 22%, #d8e3ef);
-            border-left: 4px solid var(--kpi-tone);
-            background:
-                linear-gradient(90deg, var(--kpi-soft) 0%, var(--kpi-faint) 42%, #fff 100%);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .78);
-        }
-        .kpi.blue,
-        .kpi.info {
-            --kpi-tone: #258cfb;
-            --kpi-soft: rgba(37, 140, 251, .18);
-            --kpi-faint: rgba(37, 140, 251, .045);
-        }
-        .kpi.pink {
-            --kpi-tone: #ec4899;
-            --kpi-soft: rgba(236, 72, 153, .18);
-            --kpi-faint: rgba(236, 72, 153, .045);
-        }
-        .kpi.orange,
-        .kpi.warning {
-            --kpi-tone: #f59e0b;
-            --kpi-soft: rgba(245, 158, 11, .2);
-            --kpi-faint: rgba(245, 158, 11, .055);
-        }
-        .kpi.red,
-        .kpi.danger {
-            --kpi-tone: #ef4444;
-            --kpi-soft: rgba(239, 68, 68, .18);
-            --kpi-faint: rgba(239, 68, 68, .045);
-        }
-        .kpi.green,
-        .kpi.success {
-            --kpi-tone: #22c55e;
-            --kpi-soft: rgba(34, 197, 94, .18);
-            --kpi-faint: rgba(34, 197, 94, .045);
-        }
-        .kpi.cyan,
-        .kpi.teal {
-            --kpi-tone: #14b8a6;
-            --kpi-soft: rgba(20, 184, 166, .18);
-            --kpi-faint: rgba(20, 184, 166, .045);
-        }
-        .kpi.purple {
-            --kpi-tone: #8b5cf6;
-            --kpi-soft: rgba(139, 92, 246, .18);
-            --kpi-faint: rgba(139, 92, 246, .045);
-        }
-        .kpi span,
-        .kpi small {
-            display: block;
             color: #64748b;
             font-weight: 800;
-        }
-        .kpi strong {
-            display: block;
-            margin: 5px 0;
-            color: #10233f;
-            font-size: 20px;
-            font-weight: 900;
-        }
-        h2 {
-            margin: 14px 0 8px;
-            color: #10233f;
-            font-size: 16px;
-            font-weight: 900;
-        }
-        .report-section {
-            margin-bottom: 12px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            margin-bottom: 12px;
-        }
-        th {
-            padding: 7px 6px;
-            color: #fff;
-            background: #102443;
-            border: 1px solid rgba(255,255,255,.18);
-            font-weight: 900;
             text-align: center;
         }
-        td {
-            padding: 7px 6px;
-            border: 1px solid #d8e3ef;
-            line-height: 1.45;
-            vertical-align: top;
-            overflow-wrap: anywhere;
-        }
-        tr:nth-child(even) td { background: #f8fbff; }
-        .text-center { text-align: center; }
-        .empty {
-            padding: 18px;
-            border: 1px dashed #cbd5e1;
-            color: #64748b;
-            text-align: center;
-            font-weight: 800;
-        }
-        @@page {
-            size: A4 landscape;
-            margin: 8mm;
-        }
-        @@media print {
-            body { padding: 0; }
-            .report-actions { display: none; }
-            thead { display: table-header-group; }
-            h2, h3,
-            .project-group-row,
-            .scenario-project__header,
-            .scenario-group__header,
-            .phase-project-group {
-                break-after: avoid;
-                page-break-after: avoid;
-            }
-            .report-section table,
-            .report-section .empty,
-            h2 + table,
-            h2 + .empty,
-            h2 + .report-table-scroll,
-            h3 + table,
-            h3 + .empty,
-            .project-group-row + tr {
-                break-before: avoid;
-                page-break-before: avoid;
-            }
-            .report-section,
-            .scenario-project,
-            .scenario-group,
-            .project-group-row,
-            .phase-project-group {
-                break-inside: avoid-page;
-                page-break-inside: avoid;
-            }
-            tr { page-break-inside: avoid; }
-        }
-    
-        /* Crisp typography normalization for standalone pages. */
-        :root { --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
-        html, body {
-            font-family: var(--pt-readable-thai-font) !important;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-        }
-        body :where(*):not(svg):not(svg *) {
-            font-family: var(--pt-readable-thai-font) !important;
-            font-stretch: normal !important;
-            letter-spacing: 0 !important;
-            text-shadow: none !important;
-        }
-        body :is(h1, h2, h3, h4, h5, h6, th, label, strong, b, .report-btn, .btn, .badge, .status-text, .cell-title, .project-group-name, [class*="title"], [class*="heading"], [class*="eyebrow"], [class*="status"], [class*="badge"], [class*="count"], [class*="total"], [class*="value"]) {
-            font-weight: 700 !important;
-        }
-        body :is(p, li, td, small, em, time, .cell-sub, .detail-block div, .meta-label, .meta-value, .empty, [class*="detail"], [class*="meta"], [class*="subtitle"], [class*="description"], [class*="desc"], [class*="remark"], [class*="note"], [class*="empty"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
-            font-weight: 400 !important;
-        }
-</style>
-@await Html.PartialAsync("_StandaloneTheme")
+        .filter .pt-search-select { width:260px; max-width:100%; }
+        .filter .pt-search-select__input { border-radius:8px; font:inherit; min-height:40px; }
+        .filter .pt-search-select__option { font:inherit; border-radius:0; }
+        .primary { background:#183b64; color:white; }
+        header { border-bottom:3px solid #183b64; padding:0 0 18px; margin-bottom:20px; }
+        h1 { margin:0 0 6px; font-size:28px; } .muted { color:#54677b; }
+        .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:24px; }
+        .summary a { display:block; padding:16px; border:1px solid #d4deea; border-top:4px solid #2473b5; border-radius:10px; background:white; text-decoration:none; color:inherit; }
+        .summary strong { display:block; font-size:28px; } .summary a:nth-child(2) { border-top-color:#8b5dc4; } .summary a:nth-child(3) { border-top-color:#16877e; }
+        .section { margin:0 0 28px; padding:20px; background:white; border:1px solid #d4deea; border-radius:12px; scroll-margin-top:12px; }
+        .section-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+        h2 { margin:0; font-size:22px; } .period { margin-top:3px; color:#54677b; }
+        .table-wrap { overflow-x:auto; } table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:15px; }
+        th,td { padding:10px; border-bottom:1px solid #dce4ed; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+        th { background:#eff4f9; font-weight:600; } tbody.work-entry:nth-of-type(even) td { background:#fafbfd; }
+        .type { display:block; color:#54677b; font-size:13px; margin-bottom:3px; } .late { color:#b42318; display:block; font-size:13px; }
+        .pt-standalone-report .period-deadline { color:#175ca6 !important; font-weight:600; }
+        .pt-standalone-report .period-deadline.is-overdue { color:#b42318 !important; }
+        .pt-standalone-report .work-status { font-weight:600; }
+        .pt-standalone-report .status-working { color:#087669 !important; }
+        .pt-standalone-report .status-planned { color:#9a5700 !important; }
+        .pt-standalone-report .status-delayed { color:#b42318 !important; }
+        .pt-standalone-report .status-review { color:#7044a0 !important; }
+        .pt-standalone-report .status-other { color:#175ca6 !important; }
+        .work-note { white-space:normal; overflow-wrap:anywhere; }
+        .work-note-row td { padding:6px 10px 12px; color:#54677b; }
+        .work-entry { break-inside:avoid; page-break-inside:avoid; }
+        .work-entry.cooperative-end > tr:last-child > td { border-bottom:3px solid #74899f; }
+        .empty { text-align:center; padding:28px; color:#54677b; } footer { color:#54677b; font-size:13px; }
+        @@media(max-width:700px) { body { padding:12px; } .summary { grid-template-columns:1fr; gap:8px; } .summary a { padding:10px 14px; } .summary strong { display:inline; margin-right:8px; } .section { padding:12px; } table { min-width:850px; } h1 { font-size:24px; } }
+        @@page { size:A4 landscape; margin:12mm; }
+        @@media print { body { background:white; padding:0; font-size:11pt; } .actions { display:none; } .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:16px; break-inside:avoid; page-break-inside:avoid; print-color-adjust:exact; -webkit-print-color-adjust:exact; } .summary a { padding:10px 12px; } .summary strong { display:block; margin-right:0; font-size:20pt; } .section { border:0; padding:0; border-radius:0; } .section + .section { break-before:page; } table { font-size:10pt; min-width:0; } thead { display:table-header-group; } tr { break-inside:avoid; } .table-wrap { overflow:visible; } a { color:inherit; } }
+    </style>
+    @await Html.PartialAsync("_StandaloneTheme")
 </head>
 <body class="pt-standalone-report">
-    <div class="report-actions">
-        <form method="get" class="department-filter">
+<main class="report">
+    <div class="actions">
+        <form method="get" class="filter">
             <label for="departmentId">ฝ่าย</label>
-            <select id="departmentId" name="departmentId" onchange="window.ProjectTrackingLoading.submit(this.form)">
+            <select id="departmentId" name="departmentId" data-placeholder="พิมพ์ค้นหาฝ่าย..." onchange="this.form.elements.empId.value=''; this.form.submit()">
                 <option value="">ทุกฝ่าย</option>
-                @foreach (var department in report.DepartmentOptions)
+                @foreach (var option in Model.DepartmentOptions)
                 {
-                    <option value="@department.DepartmentId" selected="@(report.DepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                    <option value="@option.DepartmentId" selected="@(Model.DepartmentId == option.DepartmentId)">@option.DepartmentName</option>
+                }
+            </select>
+            <label for="empId">พนักงาน</label>
+            <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหาพนักงาน..." onchange="this.form.submit()">
+                <option value="">ทุกคน</option>
+                @foreach (var employee in Model.EmployeeOptions)
+                {
+                    <option value="@employee.EmpId" selected="@(Model.EmpId == employee.EmpId)">@employee.EmpName</option>
                 }
             </select>
         </form>
-        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
-        <a asp-action="Index" class="report-btn">Report Center</a>
-        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+        <button type="button" class="primary" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+        <a asp-action="Index" class="button">ศูนย์รายงาน</a>
     </div>
-
-    <header class="print-header">
-        <h1>Executive Project Summary</h1>
-        <div>
-            ข้อมูล ณ @report.GeneratedAt.ToString("dd MMM yyyy HH:mm", th)<br />
-            ผู้พิมพ์: @(string.IsNullOrWhiteSpace(report.GeneratedBy) ? "-" : report.GeneratedBy)
-        </div>
+    <header>
+        <h1>รายงานงานประจำสัปดาห์</h1>
+        <div class="muted">ฝ่าย: @(Model.DepartmentOptions.FirstOrDefault(d => d.DepartmentId == Model.DepartmentId)?.DepartmentName ?? "ทุกฝ่าย")</div>
+        <div class="muted">ข้อมูล ณ @Model.GeneratedAt.ToString("d MMM yyyy HH:mm", th) น.</div>
+        <div class="muted">ผู้จัดทำ: @Model.GeneratedBy · ตำแหน่ง: @Model.GeneratedByPosition</div>
     </header>
-
-    <section class="kpi-grid">
-        @foreach (var kpi in report.Kpis)
+    <div class="summary">
+        @foreach (var block in sections)
         {
-            <article class="kpi @kpi.Tone">
-                <span>@kpi.Label</span>
-                <strong>@kpi.Value</strong>
-                <small>@kpi.Note</small>
-            </article>
+            <a href="#@block.Tone"><strong>@block.Items.Count.ToString("N0")</strong>@block.Title</a>
         }
-    </section>
-
-    <section class="report-section">
-        <h2>โครงการที่ต้องเฝ้าระวัง</h2>
-        @if (!report.RiskProjects.Any())
-        {
-            <div class="empty">ยังไม่พบโครงการที่ต้องเฝ้าระวัง</div>
-        }
-        else
-        {
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:34px;">Seq</th>
-                        <th>Project</th>
-                        <th style="width:150px;">Owner</th>
-                        <th style="width:70px;">Risk</th>
-                        <th style="width:70px;">Progress</th>
-                        <th style="width:180px;">Due</th>
-                        <th style="width:240px;">Reasons</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        var riskSeq = 1;
-                    }
-                    @foreach (var item in report.RiskProjects)
+    </div>
+    @foreach (var block in sections)
+    {
+        <section class="section" id="@block.Tone">
+            <div class="section-head"><div><h2>@block.Title</h2><div class="period">@block.Period</div></div><span>@block.Items.Count.ToString("N0") รายการ</span></div>
+            <div class="table-wrap">
+                <table>
+                    <colgroup><col style="width:5%" /><col style="width:24%" /><col style="width:27%" /><col style="width:16%" /><col style="width:15%" /><col style="width:13%" /></colgroup>
+                    <thead><tr><th>ลำดับ</th><th>สหกรณ์ / โครงการ</th><th>งาน</th><th>ผู้รับผิดชอบ</th><th>กำหนดเริ่ม–สิ้นสุด</th><th>สถานะ</th></tr></thead>
+                    @for (var index = 0; index < block.Items.Count; index++)
                     {
-                        <tr>
-                            <td class="text-center">@riskSeq</td>
-                            <td>@item.ProjectName</td>
-                            <td>@item.OwnerName</td>
-                            <td class="text-center">@item.RiskLevel</td>
-                            <td class="text-center">@item.Progress%</td>
-                            <td>@item.DueText</td>
-                            <td>@string.Join(", ", item.Reasons)</td>
-                        </tr>
-                        riskSeq++;
+                        var item = block.Items[index];
+                        var cooperativeEnd = index == block.Items.Count - 1 || !string.Equals(item.CooperativeName, block.Items[index + 1].CooperativeName, StringComparison.OrdinalIgnoreCase);
+                        <tbody class="work-entry @(cooperativeEnd ? "cooperative-end" : "")">
+                        <tr><td>@(index + 1)</td><td>@item.ProjectName</td><td>@item.Title<br /><span class="period-deadline @(item.PeriodEndDate?.Date < Model.GeneratedAt.Date ? "is-overdue" : "")">กำหนดส่งงวด: @DateText(item.PeriodEndDate)</span></td><td>@(string.IsNullOrWhiteSpace(item.OwnerName) ? "ยังไม่ระบุ" : item.OwnerName)</td><td>@DateText(item.StartDate)<br />ถึง @DateText(item.EndDate)
+                        @if (item.EndDate?.Date < Model.GeneratedAt.Date) { <span class="late">เกินกำหนด @((Model.GeneratedAt.Date - item.EndDate.Value.Date).Days) วัน</span> }
+                        </td><td><span class="work-status status-@StatusTone(string.IsNullOrWhiteSpace(item.StatusCode) ? item.Status : item.StatusCode)">@item.Status</span></td></tr>
+                        @if (!string.IsNullOrWhiteSpace(item.Note) && !block.Items.Skip(index + 1).Any(later => later.ProjectId == item.ProjectId))
+                        {
+                            <tr class="work-note-row"><td colspan="6"><div class="work-note"><strong>หมายเหตุ:</strong> @item.Note</div></td></tr>
+                        }
+                        </tbody>
                     }
-                </tbody>
-            </table>
-        }
-    </section>
-
-    <section class="report-section">
-        <h2>งานเลยกำหนดที่ต้องจัดการ</h2>
-        @if (!report.DueItems.Any())
-        {
-            <div class="empty">ไม่มีงานเลยกำหนด</div>
-        }
-        else
-        {
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:34px;">Seq</th>
-                        <th style="width:80px;">Type</th>
-                        <th>Title</th>
-                        <th>Project</th>
-                        <th style="width:150px;">Owner</th>
-                        <th style="width:95px;">Due</th>
-                        <th style="width:70px;">Days</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        var dueSeq = 1;
-                    }
-                    @foreach (var item in report.DueItems)
-                    {
-                        <tr>
-                            <td class="text-center">@dueSeq</td>
-                            <td>@item.Type</td>
-                            <td>@item.Title</td>
-                            <td>@item.ProjectName</td>
-                            <td>@item.OwnerName</td>
-                            <td class="text-center">@FormatDate(item.DueDate)</td>
-                            <td class="text-center">@item.OverdueDays</td>
-                        </tr>
-                        dueSeq++;
-                    }
-                </tbody>
-            </table>
-        }
-    </section>
-
-    <section class="report-section">
-        <h2>Team Workload</h2>
-        @if (!report.TeamWorkload.Any())
-        {
-            <div class="empty">ยังไม่มีภาระงานค้างในทีม</div>
-        }
-        else
-        {
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:34px;">Seq</th>
-                        <th>Employee</th>
-                        <th style="width:70px;">Assign</th>
-                        <th style="width:70px;">Issue</th>
-                        <th style="width:70px;">Support</th>
-                        <th style="width:80px;">Followup</th>
-                        <th style="width:70px;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        var workloadSeq = 1;
-                    }
-                    @foreach (var row in report.TeamWorkload)
-                    {
-                        <tr>
-                            <td class="text-center">@workloadSeq</td>
-                            <td>@row.EmployeeName</td>
-                            <td class="text-center">@row.Assignments</td>
-                            <td class="text-center">@row.Issues</td>
-                            <td class="text-center">@row.SupportOrders</td>
-                            <td class="text-center">@row.Followups</td>
-                            <td class="text-center">@row.Total</td>
-                        </tr>
-                        workloadSeq++;
-                    }
-                </tbody>
-            </table>
-        }
-    </section>
-
+                    @if (!block.Items.Any()) { <tbody><tr><td colspan="6" class="empty">ไม่มีรายการในส่วนนี้</td></tr></tbody> }
+                </table>
+            </div>
+        </section>
+    }
+</main>
+<script src="~/js/executive-report-filters.js" asp-append-version="true"></script>
 </body>
 </html>
