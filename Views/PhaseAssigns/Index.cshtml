@@ -727,22 +727,6 @@ thead .sticky-col { z-index: 5; }
         overflow-wrap: anywhere;
     }
 
-    .assign-card-people {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        align-items: center;
-        gap: 10px 18px;
-        margin: 10px 0 0;
-        padding: 0;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        color: #0f172a;
-        font-size: .95rem;
-        font-weight: 400;
-    }
-
     .assign-card-person {
         display: inline-flex;
         align-items: center;
@@ -776,12 +760,6 @@ thead .sticky-col { z-index: 5; }
     .assign-card-remark .text-dark {
         color: #0f172a !important;
         font-weight: 400;
-    }
-
-    .assign-status-grid {
-        display: grid;
-        gap: 6px;
-        margin-top: 6px;
     }
 
     .assign-status-row {
@@ -962,6 +940,37 @@ thead .sticky-col { z-index: 5; }
                             <div class="assign-title-line">
                                 <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
                                 <span class="assign-card-index">#@row</span>
+                                <span class="assign-card-person">
+                                    <img class="pt-owner-avatar"
+                                         src="@ProfileImage(a.Employee)"
+                                         alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                                         loading="lazy"
+                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
+                                </span>
+                                <span class="assign-status-row">
+                                    <small>สถานะงาน:</small>
+                                    <span class="assign-status-badges">
+                                        @if (workStatusCode == "DONE")
+                                        {
+                                            <span class="badge bg-success">@a.StatusDescription</span>
+                                        }
+                                        else if (workStatusCode == "IN_PROGRESS")
+                                        {
+                                            <span class="badge bg-warning text-dark">@a.StatusDescription</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@a.StatusDescription</span>
+                                        }
+                                        @if (hasPendingApproval)
+                                        {
+                                            <span class="badge assign-approval-pending-badge">
+                                                รออนุมัติ
+                                            </span>
+                                        }
+                                    </span>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -980,42 +989,6 @@ thead .sticky-col { z-index: 5; }
                         <div class="text-muted"><b>บันทึกการนำเสนองาน:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
                     </div>
 
-                    <div class="assign-card-people">
-                        <span class="assign-card-person">
-                            <img class="pt-owner-avatar"
-                                 src="@ProfileImage(a.Employee)"
-                                 alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
-                                 loading="lazy"
-                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                            <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
-                        </span>
-                    </div>
-
-                    <div class="assign-status-grid">
-                        <div class="assign-status-row">
-                            <small>สถานะงาน:</small>
-                            <span class="assign-status-badges">
-                                @if (workStatusCode == "DONE")
-                                {
-                                    <span class="badge bg-success">@a.StatusDescription</span>
-                                }
-                                else if (workStatusCode == "IN_PROGRESS")
-                                {
-                                    <span class="badge bg-warning text-dark">@a.StatusDescription</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">@a.StatusDescription</span>
-                                }
-                                @if (hasPendingApproval)
-                                {
-                                    <span class="badge assign-approval-pending-badge">
-                                        รออนุมัติ
-                                    </span>
-                                }
-                            </span>
-                        </div>
-                    </div>
                 </section>
 
                 <aside class="assign-card-right">
