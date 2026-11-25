@@ -1033,11 +1033,6 @@ namespace ProjectTracking.Controllers
 
                 _context.PhaseAssignLogs.Add(log);
 
-                assign.WorkStatus = status == "PASS" ? "DONE" : "IN_PROGRESS";
-                SyncActualPeriod(assign);
-                assign.CreatedAt = DateTime.Now;
-                assign.EntryId = await GetCurrentEntryIdAsync();
-
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
