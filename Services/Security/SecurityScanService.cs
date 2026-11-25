@@ -1,10 +1,33 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using System.Text;
 namespace ProjectTracking.Services.Security;
 public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfiguration config,SecurityLoginStore? loginStore=null)
 {
+    private int? issueNameLimit;
+
+    private async Task<int> GetIssueNameLimitAsync(CancellationToken ct)
+    {
+        if (issueNameLimit.HasValue) return issueNameLimit.Value;
+        const int applicationLimit = 500;
+        if (db.Database.ProviderName != "Pomelo.EntityFrameworkCore.MySql") return applicationLimit;
+
+        await using var command = db.Database.GetDbConnection().CreateCommand();
+        command.Transaction = db.Database.CurrentTransaction!.GetDbTransaction();
+        command.CommandText = """
+            SELECT CHARACTER_MAXIMUM_LENGTH
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ProjectIssues' AND COLUMN_NAME = 'IssueName'
+            """;
+        var capacity = await command.ExecuteScalarAsync(ct);
+        issueNameLimit = capacity is null or DBNull
+            ? applicationLimit
+            : (int)Math.Clamp(Convert.ToInt64(capacity), 1, applicationLimit);
+        return issueNameLimit.Value;
+    }
+
     public bool WorkerConfigured=>(Environment.GetEnvironmentVariable("SECURITY_WORKER_KEY")??config["SECURITY_WORKER_KEY"])?.Length>=32;
     public static Uri ValidateUrl(string? value)
     {
@@ -246,7 +269,13 @@ await transaction.CommitAsync(ct);return ids;
         var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==finding.SystemId,ct);var scan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==scan.VersionId,ct);
         var details=$"Security scan #{scan.Id} / {scan.Engine}\nระบบ: {system.Name} / {version.Environment}\nVersion: {version.VersionName} Build: {version.BuildNumber}\nความเสี่ยง: {observation.Severity} / CWE: {observation.Cwe}\nตำแหน่ง: {observation.Location}\n\nรายละเอียด:\n{observation.Description}\n\nหลักฐาน:\n{observation.Evidence}\n\nแนวทางแก้ไขจากเครื่องมือ:\n{observation.Remediation}\n\nอ้างอิง:\n{observation.References}\n\nผลสแกน: /SecurityScans/Scan/{scan.Id}";
         if(previousIssueId.HasValue)details=$"พบปัญหาซ้ำหลัง Issue #{previousIssueId.Value} ทดสอบผ่านแล้ว\nIssue เดิม: /ProjectIssues/DevDetails/{previousIssueId.Value}\n\n"+details;
-        var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=SecurityValues.Cut("[Security / "+observation.Severity+"] "+observation.Title,500),IssueDetail=IssueDetailsForStorage(details,scan.Id),AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
+        var fullIssueName = $"[Security / {observation.Severity}] {observation.Title}";
+        var limit = await GetIssueNameLimitAsync(ct);
+        var titleLength = fullIssueName.EnumerateRunes().Take(limit).Sum(rune => rune.Utf16SequenceLength);
+        var issueName = fullIssueName[..titleLength];
+        if (issueName.Length < fullIssueName.Length)
+            details = $"หัวข้อเต็ม: {fullIssueName}\n\n{details}";
+        var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=issueName,IssueDetail=IssueDetailsForStorage(details,scan.Id),AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
         db.ProjectIssues.Add(issue);await db.SaveChangesAsync(ct);
         db.ProjectIssueStatusHistories.Add(new(){IssueId=issue.IssueId,NewStatus="OPEN",ChangedByEmpId=creatorEmpId??employeeId,ChangedAt=issue.CreatedAt});
         db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});finding.AssignedEmpId=employeeId;finding.DueDate=end.Date;finding.ReviewStatus="InProgress";
