@@ -754,7 +754,8 @@ thead .sticky-col { z-index: 5; }
         overflow-wrap: anywhere;
     }
 
-    .assign-card-person strong {
+    .assign-title-line .assign-card-label {
+        font-size: 1rem;
         color: #0f172a;
         font-weight: 600;
     }
@@ -772,22 +773,12 @@ thead .sticky-col { z-index: 5; }
         gap: 8px;
     }
 
-    .assign-title-line .assign-status-label {
-        color: #000;
-    }
-
     .assign-presentation-pass {
         color: #15803d;
     }
 
     .assign-presentation-rework {
         color: #a16207;
-    }
-
-    .assign-status-row small {
-        font-size: .93rem;
-        font-weight: 900;
-        text-transform: none;
     }
 
     .assign-status-row .badge {
@@ -948,10 +939,10 @@ thead .sticky-col { z-index: 5; }
                              alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
                              loading="lazy"
                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                        <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
+                        <span><strong class="assign-card-label">ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                     </span>
                     <span class="assign-status-row">
-                        <small class="assign-status-label">สถานะงาน:</small>
+                        <strong class="assign-card-label">สถานะงาน:</strong>
                         <span class="assign-status-badges">
                             @if (workStatusCode == "DONE")
                             {
@@ -974,7 +965,7 @@ thead .sticky-col { z-index: 5; }
                         </span>
                     </span>
                     <span class="assign-meta-text text-muted">
-                        <b class="assign-status-label">สถานะนำเสนองาน:</b>
+                        <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
                         @if (!string.IsNullOrWhiteSpace(presentationRemark))
                         {
                             <span>@presentationRemark</span>
