@@ -4574,7 +4574,8 @@ html body main :is(
 
 :is(.phase-card, .assign-card) > .phase-work-card-actions .btn {
   flex: 0 0 auto !important;
-  width: auto !important;
+  width: 8rem !important;
   min-width: 0 !important;
+  height: var(--pt-action-btn-height) !important;
   padding-inline: .85rem !important;
 }
