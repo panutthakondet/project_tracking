@@ -528,6 +528,12 @@
         white-space: nowrap;
     }
 
+    .phase-card-actions .btn.phase-submit-installment {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        padding-inline: 1rem !important;
+    }
+
     .thai-calendar-note {
         --requirement-card-note-width: min(760px, calc(100vw - 44px));
     }
@@ -1422,7 +1428,7 @@ else
                         <form asp-action="SubmitInstallment" method="post"
                               onsubmit="return confirm('ยืนยันการบันทึกว่าส่งงวดงานแล้ว?');">
                             <input type="hidden" name="id" value="@phase.PhaseId" />
-                            <button type="submit" class="btn btn-success btn-sm">ส่งงวดงานแล้ว</button>
+                            <button type="submit" class="btn btn-success btn-sm phase-submit-installment">ส่งงวดงานแล้ว</button>
                         </form>
                     }
 
