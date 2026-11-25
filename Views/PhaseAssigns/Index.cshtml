@@ -776,6 +776,23 @@ thead .sticky-col { z-index: 5; }
         color: #000;
     }
 
+    .assign-presentation-pass,
+    .assign-presentation-rework {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    .assign-presentation-pass {
+        color: #166534;
+        background: #dcfce7;
+    }
+
+    .assign-presentation-rework {
+        color: #854d0e;
+        background: #fef08a;
+    }
+
     .assign-status-row small {
         font-size: .93rem;
         font-weight: 900;
@@ -910,8 +927,12 @@ thead .sticky-col { z-index: 5; }
             @foreach (var a in group.OrderBy(a => a.PhaseSort ?? int.MaxValue).ThenBy(a => a.AssignId))
             {
             var lastLog = a.Logs?.OrderByDescending(l => l.RoundNo).FirstOrDefault();
-            var statusText = lastLog?.Status == "PASS" ? "ผ่าน" : lastLog != null ? "แก้ไข และนำเสนอใหม่" : null;
-            var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
+            var presentationResultClass = lastLog?.Status switch
+            {
+                "PASS" => "assign-presentation-pass",
+                "REWORK" => "assign-presentation-rework",
+                _ => ""
+            };
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
             <div class="assign-card" data-assign-id="@a.AssignId">
@@ -949,7 +970,7 @@ thead .sticky-col { z-index: 5; }
                             }
                         </span>
                     </span>
-                    <span class="assign-meta-text text-muted"><b class="assign-status-label">สถานะนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
+                    <span class="assign-meta-text text-muted"><b class="assign-status-label">สถานะนำเสนองาน:</b> <span class="@presentationResultClass">@(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span></span>
                 </header>
                 <section class="assign-card-left">
                     <div class="assign-card-dates">
