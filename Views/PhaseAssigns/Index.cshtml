@@ -125,17 +125,36 @@ html body main.route-controller-phaseassigns :is(
     .assign-filter-form .pt-search-select__input,
     .assign-filter-form .pt-search-select__option,
     .assign-filter-form .pt-search-select__empty,
+    .assign-filter-form option
+) {
+    color: #000 !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+#phase-assignments :is(
     .assign-period-heading,
     .assign-period-description,
-    .assign-card .assign-card-label,
+    .assign-period-description > span,
+    .assign-card-label,
     .assign-card-index,
     .assign-card-person,
     .assign-card-dates,
+    .assign-meta-text,
     .assign-card-role,
     .assign-card-footer
 ) {
     color: #000 !important;
-    -webkit-text-fill-color: currentColor !important;
+    -webkit-text-fill-color: #000 !important;
+}
+
+#phase-assignments .assign-presentation-pass {
+    color: #15803d !important;
+    -webkit-text-fill-color: #15803d !important;
+}
+
+#phase-assignments .assign-presentation-rework {
+    color: #a16207 !important;
+    -webkit-text-fill-color: #a16207 !important;
 }
 
 .assign-filter-form {
@@ -861,7 +880,7 @@ html body main.route-controller-phaseassigns :is(
     }
     else
     {
-        <div class="assign-card-list">
+        <div class="assign-card-list" id="phase-assignments">
         @foreach (var group in groups)
         {
             var row = 1;
