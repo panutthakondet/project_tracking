@@ -776,21 +776,12 @@ thead .sticky-col { z-index: 5; }
         color: #000;
     }
 
-    .assign-presentation-pass,
-    .assign-presentation-rework {
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: 600;
-    }
-
     .assign-presentation-pass {
-        color: #166534;
-        background: #dcfce7;
+        color: #15803d;
     }
 
     .assign-presentation-rework {
-        color: #854d0e;
-        background: #fef08a;
+        color: #a16207;
     }
 
     .assign-status-row small {
@@ -933,6 +924,18 @@ thead .sticky-col { z-index: 5; }
                 "REWORK" => "assign-presentation-rework",
                 _ => ""
             };
+            var presentationResult = lastLog?.Status switch
+            {
+                "PASS" => "ผ่าน",
+                "REWORK" => "ปรับปรุง",
+                _ => ""
+            };
+            var presentationRemark = lastLog?.Remark;
+            var resultSuffix = " · " + presentationResult;
+            if (presentationResult.Length > 0 && presentationRemark?.EndsWith(resultSuffix, StringComparison.Ordinal) == true)
+            {
+                presentationRemark = presentationRemark[..^resultSuffix.Length];
+            }
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
             <div class="assign-card" data-assign-id="@a.AssignId">
@@ -970,7 +973,22 @@ thead .sticky-col { z-index: 5; }
                             }
                         </span>
                     </span>
-                    <span class="assign-meta-text text-muted"><b class="assign-status-label">สถานะนำเสนองาน:</b> <span class="@presentationResultClass">@(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span></span>
+                    <span class="assign-meta-text text-muted">
+                        <b class="assign-status-label">สถานะนำเสนองาน:</b>
+                        @if (!string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <span>@presentationRemark</span>
+                            @if (presentationResult.Length > 0){<text> · </text>}
+                        }
+                        @if (presentationResult.Length > 0)
+                        {
+                            <b class="@presentationResultClass">@presentationResult</b>
+                        }
+                        else if (string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <text>-</text>
+                        }
+                    </span>
                 </header>
                 <section class="assign-card-left">
                     <div class="assign-card-dates">
