@@ -256,13 +256,14 @@
                 </div>
 
                 <!-- Test Account -->
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">
-                        ทะเบียนที่ใช้ทดสอบ
-                    </label>
-                    <input asp-for="TestAccount"
-                           class="form-control"
-                           placeholder="เช่น หน่วยงาน/ชื่อ/ทะเบียน/รหัสผ่าน" />
+                <div class="col-12">
+                    <label asp-for="TestAccount" class="form-label fw-semibold">ทะเบียนที่ใช้ทดสอบ</label>
+                    <textarea asp-for="TestAccount"
+                              class="form-control"
+                              rows="5"
+                              maxlength="10000"
+                              placeholder="ระบุทะเบียนที่ใช้ทดสอบ แยกแต่ละรายการเป็นบรรทัดใหม่"></textarea>
+                    <span asp-validation-for="TestAccount" class="text-danger"></span>
                 </div>
 
                 <!-- ✅ Remote (ไม่บังคับ URL) -->

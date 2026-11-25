@@ -202,8 +202,8 @@ namespace ProjectTracking.Models
         public string? DatabaseName { get; set; }
 
         // 🧪 ทะเบียนที่ใช้ทดสอบ
-        [Column("test_account")]
-        [StringLength(150)]
+        [Column("test_account", TypeName = "text")]
+        [StringLength(10000)]
         public string? TestAccount { get; set; }
 
         // 🌐 ลิงก์ Remote / URL
