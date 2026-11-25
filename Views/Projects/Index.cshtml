@@ -468,6 +468,10 @@
                                 <div class="project-tor-detail__text">@Html.Raw(ProjectTracking.Services.ProjectRichText.ToHtml(p.ExtraTorDetail))</div>
                             </details>
                         }
+                        <details class="project-tor-detail">
+                            <summary>ทะเบียนทดสอบ</summary>
+                            <div class="project-tor-detail__text project-preserve-lines">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</div>
+                        </details>
                     </section>
 
                     @if (hasProjectOverviewActions)
@@ -758,10 +762,6 @@
                             <span class="project-tech-label">ฐานข้อมูล:</span>
                             <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)</span>
                         </div>
-                        <details class="project-tor-detail">
-                            <summary>ทะเบียนทดสอบ</summary>
-                            <div class="project-tor-detail__text project-preserve-lines">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</div>
-                        </details>
                     </div>
                     <div class="project-tech-column">
                         <div class="project-tech-row">
