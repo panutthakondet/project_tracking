@@ -181,6 +181,22 @@ html body main.route-controller-securityscans.route-action-index .security-works
 .security-website-part > summary { display: flex; justify-content: space-between; gap: 10px; }
 .security-website-part > summary span { font-size: .8rem; font-weight: 400; }
 .security-website-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.security-website-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    max-width: 25rem;
+}
+.security-center .security-website-actions > .btn {
+    flex: 1 1 9rem;
+    max-width: 12rem;
+    min-height: 42px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+}
 .security-website-wide { grid-column: 1 / -1; }
 .security-website-approval { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
 .security-workspace .security-system[data-system-kind="Website"] { --security-card-tone: var(--pt-chart-primary, #2996f3); }
