@@ -429,6 +429,10 @@ thead .sticky-col { z-index: 5; }
         overflow-wrap: anywhere;
     }
 
+    .assign-footer-presentation {
+        margin-bottom: 4px;
+    }
+
     .assign-period-group {
         min-width: 0;
         border: 1px solid var(--pt-border, #d8e3ef);
@@ -754,7 +758,7 @@ thead .sticky-col { z-index: 5; }
         overflow-wrap: anywhere;
     }
 
-    .assign-title-line .assign-card-label {
+    .assign-card .assign-card-label {
         font-size: 1rem;
         color: #0f172a;
         font-weight: 600;
@@ -941,22 +945,6 @@ thead .sticky-col { z-index: 5; }
                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                         <span><strong class="assign-card-label">ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                     </span>
-                    <span class="assign-meta-text text-muted">
-                        <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
-                        @if (!string.IsNullOrWhiteSpace(presentationRemark))
-                        {
-                            <span>@presentationRemark</span>
-                            @if (presentationResult.Length > 0){<text> · </text>}
-                        }
-                        @if (presentationResult.Length > 0)
-                        {
-                            <b class="@presentationResultClass">@presentationResult</b>
-                        }
-                        else if (string.IsNullOrWhiteSpace(presentationRemark))
-                        {
-                            <text>-</text>
-                        }
-                    </span>
                     <span class="assign-status-row">
                         <strong class="assign-card-label">สถานะงาน:</strong>
                         <span class="assign-status-badges">
@@ -1066,7 +1054,25 @@ thead .sticky-col { z-index: 5; }
                         }
                     </div>
                 </aside>
-                <div class="assign-card-footer assign-card-remark"><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                <div class="assign-card-footer assign-card-remark">
+                    <div class="assign-footer-presentation text-muted">
+                        <strong class="assign-card-label">สถานะนำเสนองาน:</strong>
+                        @if (!string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <span>@presentationRemark</span>
+                            @if (presentationResult.Length > 0){<text> · </text>}
+                        }
+                        @if (presentationResult.Length > 0)
+                        {
+                            <b class="@presentationResultClass">@presentationResult</b>
+                        }
+                        else if (string.IsNullOrWhiteSpace(presentationRemark))
+                        {
+                            <text>-</text>
+                        }
+                    </div>
+                    <div><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                </div>
             </div>
             row++;
             }
