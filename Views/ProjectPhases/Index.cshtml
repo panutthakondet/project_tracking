@@ -325,10 +325,19 @@
     }
 
     .phase-card-head {
+        min-width: 0;
+        padding: 18px;
+        border-bottom: 1px solid var(--pt-border, #d8e3ef);
+        background: color-mix(in srgb, var(--pt-accent, #2563eb) 12%, #fff);
         display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .phase-card-head .phase-card-work-status {
+        margin-inline-start: auto;
+        justify-content: flex-end;
     }
 
     .phase-card-drag {
@@ -365,7 +374,6 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        margin-bottom: 8px;
     }
 
     .phase-name-row {
@@ -1274,23 +1282,26 @@ else
         <div class="phase-card @(phase.PhaseType == "SUPPORT" ? "phase-card-support" : "phase-card-main") @PhaseTone(phase.PhaseType)"
              data-phase-id="@phase.PhaseId">
 
-            <section class="phase-card-content">
-                <div class="phase-card-head">
-                    <div class="phase-drag-handle phase-card-drag" title="ลากเพื่อสลับลำดับ">
-                        ☰
-                    </div>
-
-                    <div class="min-w-0 flex-grow-1">
-                        <div class="phase-sequence">
-                            <span class="phase-no">#@displayNo</span>
-                            <span class="phase-period"><strong>ส่วนที่</strong> @phase.PhaseOrder</span>
-                            <span class="phase-period"><strong>งวดที่</strong> @phase.PeriodOrder</span>
-                        </div>
-
-                    </div>
-
+            <div class="phase-card-head">
+                <div class="phase-drag-handle phase-card-drag" title="ลากเพื่อสลับลำดับ">☰</div>
+                <div class="phase-sequence">
+                    <span class="phase-no">#@displayNo</span>
+                    <span class="phase-period"><strong>ส่วนที่</strong> @phase.PhaseOrder</span>
+                    <span class="phase-period"><strong>งวดที่</strong> @phase.PeriodOrder</span>
                 </div>
+                <div class="phase-status-row phase-card-work-status">
+                    <small>สถานะงาน</small>
+                    <span class="badge @PhaseStatusClass(phase)">@phase.StatusDescription</span>
+                    @if (hasPendingApproval)
+                    {
+                        <span class="badge bg-warning text-dark phase-approval-pending-badge">
+                            รออนุมัติ
+                        </span>
+                    }
+                </div>
+            </div>
 
+            <section class="phase-card-content">
                 <div class="phase-name-row">
                     <span class="phase-name-label">ชื่องวดงาน:</span>
                     <span class="phase-name-value">@phase.PhaseName</span>
@@ -1313,16 +1324,6 @@ else
                         <span class="badge @(phase.PhaseType == "SUPPORT" ? "bg-warning text-dark" : "bg-info text-dark")">
                             @PhaseTypeText(phase.PhaseType)
                         </span>
-                    </div>
-                    <div class="phase-status-row">
-                        <small>สถานะงาน</small>
-                        <span class="badge @PhaseStatusClass(phase)">@phase.StatusDescription</span>
-                        @if (hasPendingApproval)
-                        {
-                            <span class="badge bg-warning text-dark phase-approval-pending-badge">
-                                รออนุมัติ
-                            </span>
-                        }
                     </div>
                 </div>
             </section>
