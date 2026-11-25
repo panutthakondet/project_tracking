@@ -989,7 +989,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("PhaseAssigns.Edit")]
-        public async Task<IActionResult> SaveLog(int assignId, string status, string? remark)
+        public async Task<IActionResult> SaveLog(int assignId, string status)
         {
             try
             {
@@ -997,12 +997,16 @@ namespace ProjectTracking.Controllers
                 if (status != "PASS" && status != "REWORK")
                     return BadRequest(new { success = false, message = "Invalid status" });
 
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                // Lock the assignment so simultaneous results cannot receive the same round number.
+                await _context.PhaseAssigns.Where(x => x.AssignId == assignId)
+                    .ExecuteUpdateAsync(set => set.SetProperty(x => x.WorkStatus, x => x.WorkStatus));
+
                 var assign = await _context.PhaseAssigns
                     .FirstOrDefaultAsync(x => x.AssignId == assignId);
                 if (assign == null)
                     return NotFound(new { success = false, message = "Assign not found" });
 
-                // 🔍 หา round ล่าสุด
                 var lastRound = await _context.PhaseAssignLogs
                     .Where(x => x.AssignId == assignId)
                     .OrderByDescending(x => x.RoundNo)
@@ -1013,14 +1017,18 @@ namespace ProjectTracking.Controllers
 
                 var userId = HttpContext.Session.GetInt32("UserId");
 
+                var recordedAt = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
+                var recordedAtText = recordedAt.ToString("dd MMM yyyy HH:mm:ss", new CultureInfo("th-TH"));
+                var result = status == "PASS" ? "ผ่าน" : "ปรับปรุง";
+
                 var log = new PhaseAssignLog
                 {
                     AssignId = assignId,
                     Status = status,
-                    Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(),
+                    Remark = $"รอบที่ {nextRound} · {recordedAtText} น. · {result}",
                     RoundNo = nextRound,
                     CreatedBy = userId,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = recordedAt
                 };
 
                 _context.PhaseAssignLogs.Add(log);
@@ -1031,6 +1039,7 @@ namespace ProjectTracking.Controllers
                 assign.EntryId = await GetCurrentEntryIdAsync();
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 return Ok(new
                 {

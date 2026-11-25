@@ -857,31 +857,6 @@ thead .sticky-col { z-index: 5; }
         }
     }
 
-    #logModal {
-        z-index: 26010;
-    }
-
-    .modal-backdrop.show {
-        z-index: 26000;
-        opacity: .58;
-    }
-
-    .phase-log-modal .modal-content {
-        border: 1px solid #d8e3ef;
-        border-radius: 18px;
-        box-shadow: 0 24px 70px rgba(15, 35, 64, .28);
-        overflow: hidden;
-    }
-
-    .phase-log-modal .modal-header,
-    .phase-log-modal .modal-footer {
-        background: #f8fafc;
-    }
-
-    .phase-log-modal .modal-title {
-        color: #10233f;
-        font-weight: 900;
-    }
     </style>
 
     @* Card layout for assign records *@
@@ -1036,7 +1011,8 @@ thead .sticky-col { z-index: 5; }
                             <button type="button"
                                     class="btn btn-sm btn-success"
                                     title="บันทึกผล: ผ่าน"
-                                    onclick="openLogModal(@a.AssignId, 'PASS')">
+                                    data-result-button
+                                    onclick="confirmLog(this, @a.AssignId, 'PASS')">
                                 ผ่าน
                             </button>
                         }
@@ -1051,7 +1027,8 @@ thead .sticky-col { z-index: 5; }
                             <button type="button"
                                     class="btn btn-sm btn-warning"
                                     title="บันทึกผล: ปรับปรุง"
-                                    onclick="openLogModal(@a.AssignId, 'REWORK')">
+                                    data-result-button
+                                    onclick="confirmLog(this, @a.AssignId, 'REWORK')">
                                 ปรับปรุง
                             </button>
                         }
@@ -1083,33 +1060,6 @@ else
 }
 
 <form id="antiForgeryForm" method="post" style="display:none;">@Html.AntiForgeryToken()</form>
-
-<div class="modal fade phase-log-modal" id="logModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="logModalTitle">บันทึกผล (ผ่าน / ปรับปรุง)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
-      </div>
-      <div class="modal-body">
-        <label class="form-label fw-bold">Remark</label>
-        <textarea id="logRemark"
-                  class="form-control"
-                  rows="6"
-                  maxlength="1000"
-                  oninput="onRemarkInput()"
-                  placeholder="พิมพ์หมายเหตุได้สูงสุด 1000 ตัวอักษร"></textarea>
-        <div class="text-end text-muted mt-1">
-            <span id="logCounter">0 / 1000</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button type="button" id="logSubmitBtn" class="btn btn-primary" onclick="submitLog()">บันทึก</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 @section Scripts{
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -1361,127 +1311,31 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <script>
-let __logAssignId = null;
-let __logStatus = null;
+async function confirmLog(button, assignId, status) {
+    const label = status === 'PASS' ? 'ผ่าน' : 'ปรับปรุง';
+    if (!window.confirm('ต้องการบันทึกผล “' + label + '” หรือไม่?')) return;
 
-function prepareLogModalElement() {
-    const modalEl = document.getElementById('logModal');
-    if (!modalEl) return null;
+    const actions = button.closest('.assign-card-actions');
+    const resultButtons = actions.querySelectorAll('[data-result-button]');
+    resultButtons.forEach(item => { item.disabled = true; });
 
-    if (modalEl.parentElement !== document.body) {
-        document.body.appendChild(modalEl);
-    }
-
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('padding-right');
-
-    modalEl.style.zIndex = '26010';
-    return modalEl;
-}
-
-function openLogModal(assignId, status) {
-    __logAssignId = assignId;
-    __logStatus = (status || '').toUpperCase();
-
-    const modalEl = prepareLogModalElement();
-    if (!modalEl) return;
-
-    const ta = document.getElementById('logRemark');
-    const counter = document.getElementById('logCounter');
-    const title = document.getElementById('logModalTitle');
-    const submitButton = document.getElementById('logSubmitBtn');
-    ta.value = '';
-    counter.textContent = '0 / 1000';
-
-    const isPass = __logStatus === 'PASS';
-    title.textContent = isPass ? 'บันทึกผลผ่าน' : 'บันทึกผลปรับปรุง';
-
-    submitButton.disabled = false;
-    submitButton.textContent = 'บันทึก';
-    submitButton.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'text-dark');
-    submitButton.classList.add(isPass ? 'btn-success' : 'btn-warning');
-    if (!isPass) submitButton.classList.add('text-dark');
-
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
-        backdrop: true,
-        keyboard: true
-    });
-    modal.show();
-
-    window.setTimeout(function () {
-        modalEl.style.zIndex = '26010';
-        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
-            backdrop.style.zIndex = '26000';
+    try {
+        const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]').value;
+        const response = await window.ProjectTrackingLoading.fetch('@Url.Action("SaveLog", "PhaseAssigns")', {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            body: new URLSearchParams({ assignId, status })
         });
-    }, 0);
-}
-
-function onRemarkInput() {
-    const ta = document.getElementById('logRemark');
-    const counter = document.getElementById('logCounter');
-    const len = ta.value.length;
-    counter.textContent = `${len} / 1000`;
-}
-
-function submitLog() {
-    const ta = document.getElementById('logRemark');
-    const remark = ta.value || '';
-    const submitButton = document.getElementById('logSubmitBtn');
-    const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value;
-    const headers = {
-        'Content-Type': 'application/x-www-form-urlencoded'
-    };
-    const body = new URLSearchParams();
-
-    body.append('assignId', __logAssignId);
-    body.append('status', __logStatus);
-    body.append('remark', remark);
-
-    if (token) {
-        headers['RequestVerificationToken'] = token;
-    }
-
-    submitButton.disabled = true;
-    submitButton.textContent = 'กำลังบันทึก...';
-
-    window.ProjectTrackingLoading.fetch('@Url.Action("SaveLog", "PhaseAssigns")', {
-        method: 'POST',
-        headers,
-        body
-    })
-    .then(async res => {
-        const text = await res.text();
-        let data = null;
-
-        try {
-            data = text ? JSON.parse(text) : null;
-        } catch {
-            data = { message: text };
-        }
-
-        if (!res.ok) {
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
             throw new Error(data?.message || 'บันทึกไม่สำเร็จ');
         }
 
-        return data;
-    })
-    .then(data => {
-        if (data && data.success) {
-            alert('บันทึกสำเร็จ (รอบ ' + data.round + ')');
-            location.reload();
-        } else {
-            submitButton.disabled = false;
-            submitButton.textContent = 'บันทึก';
-            alert(data?.message || 'บันทึกไม่สำเร็จ');
-        }
-    })
-    .catch((error) => {
-        submitButton.disabled = false;
-        submitButton.textContent = 'บันทึก';
-        alert(error?.message || 'เกิดข้อผิดพลาด');
-    });
+        location.reload();
+    } catch (error) {
+        resultButtons.forEach(item => { item.disabled = false; });
+        alert(error.message || 'บันทึกไม่สำเร็จ');
+    }
 }
 </script>
 }
