@@ -123,6 +123,48 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});
     }
 
+    [HttpPost, ValidateAntiForgeryToken, RequireMenu("SecurityScans.Delete")]
+    public async Task<IActionResult> DeleteWebsiteTarget(long systemId, string section, CancellationToken ct)
+    {
+        var system = await db.SecuritySystemRows.AsNoTracking().SingleOrDefaultAsync(x => x.Id == systemId, ct);
+        if (system == null || await AllowedProject(system.ProjectId, ct) == null) return NotFound();
+        if (system.Workflow != SelectedWorkflow || SecurityValues.IsMobile(system.Kind)
+            || !SecurityValues.WebsiteSections.Contains(section)) return BadRequest();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var locked = await db.SecuritySystemRows.Where(x => x.Id == systemId)
+            .ExecuteUpdateAsync(set => set.SetProperty(x => x.CreatedBy, x => x.CreatedBy), ct);
+        if (locked == 0) return NotFound();
+
+        var targets = await db.SecurityWebsiteTargets.Where(x => x.SystemId == systemId).ToListAsync(ct);
+        var legacySection = SecurityValues.LegacySection(system.Kind);
+        if (targets.Count == 0 && section != legacySection && !string.IsNullOrWhiteSpace(system.TargetUrl))
+        {
+            db.SecurityWebsiteTargets.Add(new SecurityWebsiteTarget
+            {
+                SystemId = systemId, Section = legacySection, TargetUrl = system.TargetUrl,
+                Enabled = true, RequiresLogin = system.RequiresLogin, AuthProfile = system.AuthProfile
+            });
+        }
+
+        var target = targets.SingleOrDefault(x => x.Section == section);
+        if (target == null)
+        {
+            target = new SecurityWebsiteTarget { SystemId = systemId, Section = section };
+            db.SecurityWebsiteTargets.Add(target);
+        }
+
+        // Keep an empty, disabled row so the legacy URL cannot restore a removed section.
+        target.Enabled = false;
+        target.RequiresLogin = false;
+        target.TargetUrl = "";
+        target.AuthProfile = null;
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        TempData["Success"] = $"ลบ {SecurityValues.SectionLabel(section)} แล้ว";
+        return RedirectToAction(nameof(Index), new { projectId = system.ProjectId, workflow = SelectedWorkflow });
+    }
+
     [HttpPost,ValidateAntiForgeryToken,RequireMenu("SecurityScans.ApproveHosts")]
     public async Task<IActionResult> ApproveWebsiteTarget(long targetId,bool approved,CancellationToken ct)
     {

@@ -78,6 +78,7 @@ public class SecurityWebsiteTargetForm
     public SecuritySystem System { get; set; }=null!;
     public SecurityWebsiteTarget Target { get; set; }=null!;
     public SecurityLoginSettings? Login { get; set; }
+    public bool CanDelete { get; set; }
     public bool CanManage { get; set; }
     public bool CanApprove { get; set; }
     public bool Approved { get; set; }

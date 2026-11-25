@@ -74,7 +74,9 @@
                     var targetPart=Model.WebsiteTargets.FirstOrDefault(x=>x.SystemId==system.Id&&x.Section==section)??new ProjectTracking.Models.SecurityWebsiteTarget{SystemId=system.Id,Section=section};
                     var partLogin=targetPart.Id>0?Model.WebsiteLoginSettings.GetValueOrDefault(targetPart.Id):(targetPart.AuthProfile==system.AuthProfile?savedLogin:null);
                     var partHost=Uri.TryCreate(targetPart.TargetUrl,UriKind.Absolute,out var partUri)?partUri.IdnHost.TrimEnd('.').ToLowerInvariant():null;
-                    <partial name="_WebsiteTarget" model="@(new ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm{Workflow=Model.Workflow,System=system,Target=targetPart,Login=partLogin,CanManage=Model.CanManage,CanApprove=Model.CanApproveHosts,Approved=Model.HostApprovals.Any(x=>x.Host==partHost&&x.IsApproved),Unreadable=targetPart.Id>0?Model.UnreadableWebsiteLogins.Contains(targetPart.Id):Model.UnreadableLoginSettings.Contains(system.Id)})" />
+                    if(!targetPart.IsRemoved || Model.CanManage){
+                        <partial name="_WebsiteTarget" model="@(new ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm{Workflow=Model.Workflow,System=system,Target=targetPart,Login=partLogin,CanManage=Model.CanManage,CanDelete=Model.CanDeleteScans,CanApprove=Model.CanApproveHosts,Approved=Model.HostApprovals.Any(x=>x.Host==partHost&&x.IsApproved),Unreadable=targetPart.Id>0?Model.UnreadableWebsiteLogins.Contains(targetPart.Id):Model.UnreadableLoginSettings.Contains(system.Id)})" />
+                    }
                 }
             </div>
         }

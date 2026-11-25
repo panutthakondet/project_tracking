@@ -155,6 +155,8 @@ public class SecurityWebsiteTarget
     public bool Enabled { get; set; }
     public bool RequiresLogin { get; set; }
     [MaxLength(80)] public string? AuthProfile { get; set; }
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool IsRemoved => Id > 0 && !Enabled && !RequiresLogin && TargetUrl == "" && AuthProfile == null;
 }
 [Table("security_website_scan_parts")]
 public class SecurityWebsiteScanPart

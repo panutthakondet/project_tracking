@@ -1,8 +1,9 @@
 @model ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm
 @using ProjectTracking.Services.Security
-@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||(t.Id==0&&t.Section!="WebInfo");var targetUrl=t.TargetUrl;if(string.IsNullOrWhiteSpace(targetUrl)&&Uri.TryCreate(Model.System.TargetUrl,UriKind.Absolute,out var baseUri)){targetUrl=t.Section=="WebInfo"?baseUri.AbsoluteUri:SecurityValues.WebsiteUrl(baseUri.AbsoluteUri,SecurityValues.DefaultWebsitePath(t.Section));}}
-<details class="security-website-part" data-section="@t.Section">
-    <summary><strong>@SecurityValues.SectionLabel(t.Section)</strong> <span>@(t.Enabled?"เปิดสแกน":"ยังไม่เปิดสแกน")</span></summary>
+@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||((t.Id==0||t.IsRemoved)&&t.Section!="WebInfo");var targetUrl=t.TargetUrl;if(string.IsNullOrWhiteSpace(targetUrl)&&Uri.TryCreate(Model.System.TargetUrl,UriKind.Absolute,out var baseUri)){targetUrl=t.Section=="WebInfo"?baseUri.AbsoluteUri:SecurityValues.WebsiteUrl(baseUri.AbsoluteUri,SecurityValues.DefaultWebsitePath(t.Section));}}
+<details class="@(t.IsRemoved ? "security-disclosure" : "security-website-part")" data-section="@t.Section">
+    @if(t.IsRemoved){<summary>＋ เพิ่ม @SecurityValues.SectionLabel(t.Section)</summary>}
+    else{<summary><strong>@SecurityValues.SectionLabel(t.Section)</strong> <span>@(t.Enabled?"เปิดสแกน":"ยังไม่เปิดสแกน")</span></summary>}
     @if(t.Section!="WebInfo"){<div class="security-login-help"><a asp-action="LoginGuide" asp-route-systemId="@Model.System.Id" asp-route-section="@t.Section" target="_blank" rel="noopener" class="btn btn-outline-primary">คู่มือ Login @SecurityValues.SectionLabel(t.Section) (PDF)</a></div>}
     @if(Model.Unreadable){<p class="text-danger">อ่าน Login เดิมไม่ได้ กรุณากรอกและบันทึกข้อมูลใหม่</p>}
     @if(Model.CanManage){
@@ -27,6 +28,14 @@
         <button type="submit" class="btn btn-primary">บันทึก @SecurityValues.SectionLabel(t.Section)</button>
     </form>
     }else{<p>@t.TargetUrl</p><p>@(t.RequiresLogin?"ตั้งค่าให้ Login ก่อนสแกน":"ตรวจแบบไม่ Login")</p>}
+    @if(Model.CanDelete && !t.IsRemoved){
+        <form asp-action="DeleteWebsiteTarget" asp-route-workflow="@Model.Workflow" method="post" class="security-management-tools"
+              onsubmit="return confirm('ลบการตั้งค่าของส่วนนี้? ประวัติรอบสแกนเดิมจะยังอยู่');">
+            <input type="hidden" name="systemId" value="@Model.System.Id" />
+            <input type="hidden" name="section" value="@t.Section" />
+            <button type="submit" class="btn btn-outline-danger btn-sm">ลบ @SecurityValues.SectionLabel(t.Section)</button>
+        </form>
+    }
     @if(!string.IsNullOrWhiteSpace(t.TargetUrl)){
         <div class="security-website-approval"><span>@(Model.Approved?"อนุมัติโดเมนแล้ว":"ยังไม่อนุมัติโดเมน")</span>
         @if(Model.CanApprove){
