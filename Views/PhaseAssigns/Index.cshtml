@@ -772,8 +772,11 @@ thead .sticky-col { z-index: 5; }
         gap: 8px;
     }
 
+    .assign-title-line .assign-status-label {
+        color: #000;
+    }
+
     .assign-status-row small {
-        color: #0f172a;
         font-size: .93rem;
         font-weight: 900;
         text-transform: none;
@@ -924,7 +927,7 @@ thead .sticky-col { z-index: 5; }
                         <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                     </span>
                     <span class="assign-status-row">
-                        <small>สถานะงาน:</small>
+                        <small class="assign-status-label">สถานะงาน:</small>
                         <span class="assign-status-badges">
                             @if (workStatusCode == "DONE")
                             {
@@ -946,7 +949,7 @@ thead .sticky-col { z-index: 5; }
                             }
                         </span>
                     </span>
-                    <span class="assign-meta-text text-muted"><b>สถานะนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
+                    <span class="assign-meta-text text-muted"><b class="assign-status-label">สถานะนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
                 </header>
                 <section class="assign-card-left">
                     <div class="assign-card-dates">
