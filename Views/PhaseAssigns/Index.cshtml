@@ -602,7 +602,6 @@ thead .sticky-col { z-index: 5; }
         min-height: 0;
         background: #fff;
         border: 1px solid #d8e3ef;
-        border-left: 5px solid #f59e0b;
         border-radius: 18px;
         overflow: hidden;
         box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
@@ -612,10 +611,6 @@ thead .sticky-col { z-index: 5; }
     .assign-card:hover {
         transform: translateY(-1px);
         box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
-    }
-
-    .assign-card.is-done {
-        border-left-color: #22c55e;
     }
 
     .assign-card .assign-card-left,
@@ -960,7 +955,7 @@ thead .sticky-col { z-index: 5; }
             var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
-            <div class="assign-card @(workStatusCode == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
+            <div class="assign-card" data-assign-id="@a.AssignId">
                 <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
                         <div class="min-w-0">
