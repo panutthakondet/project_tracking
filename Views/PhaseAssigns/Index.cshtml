@@ -422,6 +422,13 @@ thead .sticky-col { z-index: 5; }
 {
     <style>
     /* Card-style layout for assign cards */
+    .assign-card > .assign-presentation-log {
+        grid-column: 1 / -1;
+        padding: 10px 18px;
+        border-top: 1px solid var(--pt-border, #d8e3ef);
+        overflow-wrap: anywhere;
+    }
+
     .assign-period-group {
         min-width: 0;
         border: 1px solid var(--pt-border, #d8e3ef);
@@ -923,7 +930,6 @@ thead .sticky-col { z-index: 5; }
                                          onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                     <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
                                 </span>
-                                <span class="assign-meta-text text-muted"><b>บันทึกการนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</span>
                                 <span class="assign-status-row">
                                     <small>สถานะงาน:</small>
                                     <span class="assign-status-badges">
@@ -1038,6 +1044,7 @@ thead .sticky-col { z-index: 5; }
                         }
                     </div>
                 </aside>
+                <div class="assign-presentation-log assign-meta-text text-muted"><b>บันทึกการนำเสนองาน:</b> @(string.IsNullOrWhiteSpace(lastLog?.Remark) ? "-" : lastLog.Remark)</div>
             </div>
             row++;
             }
