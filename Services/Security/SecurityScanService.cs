@@ -102,6 +102,16 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
         foreach(var target in targets){
             if(!SecurityValues.WebsiteSections.Contains(target.Section))throw new InvalidOperationException("ประเภทส่วนเว็บไซต์ไม่ถูกต้อง");
             if(target.Section!="WebInfo"&&(!target.RequiresLogin||!SecurityLoginStore.IsManaged(target.AuthProfile)))throw new InvalidOperationException($"กรุณาบันทึก Login สำหรับ {SecurityValues.SectionLabel(target.Section)} ก่อนสแกน");
+            if (target.RequiresLogin && SecurityLoginStore.IsManaged(target.AuthProfile))
+            {
+                if (loginStore == null) throw new InvalidOperationException("ระบบอ่านการตั้งค่า Login ไม่พร้อมใช้งาน");
+                var login = await loginStore.ReadAsync(system.Id, target.AuthProfile!, target.TargetUrl, ct, allowDraft: true);
+                try { SecurityLoginStore.Validate(login, target.TargetUrl); }
+                catch (InvalidOperationException error)
+                {
+                    throw new InvalidOperationException($"{SecurityValues.SectionLabel(target.Section)}: {error.Message}", error);
+                }
+            }
         }
         var ids=new List<long>();
         foreach(var target in targets){

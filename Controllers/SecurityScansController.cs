@@ -67,7 +67,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         }
         if(page.CanManage){
             foreach(var target in page.WebsiteTargets.Where(x=>SecurityLoginStore.IsManaged(x.AuthProfile)&&x.Id>0)){
-                try{var login=await loginStore.ReadAsync(target.SystemId,target.AuthProfile!,target.TargetUrl,ct);page.WebsiteLoginSettings[target.Id]=new(){AuthenticationType=login.AuthenticationType,TokenPath=login.TokenPath,ScanStartUrl=login.ScanStartUrl,LoginUrl=login.LoginUrl,Username=login.Username,LoggedInRegex=login.LoggedInRegex,RequestData=login.RequestData};}
+                try{var login=await loginStore.ReadAsync(target.SystemId,target.AuthProfile!,target.TargetUrl,ct,allowDraft:true);page.WebsiteLoginSettings[target.Id]=new(){HasPassword=!string.IsNullOrEmpty(login.Password),AuthenticationType=login.AuthenticationType,TokenPath=login.TokenPath,ScanStartUrl=login.ScanStartUrl,LoginUrl=login.LoginUrl,Username=login.Username,LoggedInRegex=login.LoggedInRegex,RequestData=login.RequestData};}
                 catch(InvalidOperationException){page.UnreadableWebsiteLogins.Add(target.Id);}
             }
         }
@@ -105,13 +105,13 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             var url=targetPath!=null?SecurityValues.WebsiteUrl(system.TargetUrl,targetPath.Trim()):targetUrl?.Trim()??"";
             if(loginPath!=null)login.LoginUrl=string.IsNullOrWhiteSpace(loginPath)?"":SecurityValues.WebsiteUrl(system.TargetUrl,loginPath.Trim());
             if(scanStartPath!=null)login.ScanStartUrl=string.IsNullOrWhiteSpace(scanStartPath)?null:SecurityValues.WebsiteUrl(system.TargetUrl,scanStartPath.Trim());
-            if(enabled||!string.IsNullOrWhiteSpace(url))SecurityScanService.ValidateUrl(url);
-            if(enabled&&section!="WebInfo"&&!requiresLogin)throw new InvalidOperationException("Web Member และ Web Admin ต้องตั้งค่า Login ก่อนเปิดสแกน");
-            // Selecting a section is independent of entering its credentials. QueueWebsiteAsync
-            // still requires a managed Login profile before Member/Admin jobs can be queued.
-            var hasLoginInput=!string.IsNullOrWhiteSpace(login.Username)||!string.IsNullOrWhiteSpace(login.Password)||!string.IsNullOrWhiteSpace(login.LoginUrl);
-            if(requiresLogin&&hasLoginInput){newProfile=await loginStore.SaveAsync(systemId,login,url,ct,target.AuthProfile);target.AuthProfile=newProfile;}
-            else if(!requiresLogin)target.AuthProfile=null;
+            if (!string.IsNullOrWhiteSpace(url)) SecurityScanService.ValidateUrl(url);
+            if (section != "WebInfo")
+            {
+                newProfile = await loginStore.SaveAsync(systemId, login, url, ct, target.AuthProfile, allowDraft: true);
+                target.AuthProfile = newProfile;
+            }
+            else target.AuthProfile = null;
             target.Enabled=enabled;
             target.TargetUrl=url;
             target.RequiresLogin=requiresLogin;

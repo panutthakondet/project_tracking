@@ -41,18 +41,18 @@ public sealed class SecurityLoginStore(SecurityStorage storage, IDataProtectionP
         catch (ArgumentException) { throw new InvalidOperationException("รูปแบบข้อความตรวจสอบ Login ไม่ถูกต้อง"); }
     }
     private IDataProtector Protector(long systemId) => protection.CreateProtector("SecurityLogin.v1", systemId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-    public async Task<string> SaveAsync(long systemId, SecurityLoginCredentials login, string? targetUrl, CancellationToken ct, string? existingProfile = null)
+    public async Task<string> SaveAsync(long systemId, SecurityLoginCredentials login, string? targetUrl, CancellationToken ct, string? existingProfile = null, bool allowDraft = false)
     {
         if (string.IsNullOrEmpty(login.Password) && IsManaged(existingProfile))
-            login.Password = (await ReadAsync(systemId, existingProfile!, targetUrl, ct)).Password;
-        Validate(login, targetUrl);
+            login.Password = (await ReadAsync(systemId, existingProfile!, targetUrl, ct, allowDraft)).Password;
+        if (!allowDraft) Validate(login, targetUrl);
         var encrypted = Protector(systemId).Protect(JsonSerializer.Serialize(login));
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes(encrypted));
         var file = await storage.WriteAsync(input, ".login", 64000, ct);
         // Unique immutable profile keeps already queued scans on their original credentials.
         return "web-" + Path.GetFileNameWithoutExtension(file.Key);
     }
-    public async Task<SecurityLoginCredentials> ReadAsync(long systemId, string profile, string? targetUrl, CancellationToken ct)
+    public async Task<SecurityLoginCredentials> ReadAsync(long systemId, string profile, string? targetUrl, CancellationToken ct, bool allowDraft = false)
     {
         if (!IsManaged(profile)) throw new InvalidOperationException("Invalid managed login profile");
         try
@@ -60,7 +60,7 @@ public sealed class SecurityLoginStore(SecurityStorage storage, IDataProtectionP
             var encrypted = await File.ReadAllTextAsync(storage.PathFor(profile[4..] + ".login"), ct);
             var login = JsonSerializer.Deserialize<SecurityLoginCredentials>(Protector(systemId).Unprotect(encrypted));
             if (login == null) throw new InvalidOperationException();
-            Validate(login, targetUrl);
+            if (!allowDraft) Validate(login, targetUrl);
             return login;
         }
         catch (Exception error) when (error is IOException or CryptographicException or JsonException or InvalidOperationException)

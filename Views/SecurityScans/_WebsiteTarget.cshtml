@@ -1,6 +1,6 @@
 @model ProjectTracking.ViewModels.Security.SecurityWebsiteTargetForm
 @using ProjectTracking.Services.Security
-@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||t.Section!="WebInfo";var targetUrl=t.TargetUrl;if(string.IsNullOrWhiteSpace(targetUrl)&&Uri.TryCreate(Model.System.TargetUrl,UriKind.Absolute,out var baseUri)){targetUrl=t.Section=="WebInfo"?baseUri.AbsoluteUri:SecurityValues.WebsiteUrl(baseUri.AbsoluteUri,SecurityValues.DefaultWebsitePath(t.Section));}}
+@{var t=Model.Target;var login=Model.Login;var member=t.Section=="WebMember";var requires=t.RequiresLogin||(t.Id==0&&t.Section!="WebInfo");var targetUrl=t.TargetUrl;if(string.IsNullOrWhiteSpace(targetUrl)&&Uri.TryCreate(Model.System.TargetUrl,UriKind.Absolute,out var baseUri)){targetUrl=t.Section=="WebInfo"?baseUri.AbsoluteUri:SecurityValues.WebsiteUrl(baseUri.AbsoluteUri,SecurityValues.DefaultWebsitePath(t.Section));}}
 <details class="security-website-part" data-section="@t.Section">
     <summary><strong>@SecurityValues.SectionLabel(t.Section)</strong> <span>@(t.Enabled?"เปิดสแกน":"ยังไม่เปิดสแกน")</span></summary>
     @if(t.Section!="WebInfo"){<div class="security-login-help"><a asp-action="LoginGuide" asp-route-systemId="@Model.System.Id" asp-route-section="@t.Section" target="_blank" rel="noopener" class="btn btn-outline-primary">คู่มือ Login @SecurityValues.SectionLabel(t.Section) (PDF)</a></div>}
@@ -18,7 +18,7 @@
         @if(t.Section=="WebAdmin"){<div class="security-inline"><button type="button" class="btn btn-outline-primary btn-sm" data-admin-form-preset>ใช้ตัวอย่าง Form Admin</button></div>}
         <label class="security-website-wide">เส้นทางรับข้อมูล Login (Form หรือ API)<input name="loginPath" class="form-control" value="@SecurityValues.WebsitePath(login?.LoginUrl)" maxlength="2000" placeholder="เช่น /adminlogon หรือ /api/member/auth/login" /></label>
         <label>Username<input name="username" class="form-control" value="@login?.Username" maxlength="255" autocomplete="off" /></label>
-        <label>Password<input name="password" data-website-password-saved="@((login!=null).ToString().ToLowerInvariant())" type="password" class="form-control" maxlength="2000" autocomplete="new-password" placeholder="@(login!=null?"เว้นว่างเพื่อใช้รหัสเดิม":"รหัสผ่านบัญชีทดสอบ")" /></label>
+        <label>Password<input name="password" data-website-password-saved="@((login?.HasPassword==true).ToString().ToLowerInvariant())" type="password" class="form-control" maxlength="2000" autocomplete="new-password" placeholder="@(login?.HasPassword==true?"เว้นว่างเพื่อใช้รหัสเดิม":"รหัสผ่านบัญชีทดสอบ")" /></label>
         <label data-website-login-kind="Form JsonCookie">ข้อความยืนยันหลัง Login<input name="loggedInRegex" class="form-control" value="@login?.LoggedInRegex" maxlength="500" placeholder="ข้อความเฉพาะหน้าหลัง Login เช่น ออกจากระบบ" /></label>
         <label data-website-login-kind="JsonBearer">ชื่อฟิลด์ Token (JSON)<input name="tokenPath" class="form-control" value="@(login?.TokenPath??"token")" maxlength="120" /></label>
         <label class="security-website-wide">เส้นทางเริ่มตรวจหลัง Login<input name="scanStartPath" class="form-control" value="@SecurityValues.WebsitePath(login?.ScanStartUrl)" maxlength="2000" placeholder="เช่น /member/ หรือ /admin/ หลังเข้าสู่ระบบ" /></label>
