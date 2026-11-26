@@ -992,7 +992,16 @@ function renderProjectAssignments(panel, items) {
         return;
     }
 
-    panel.innerHTML = `<div class="project-inline-list">${items.map(item => `
+    const groups = new Map();
+    for (const item of items) {
+        const key = `${item.phaseOrder}/${item.periodOrder}`;
+        if (!groups.has(key)) {
+            groups.set(key, { phaseOrder: item.phaseOrder, periodOrder: item.periodOrder, items: [] });
+        }
+        groups.get(key).items.push(item);
+    }
+
+    const renderAssignment = item => `
         <article class="project-inline-item project-inline-item--assignment">
             <div class="project-inline-person">
                 <img src="${escapeProjectInlineText(item.profileImage || "/images/Profile/profile.png")}" alt="${escapeProjectInlineText(item.employeeName)}" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
@@ -1003,7 +1012,7 @@ function renderProjectAssignments(panel, items) {
             </div>
             <div class="project-inline-work">
                 <strong>${escapeProjectInlineText(item.work)}</strong>
-                <small>ส่วนที่ ${escapeProjectInlineText(item.phaseOrder)} งวดที่ ${escapeProjectInlineText(item.periodOrder)} · ${escapeProjectInlineText(item.phaseName)}</small>
+                <small>${escapeProjectInlineText(item.phaseName)}</small>
             </div>
             <div class="project-inline-dates">
                 <strong>วันที่ตามแผน</strong>
@@ -1011,6 +1020,13 @@ function renderProjectAssignments(panel, items) {
             </div>
             <span class="project-inline-status ${projectInlineStatusClass(item.statusTone)}">${escapeProjectInlineText(item.status)}</span>
         </article>
+    `;
+
+    panel.innerHTML = `<div class="project-inline-list">${Array.from(groups.values(), group => `
+        <section class="project-inline-assignment-group">
+            <h3>ส่วนที่ ${escapeProjectInlineText(group.phaseOrder)} / งวดที่ ${escapeProjectInlineText(group.periodOrder)}</h3>
+            <div class="project-inline-list">${group.items.map(renderAssignment).join("")}</div>
+        </section>
     `).join("")}</div>`;
 }
 

@@ -1747,3 +1747,18 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-phase-actions .project-phase-tile--production-memo .project-phase-tile__body {
     gap: 4px;
 }
+
+.project-inline-assignment-group {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--project-card-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--project-card-border) 18%, var(--project-card-surface));
+}
+
+.project-inline-assignment-group > h3 {
+    margin: 0 0 8px;
+    color: var(--project-card-text);
+    font-size: .9rem;
+    font-weight: 700;
+}
