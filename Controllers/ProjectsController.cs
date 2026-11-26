@@ -272,6 +272,7 @@ namespace ProjectTracking.Controllers
                             phaseOrder = assign.Phase?.PhaseOrder ?? 0,
                             periodOrder = assign.Phase?.PeriodOrder ?? 0,
                             phaseName = assign.Phase?.PhaseName ?? "-",
+                            phaseDueDate = DateText(assign.Phase?.PeriodEndDate),
                             work = string.IsNullOrWhiteSpace(assign.Role) ? "ยังไม่ระบุงานที่รับผิดชอบ" : assign.Role.Trim(),
                             employeeName = assign.Employee?.EmpName ?? "ยังไม่กำหนดผู้รับผิดชอบ",
                             position = string.IsNullOrWhiteSpace(assign.Employee?.DisplayPosition)

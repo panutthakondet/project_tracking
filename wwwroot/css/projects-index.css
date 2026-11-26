@@ -1762,3 +1762,12 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     font-size: .9rem;
     font-weight: 700;
 }
+
+.project-inline-assignment-period {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-bottom: 8px;
+    color: var(--project-card-text);
+    overflow-wrap: anywhere;
+}

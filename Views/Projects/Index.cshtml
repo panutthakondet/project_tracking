@@ -996,9 +996,11 @@ function renderProjectAssignments(panel, items) {
     for (const item of items) {
         const key = `${item.phaseOrder}/${item.periodOrder}`;
         if (!groups.has(key)) {
-            groups.set(key, { phaseOrder: item.phaseOrder, periodOrder: item.periodOrder, items: [] });
+            groups.set(key, { phaseOrder: item.phaseOrder, periodOrder: item.periodOrder, details: new Map(), items: [] });
         }
-        groups.get(key).items.push(item);
+        const group = groups.get(key);
+        group.items.push(item);
+        group.details.set(JSON.stringify([item.phaseName, item.phaseDueDate]), item);
     }
 
     const renderAssignment = item => `
@@ -1012,7 +1014,6 @@ function renderProjectAssignments(panel, items) {
             </div>
             <div class="project-inline-work">
                 <strong>${escapeProjectInlineText(item.work)}</strong>
-                <small>${escapeProjectInlineText(item.phaseName)}</small>
             </div>
             <div class="project-inline-dates">
                 <strong>วันที่ตามแผน</strong>
@@ -1025,6 +1026,12 @@ function renderProjectAssignments(panel, items) {
     panel.innerHTML = `<div class="project-inline-list">${Array.from(groups.values(), group => `
         <section class="project-inline-assignment-group">
             <h3>ส่วนที่ ${escapeProjectInlineText(group.phaseOrder)} / งวดที่ ${escapeProjectInlineText(group.periodOrder)}</h3>
+            ${Array.from(group.details.values(), item => `
+                <div class="project-inline-assignment-period">
+                    <strong>${escapeProjectInlineText(item.phaseName || "-")}</strong>
+                    <span>กำหนดส่งงวด ${escapeProjectInlineText(item.phaseDueDate || "-")}</span>
+                </div>
+            `).join("")}
             <div class="project-inline-list">${group.items.map(renderAssignment).join("")}</div>
         </section>
     `).join("")}</div>`;
