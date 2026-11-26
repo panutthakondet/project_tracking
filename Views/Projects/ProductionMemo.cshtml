@@ -30,6 +30,28 @@
     <title>@(Model.IsDepartmentTransfer ? $"หนังสือโอนย้ายงาน {coopName} - {projectName}" : $"หนังสือขอขึ้นระบบงานจริง {coopName} - {projectName}")</title>
     <style>
         @@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+        @@font-face {
+            font-family: "Production Memo Sarabun";
+            src: url("@Url.Content("~/fonts/THSarabunNew.ttf")") format("truetype");
+            font-weight: 400 500;
+        }
+        @@font-face {
+            font-family: "Production Memo Sarabun";
+            src: url("@Url.Content("~/fonts/THSarabunNew%20Bold.ttf")") format("truetype");
+            font-weight: 600 900;
+        }
+        @@font-face {
+            font-family: "Production Memo Sarabun";
+            src: url("@Url.Content("~/fonts/THSarabunNew%20Italic.ttf")") format("truetype");
+            font-weight: 400 500;
+            font-style: italic;
+        }
+        @@font-face {
+            font-family: "Production Memo Sarabun";
+            src: url("@Url.Content("~/fonts/THSarabunNew%20BoldItalic.ttf")") format("truetype");
+            font-weight: 600 900;
+            font-style: italic;
+        }
         @@page {
             size: A4 portrait;
             margin-top: 14mm;
@@ -41,10 +63,11 @@
         * { box-sizing: border-box; }
 
         body {
+            --memo-font: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
             margin: 0;
             color: #111;
             background: #fff;
-            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-family: var(--memo-font);
             font-size: 14pt;
             font-weight: 400;
             line-height: 1.36;
@@ -52,8 +75,12 @@
             -webkit-font-smoothing: auto;
         }
 
+        body.production-report {
+            --memo-font: "Production Memo Sarabun", "TH Sarabun New", Tahoma, sans-serif;
+        }
+
         body :where(*):not(svg):not(svg *) {
-            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif !important;
+            font-family: var(--memo-font) !important;
             letter-spacing: 0 !important;
             text-shadow: none !important;
             -webkit-text-stroke: 0 transparent !important;
@@ -95,6 +122,10 @@
             max-width: 760px;
             margin: 0 auto;
             padding: 10px 0 0;
+        }
+
+        @@media screen {
+            .production-report .page { max-width: 176mm; }
         }
 
         .header {
@@ -263,9 +294,6 @@
 
         @@media print {
             .no-print { display: none !important; }
-            body {
-                zoom: .88;
-            }
             .page {
                 max-width: none;
                 padding: 0;
@@ -284,7 +312,6 @@
         .transfer-attachment { margin-top: 40px; border-top: 1px solid #bbb; padding-top: 24px; }
         .transfer-report .memo-tail { break-inside: auto; page-break-inside: auto; }
         @@media print {
-            body.transfer-report { zoom: 1; }
             .transfer-attachment { break-before: page; page-break-before: always; margin-top: 0; border: 0; padding-top: 0; }
         }
     </style>
