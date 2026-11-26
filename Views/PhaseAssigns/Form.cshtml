@@ -12,8 +12,8 @@
     <meta charset="utf-8" />
     <title>บันทึกภายใน</title>
 
+    <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
     <style>
-        @@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
         @@page {
             size: A4 portrait;
             margin-top: 14mm;
@@ -28,7 +28,7 @@
             margin: 0;
             color: #111;
             background: #fff;
-            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-family: var(--pt-readable-thai-font);
             font-size: 14pt;
             font-weight: 400;
             line-height: 1.36;
@@ -139,7 +139,7 @@
         }
     
         /* Crisp typography normalization for standalone pages. */
-        :root { --pt-readable-thai-font: "TH Sarabun New", "Sarabun", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
+        :root { --pt-readable-thai-font: "Report Sarabun", "TH Sarabun New", Tahoma, sans-serif; }
         html, body {
             font-family: var(--pt-readable-thai-font) !important;
             text-rendering: auto;
@@ -161,7 +161,7 @@
 @await Html.PartialAsync("_GlobalLoading")
 </head>
 
-<body onload="window.print()">
+<body onload="document.fonts.ready.then(() => window.print())">
 
     <!-- HEADER -->
     <div class="header">

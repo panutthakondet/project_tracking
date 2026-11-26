@@ -1,0 +1,22 @@
+@font-face {
+    font-family: "Report Sarabun";
+    src: url("../fonts/THSarabunNew.ttf") format("truetype");
+    font-weight: 400 500;
+}
+@font-face {
+    font-family: "Report Sarabun";
+    src: url("../fonts/THSarabunNew%20Bold.ttf") format("truetype");
+    font-weight: 600 900;
+}
+@font-face {
+    font-family: "Report Sarabun";
+    src: url("../fonts/THSarabunNew%20Italic.ttf") format("truetype");
+    font-weight: 400 500;
+    font-style: italic;
+}
+@font-face {
+    font-family: "Report Sarabun";
+    src: url("../fonts/THSarabunNew%20BoldItalic.ttf") format("truetype");
+    font-weight: 600 900;
+    font-style: italic;
+}
