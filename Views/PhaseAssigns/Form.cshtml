@@ -230,7 +230,6 @@
                     .OrderBy(l => l.RoundNo)
                     .ToList()
                 : new List<ProjectTracking.Models.PhaseAssignLog>();
-            var lastLog = logs.OrderByDescending(l => l.RoundNo).FirstOrDefault();
         }
 
         @if (logs.Any())
@@ -238,15 +237,8 @@
             <div class="text-value" style="margin-top:0; padding:0 8px 4px 8px; min-height:60px; line-height:1.0;">
                 @foreach (var log in logs)
                 {
-                    var statusText = log?.Status == "PASS" ? "ผ่าน" : "แก้ไข และนำเสนอใหม่";
-
-                    <div style="margin-bottom:0;">
-                        <div style="font-weight:bold; margin-bottom:0;">
-                            ครั้งที่ @(log?.RoundNo ?? 0) : @statusText
-                        </div>
-                        <div style="padding-left:20px; margin:0;">
-                            @(string.IsNullOrWhiteSpace(log?.Remark) ? "-" : log?.Remark.Trim())
-                        </div>
+                    <div style="padding-left:20px; margin:0;">
+                        @(string.IsNullOrWhiteSpace(log?.Remark) ? "-" : log?.Remark.Trim())
                     </div>
                 }
             </div>
