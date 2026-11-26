@@ -962,6 +962,15 @@ html body main.route-controller-phaseassigns :is(
                         <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกปรับปรุง">ปรับปรุง</button>
                     }
 
+                    @if (CanMenu("PhaseAssigns.Print"))
+                    {
+                        <a asp-action="Form" asp-route-id="@a.AssignId"
+                           class="btn btn-sm btn-outline-secondary"
+                           target="_blank" rel="noopener">
+                            พิมพ์รายงาน
+                        </a>
+                    }
+
                     @* ===== Edit ===== *@
                     @if (CanMenu("PhaseAssigns.Edit"))
                     {
