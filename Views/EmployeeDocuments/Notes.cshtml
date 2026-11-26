@@ -219,7 +219,6 @@
     .employee-note-group > summary { display:flex; justify-content:space-between; gap:8px; padding:10px 12px; cursor:pointer; font-weight:700; border-inline-start:4px solid var(--notes-accent); border-radius:8px; color:var(--notes-text); }
     .employee-note-group > .employee-note-link { margin: 0 8px 8px; }
     .employee-note-group[open] { padding-bottom: 1px; }
-    .employee-note-group > .employee-note-link:not(:hover):not(.is-active) { background: var(--notes-bg); }
     .employee-note-group > summary span { display:grid; place-items:center; min-width:24px; padding:1px 6px; border-radius:12px; background:var(--notes-bg); color:var(--notes-text); font-size:.8rem; }
     .employee-note-group-field { flex:1 1 260px; min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:8px; width:100%; max-width:400px; margin:0; padding:0; font-size:.8rem; }
     .employee-note-group-field .form-control { min-height:32px; height:32px; padding:4px 10px; border-radius:8px; font-size:.8rem; }
@@ -236,8 +235,7 @@
         margin-bottom: 8px;
         padding: 14px 15px;
         border: 1px solid var(--notes-border);
-        background: var(--notes-bg);
-        background: color-mix(in srgb, var(--notes-accent) 5%, var(--notes-bg));
+        background: #fff;
         border-radius: 14px;
         color: var(--notes-text);
         text-decoration: none;
@@ -246,16 +244,12 @@
 
     .employee-note-link:hover {
         border-color: var(--notes-accent);
-        background: var(--notes-bg);
-        background: color-mix(in srgb, var(--notes-accent) 9%, var(--notes-bg));
         color: var(--notes-text);
         transform: translateY(-1px);
     }
 
     .employee-note-link.is-active {
         border-color: var(--notes-accent);
-        background: var(--notes-bg);
-        background: color-mix(in srgb, var(--notes-accent) 13%, var(--notes-bg));
         box-shadow: none;
     }
 
