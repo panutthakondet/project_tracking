@@ -1776,11 +1776,11 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-report-menu summary { list-style: none; }
 .project-report-menu summary::-webkit-details-marker { display: none; }
 .project-report-menu[open] { z-index: 5; }
-.project-report-menu[open] .project-phase-tile__arrow { transform: rotate(-90deg); }
+.project-report-menu[open] .project-phase-tile__arrow { transform: rotate(90deg); }
 .project-report-menu__list {
     position: absolute;
     inset-inline: 0;
-    bottom: calc(100% + 4px);
+    top: calc(100% + 4px);
     margin: 0;
     padding: 4px;
     list-style: none;
