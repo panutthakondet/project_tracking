@@ -11,6 +11,18 @@
     var extraTorDetail = Model.ExtraTorDetail?.Trim();
     var hasExtraTorDetail = !string.IsNullOrWhiteSpace(ProjectTracking.Services.ProjectRichText.PlainText(extraTorDetail).Replace("\u200B", "").Replace("\uFEFF", ""));
 
+    string SecurityIssueDetail(string? detail)
+    {
+        var text = (detail ?? "").ReplaceLineEndings("\n");
+        var detailStart = text.IndexOf("\nรายละเอียด:\n", StringComparison.Ordinal);
+        var header = detailStart < 0 ? text : text[..detailStart];
+        var body = detailStart < 0 ? "" : text[detailStart..];
+        var lines = header.Split('\n').Where(line =>
+            !line.TrimStart().StartsWith("ระบบ:", StringComparison.Ordinal) &&
+            !line.TrimStart().StartsWith("Version:", StringComparison.OrdinalIgnoreCase));
+        return (string.Join("\n", lines) + body).Trim();
+    }
+
     string ReportDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
         ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(value) ? "-" : value),
         @"font-size:\d+px !important;", "font-size:inherit !important;");
@@ -530,9 +542,10 @@
                                 };
                                 <li class="phase-line">
                                     @issue.Title · สถานะ @status
-                                    @if (!string.IsNullOrWhiteSpace(issue.Detail))
+                                    @{ var detail = SecurityIssueDetail(issue.Detail); }
+                                    @if (detail.Length > 0)
                                     {
-                                        <div class="memo-security-issue-detail">@issue.Detail.Trim()</div>
+                                        <div class="memo-security-issue-detail">@detail</div>
                                     }
                                 </li>
                             }
