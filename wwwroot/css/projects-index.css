@@ -1771,3 +1771,28 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     color: var(--project-card-text);
     overflow-wrap: anywhere;
 }
+
+.project-report-menu { min-width: 0; }
+.project-report-menu summary { list-style: none; }
+.project-report-menu summary::-webkit-details-marker { display: none; }
+.project-report-menu[open] .project-phase-tile__arrow { transform: rotate(90deg); }
+.project-report-menu__list {
+    margin: 4px 0 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--project-card-surface);
+    border: 1px solid var(--project-card-border);
+    border-radius: 10px;
+}
+.project-report-menu__list a {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--project-card-text);
+    text-decoration: none;
+}
+.project-report-menu__list a:hover,
+.project-report-menu__list a:focus-visible {
+    background: color-mix(in srgb, var(--pt-accent, #3195ff) 12%, var(--project-card-surface));
+    text-decoration: underline;
+}
