@@ -152,12 +152,28 @@
             }
         </dl>
         <div class="table-responsive">
-            <table class="table">
-                <thead><tr><th>ตาราง</th><th>ตัวชี้วัด</th><th>MariaDB</th><th>Oracle</th><th>ผลต่าง (MariaDB − Oracle)</th><th>ผลเทียบ</th></tr></thead>
+            <table class="table sync-result-table">
+                <thead><tr><th scope="col">ตาราง</th><th scope="col">ผลเปรียบเทียบรายตัวชี้วัด</th></tr></thead>
                 <tbody>
-                @foreach (var metric in result.Metrics)
+                @foreach (var table in result.Metrics.GroupBy(metric => metric.Table))
                 {
-                    <tr><td>@metric.Table</td><td>@metric.Metric</td><td>@metric.Maria</td><td>@metric.Oracle</td><td>@(metric.Maria - metric.Oracle)</td><td>@metric.Status</td></tr>
+                    <tr>
+                        <th scope="row">@table.Key</th>
+                        <td>
+                            <ul class="sync-table-metrics">
+                                @foreach (var metric in table.OrderBy(metric => metric.Metric == "ROW_COUNT" ? 0 : 1))
+                                {
+                                    <li>
+                                        <strong>@metric.Metric</strong>
+                                        <span>MariaDB <b>@(metric.Maria?.ToString() ?? "—")</b></span>
+                                        <span>Oracle <b>@(metric.Oracle?.ToString() ?? "—")</b></span>
+                                        <span title="MariaDB − Oracle">ผลต่าง <b>@((metric.Maria - metric.Oracle)?.ToString() ?? "—")</b></span>
+                                        <span>@metric.Status</span>
+                                    </li>
+                                }
+                            </ul>
+                        </td>
+                    </tr>
                 }
                 </tbody>
             </table>

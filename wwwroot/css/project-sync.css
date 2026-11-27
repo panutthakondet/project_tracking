@@ -98,3 +98,17 @@
     .sync-inputs { grid-template-columns: minmax(0, 1fr); }
     .sync-action .btn { width: 100%; }
 }
+
+.sync-panel .sync-result-table { min-width: 52rem; }
+.sync-result-table th[scope="row"] { width: 24%; vertical-align: top; }
+.sync-table-metrics { list-style: none; padding: 0; margin: 0; }
+.sync-table-metrics li {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+    gap: .6rem;
+    align-items: baseline;
+    padding-block: .35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sync-table-metrics li + li { border-top: 1px solid var(--sync-line); }
