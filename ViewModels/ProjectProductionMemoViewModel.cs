@@ -25,7 +25,7 @@ namespace ProjectTracking.ViewModels
         public List<ProjectProductionMemoIssueViewModel> SecurityIssues { get; set; } = new();
     }
 
-    public record ProjectProductionMemoIssueViewModel(string Title, string Status);
+    public record ProjectProductionMemoIssueViewModel(string Title, string Status, string Section);
 
     public class ProjectProductionMemoPhaseViewModel
     {

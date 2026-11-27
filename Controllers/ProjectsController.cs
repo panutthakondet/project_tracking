@@ -5,6 +5,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
 using ProjectTracking.Services;
+using ProjectTracking.Services.Security;
 using ProjectTracking.ViewModels;
 using System.Globalization;
 
@@ -492,15 +493,38 @@ namespace ProjectTracking.Controllers
                                 finding.Severity == "Medium" ? 3 : finding.Severity == "Low" ? 2 :
                                 finding.Severity == "Info" ? 1 : 0
                         };
-                    securityIssues = await _context.ProjectIssues.AsNoTracking()
+                    var issueRows = await _context.ProjectIssues.AsNoTracking()
                         .Where(issue => issue.ProjectId == id &&
                             _context.SecurityFindingIssueLinkRows.Any(link => link.IssueId == issue.IssueId))
                         .OrderByDescending(issue => issue.IssueStatus == "PASS")
                         .ThenByDescending(issue => linkedRisks.Where(risk => risk.IssueId == issue.IssueId)
                             .Max(risk => (int?)risk.Rank) ?? 0)
                         .ThenBy(issue => issue.IssueId)
-                        .Select(issue => new ProjectProductionMemoIssueViewModel(issue.IssueName, issue.IssueStatus))
+                        .Select(issue => new
+                        {
+                            issue.IssueName,
+                            issue.IssueStatus,
+                            Section = (from link in _context.SecurityFindingIssueLinkRows
+                                       join finding in _context.SecurityScanFindingRows on link.FindingId equals finding.FindingId
+                                       join part in _context.SecurityWebsiteScanParts on finding.ScanId equals part.ScanId
+                                       where link.IssueId == issue.IssueId
+                                       orderby link.Id descending, finding.ScanId descending
+                                       select part.Section).FirstOrDefault(),
+                            Kind = (from link in _context.SecurityFindingIssueLinkRows
+                                    join finding in _context.SecurityFindingRows on link.FindingId equals finding.Id
+                                    join system in _context.SecuritySystemRows on finding.SystemId equals system.Id
+                                    where link.IssueId == issue.IssueId && system.ProjectId == id
+                                    orderby link.Id descending
+                                    select system.Kind).FirstOrDefault()
+                        })
                         .ToListAsync();
+                    securityIssues = issueRows.Select(issue => new ProjectProductionMemoIssueViewModel(
+                        issue.IssueName, issue.IssueStatus, issue.Section ?? (issue.Kind switch
+                        {
+                            "Android" or "iOS" => issue.Kind,
+                            "WebInformation" or "WebMember" or "WebAdmin" => SecurityValues.LegacySection(issue.Kind),
+                            _ => ""
+                        }))).ToList();
                 }
             }
 

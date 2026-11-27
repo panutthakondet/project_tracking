@@ -1,5 +1,6 @@
 @model ProjectTracking.ViewModels.ProjectProductionMemoViewModel
 @using System.Globalization
+@using ProjectTracking.Services.Security
 
 @{
     Layout = null;
@@ -506,22 +507,29 @@
                 }
                 @if (Model.SecurityIssues.Count > 0)
                 {
+                    var sections = SecurityValues.WebsiteSections.Concat(new[] { "Android", "iOS" }).ToList();
+                    var issueGroups = Model.SecurityIssues.GroupBy(issue => sections.Contains(issue.Section) ? issue.Section : "")
+                        .OrderBy(group => group.Key == "" ? sections.Count : sections.IndexOf(group.Key));
                     <section class="memo-stack">
                         <div class="memo-stack-label">Issue จาก SecurityScans</div>
-                        <ol class="memo-stack-value memo-security-issues">
-                            @foreach (var issue in Model.SecurityIssues)
-                            {
-                                var status = issue.Status switch
+                        @foreach (var group in issueGroups)
+                        {
+                            <div class="memo-stack-value memo-stack-label">@(group.Key == "" ? "ไม่ระบุส่วน" : SecurityValues.SectionLabel(group.Key))</div>
+                            <ol class="memo-stack-value memo-security-issues">
+                                @foreach (var issue in group)
                                 {
-                                    "PASS" => "ทดสอบผ่าน",
-                                    "OPEN" => "เปิดงาน",
-                                    "FAIL" => "ทดสอบไม่ผ่าน",
-                                    "REJECT" => "ยอมรับความเสี่ยง",
-                                    _ => issue.Status
-                                };
-                                <li class="phase-line">@issue.Title · สถานะ @status</li>
-                            }
-                        </ol>
+                                    var status = issue.Status switch
+                                    {
+                                        "PASS" => "ทดสอบผ่าน",
+                                        "OPEN" => "เปิดงาน",
+                                        "FAIL" => "ทดสอบไม่ผ่าน",
+                                        "REJECT" => "ยอมรับความเสี่ยง",
+                                        _ => issue.Status
+                                    };
+                                    <li class="phase-line">@issue.Title · สถานะ @status</li>
+                                }
+                            </ol>
+                        }
                     </section>
                 }
             </section>
