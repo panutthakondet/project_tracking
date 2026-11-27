@@ -1,25 +1,7 @@
 @model ProjectTracking.ViewModels.Security.ProjectSecurityReport
-@using ProjectTracking.Services.Security
 @{
     Layout = null;
-    var findings = Model.Groups.SelectMany(group => group.Findings).ToList();
-    var compared = Model.Groups.Where(group => group.PreviousScanId.HasValue).ToList();
-    var changes = new[]
-    {
-        ("พบใหม่", compared.Sum(group => group.Findings.Count(item => item.IsNew == true))),
-        ("ยังพบอยู่", compared.Sum(group => group.Findings.Count(item => item.IsNew == false))),
-        ("ไม่พบซ้ำ", compared.Sum(group => group.NotSeenAgain))
-    };
-    var comparisonScale = Math.Max(1, changes.Max(change => change.Item2));
-    var statusCounts = findings.ToLookup(item => item.Status);
-    var statuses = SecurityValues.ReviewStatuses.Union(statusCounts.Select(group => group.Key));
-    var awaitingAction = findings.Count(item => item.Severity is "Critical" or "High" &&
-        item.Status is "Open" or "InProgress" or "FixedPendingVerification");
-    var severities = new[] { ("Critical", "#a81939"), ("High", "#c34223"), ("Medium", "#916000"), ("Low", "#2367a0"), ("Info", "#58647a") };
-    var totals = severities.Select(level => (level.Item1, level.Item2,
-        Count: Model.Groups.Sum(group => group.Findings.Count(item => item.Severity == level.Item1)))).ToList();
-    var total = totals.Sum(level => level.Count);
-    var scale = Math.Max(1, totals.Max(level => level.Count));
+
 }
 <!DOCTYPE html>
 <html lang="th">
@@ -28,33 +10,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ผลการทดสอบความปลอดภัย - @Model.ProjectName</title>
 <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/project-security-report.css" asp-append-version="true" />
 <style>
     @@page { size: A4 portrait; margin: 14mm 16mm 12mm 18mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #111; background: #edf1f6; font: 14pt/1.36 "Report Sarabun", "TH Sarabun New", Tahoma, sans-serif; }
     .project-security-report { background: #fff; max-width: 210mm; margin: 0 auto 24px; padding: 14mm clamp(16px, 4vw, 16mm); }
-    h1 { text-align: center; font-size: 18pt; margin: 0; }
-    h2 { font-size: 14pt; margin: 0 0 4px; break-after: avoid; }
-    .report-project { text-align: center; margin: 0; }
     .report-actions { max-width: 210mm; margin: 12px auto; padding-inline: 16px; display: flex; justify-content: flex-end; gap: 8px; }
     .report-actions > * { font: inherit; padding: 3px 12px; border: 1px solid #102443; border-radius: 5px; background: white; color: #102443; text-decoration: none; cursor: pointer; }
-    .status-summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0 0 12px; }
-    .status-summary dd { margin: 0; }
-    .findings { margin: 4px 0; padding-inline-start: 2em; overflow-wrap: anywhere; }
-    .findings li + li { margin-top: .45em; }
-    .finding-group-title { font-size: 14pt; margin: .7em 0 .2em; break-after: avoid; }
-    .finding-heading { break-after: avoid; }
-    .finding-detail { line-height: 1.18; white-space: pre-line; }
-    .project-security-report { display: grid; gap: 1rem; }
-    .project-security-report .risk-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: center; gap: .55rem .8rem; }
-    .project-security-report .risk-track { height: .8rem; border-radius: .4rem; background: var(--bs-tertiary-bg, #e9ecef); }
-    .project-security-report .risk-bar { display: block; height: 100%; border-radius: inherit; background: var(--risk-color); }
     @@media print {
         .report-actions { display: none; }
         body { background: #fff; }
         .project-security-report { padding: 0; margin: 0; max-width: none; }
-        .risk-chart { break-inside: avoid; }
-        .project-security-report .risk-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
 </style>
 </head>
@@ -64,129 +31,7 @@
         <button type="button" onclick="window.print()">พิมพ์รายงาน</button>
     </nav>
 <main class="project-security-report">
-    <header>
-        <h1>ผลการทดสอบความปลอดภัย</h1>
-        <p class="report-project">@Model.ProjectName</p>
-    </header>
-    <section>
-        <h2>สรุปผลสแกนจริงล่าสุด</h2>
-        <p>พบ @total รายการจากส่วนที่สแกนเสร็จแล้ว · ความเสี่ยง Critical หรือ High ที่ยังต้องแก้ไขหรือตรวจยืนยัน @awaitingAction รายการ</p>
-        <dl class="status-summary">
-            @foreach (var status in statuses)
-            {
-                <dt>@SecurityValues.StatusLabel(status)</dt>
-                <dd>@statusCounts[status].Count()</dd>
-            }
-        </dl>
-        <h2>จำนวนประเด็นตามระดับความเสี่ยง</h2>
-        <div class="risk-chart">
-            @foreach (var level in totals)
-            {
-                <span>@level.Item1</span>
-                <span class="risk-track" aria-hidden="true"><span class="risk-bar" style="width: @(level.Count * 100 / scale)%; --risk-color: @level.Item2"></span></span>
-                <strong>@level.Count</strong>
-            }
-        </div>
-    </section>
-    <section>
-        <h2>เปรียบเทียบกับรอบสแกนจริงก่อนหน้า</h2>
-        @if (compared.Count == 0)
-        {
-            <p>ยังไม่มีคู่รอบที่สแกนเสร็จและมีขอบเขตเดียวกัน</p>
-        }
-        else
-        {
-            <p>เปรียบเทียบได้ @compared.Count จาก @Model.Groups.Count ประเภท</p>
-            <div class="risk-chart">
-                @foreach (var change in changes)
-                {
-                    <span>@change.Item1</span>
-                    <span class="risk-track" aria-hidden="true"><span class="risk-bar" style="width: @(change.Item2 * 100 / comparisonScale)%; --risk-color: #2367a0"></span></span>
-                    <strong>@change.Item2</strong>
-                }
-            </div>
-        }
-    </section>
-    @foreach (var group in Model.Groups)
-    {
-        <section>
-            <h2>@group.Category · @group.Findings.Count รายการ</h2>
-            @if (group.Run is not { } run)
-            {
-                <p class="mb-0">ยังไม่มีรอบสแกนจริง</p>
-                continue;
-            }
-            <p>
-                <a asp-action="Scan" asp-route-id="@run.Scan.Id">รอบ #@run.Scan.Id</a>
-                · @SecurityValues.StatusLabel(run.Scan.Status)
-            </p>
-            @if (group.PreviousScanId is long previousId)
-            {
-                <p>เทียบกับ <a asp-action="Scan" asp-route-id="@previousId">รอบ #@previousId</a>
-                    · พบใหม่ @group.Findings.Count(item => item.IsNew == true)
-                    · ยังพบอยู่ @group.Findings.Count(item => item.IsNew == false)
-                    · ไม่พบซ้ำ @group.NotSeenAgain</p>
-            }
-            else
-            {
-                <p>ยังเปรียบเทียบผลของประเภทนี้ไม่ได้</p>
-            }
-            @if (run.Scan.Status != "Completed")
-            {
-                <p>ผลยังไม่ครบ สรุปได้เฉพาะส่วนที่สแกนเสร็จแล้ว</p>
-            }
-            @if (run.Parts.Count > 0)
-            {
-                <ul>
-                    @foreach (var scan in run.Scans)
-                    {
-                        <li>@SecurityValues.SectionLabel(run.Section(scan.Id)) · @SecurityValues.StatusLabel(scan.Status)</li>
-                    }
-                </ul>
-            }
-            @if (group.Findings.Count == 0)
-            {
-                <p class="mb-0">@(run.HasResults ? "ไม่พบประเด็นในผลที่มี" : "ยังไม่มีผลสำหรับสรุประดับความเสี่ยง")</p>
-            }
-            else
-            {
-                @foreach (var findingGroup in group.Findings.GroupBy(item => item.IsNew)
-                    .OrderByDescending(items => items.Key == true))
-                {
-                    var heading = findingGroup.Key switch
-                    {
-                        true => "รายการที่พบใหม่",
-                        false => "รายการที่ยังพบอยู่",
-                        null => "รายการจากรอบล่าสุด"
-                    };
-                    <h3 class="finding-group-title">@heading · @findingGroup.Count() รายการ</h3>
-                    <ol class="findings">
-                        @foreach (var item in findingGroup)
-                        {
-                            <li>
-                                <div class="finding-heading">
-                                    <strong>@item.Severity · @item.Title</strong> · @SecurityValues.StatusLabel(item.Status)
-                                    @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(item.Location))
-                                {
-                                    <div class="finding-detail"><strong>ตำแหน่งที่พบ</strong> @item.Location.Trim()</div>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(item.Cwe))
-                                {
-                                    <div class="finding-detail"><strong>CWE</strong> @item.Cwe.Trim()</div>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(item.Description))
-                                {
-                                    <div class="finding-detail"><strong>รายละเอียด</strong> @item.Description.Trim()</div>
-                                }
-                            </li>
-                        }
-                    </ol>
-                }
-            }
-        </section>
-    }
+    @await Html.PartialAsync("_ProjectReportContent", Model)
 </main>
 </body>
 </html>

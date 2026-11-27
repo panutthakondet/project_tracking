@@ -1,6 +1,5 @@
 @model ProjectTracking.ViewModels.ProjectProductionMemoViewModel
 @using System.Globalization
-@using ProjectTracking.Services.Security
 
 @{
     Layout = null;
@@ -10,25 +9,6 @@
     var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var extraTorDetail = Model.ExtraTorDetail?.Trim();
     var hasExtraTorDetail = !string.IsNullOrWhiteSpace(ProjectTracking.Services.ProjectRichText.PlainText(extraTorDetail).Replace("\u200B", "").Replace("\uFEFF", ""));
-
-    string SecurityIssueDetail(string? detail)
-    {
-        var text = System.Text.RegularExpressions.Regex.Replace(
-            (detail ?? "").ReplaceLineEndings("\n"),
-            @"(?m)^[ \t]*ผลสแกน:[ \t]*/SecurityScans/Scan/[0-9]+[ \t]*\n?", "");
-        var detailStart = text.IndexOf("\nรายละเอียด:\n", StringComparison.Ordinal);
-        var header = detailStart < 0 ? text : text[..detailStart];
-        var body = detailStart < 0 ? "" : text[detailStart..];
-        const string sectionLabels = "รายละเอียด|หลักฐาน|แนวทางแก้ไขจากเครื่องมือ|อ้างอิง";
-        body = System.Text.RegularExpressions.Regex.Replace(body,
-            $@"(?m)^(?:{sectionLabels}):[^\S\n]*(?:\n[^\S\n]*)*(?=^(?:{sectionLabels}):|\z)", "");
-        var lines = header.Split('\n').Where(line =>
-            !line.TrimStart().StartsWith("ระบบ:", StringComparison.Ordinal) &&
-            !line.TrimStart().StartsWith("Version:", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(line.Trim(), "ตำแหน่ง:", StringComparison.Ordinal));
-        return System.Text.RegularExpressions.Regex.Replace(
-            (string.Join("\n", lines) + body).Trim(), @"\n(?:[ \t]*\n)+", "\n");
-    }
 
     string ReportDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
         ProjectTracking.Services.ProjectRichText.ToHtml(string.IsNullOrWhiteSpace(value) ? "-" : value),
@@ -120,6 +100,7 @@
     <meta charset="utf-8" />
     <title>@(Model.IsDepartmentTransfer ? $"หนังสือโอนย้ายงาน {coopName} - {projectName}" : $"หนังสือขอขึ้นระบบงานจริง {coopName} - {projectName}")</title>
     <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/project-security-report.css" asp-append-version="true" />
     <style>
         @@page {
             size: A4 portrait;
@@ -315,8 +296,6 @@
             line-height: 1.28;
             overflow-wrap: anywhere;
         }
-        .memo-security-issues { margin-block: 3px 8px; padding-inline: 0; }
-        .memo-security-issue-detail { margin-top: 2px; line-height: 1.18; white-space: pre-wrap; }
 
         .owner-list {
             margin: 1px 0 10px 32px;
@@ -526,38 +505,10 @@
                     </section>
                 }
             </section>
-            @if (Model.SecurityIssues.Count > 0)
+            @if (Model.SecurityReport is { } securityReport)
             {
-                var sections = SecurityValues.WebsiteSections.Concat(new[] { "Android", "iOS" }).ToList();
-                var issueGroups = Model.SecurityIssues.GroupBy(issue => sections.Contains(issue.Section) ? issue.Section : "")
-                    .OrderBy(group => group.Key == "" ? sections.Count : sections.IndexOf(group.Key));
                 <section class="transfer-attachment">
-                    <h2 class="title">ผลการทดสอบความปลอดภัย</h2>
-                    @foreach (var group in issueGroups)
-                    {
-                        <div class="memo-stack-value memo-stack-label">@(group.Key == "" ? "ไม่ระบุส่วน" : SecurityValues.SectionLabel(group.Key))</div>
-                        <ol class="memo-stack-value memo-security-issues">
-                            @foreach (var issue in group)
-                            {
-                                var status = issue.Status switch
-                                {
-                                    "PASS" => "ทดสอบผ่าน",
-                                    "OPEN" => "เปิดงาน",
-                                    "FAIL" => "ทดสอบไม่ผ่าน",
-                                    "REJECT" => "ยอมรับความเสี่ยง",
-                                    _ => issue.Status
-                                };
-                                <li class="phase-line">
-                                    <strong>@issue.Title</strong> · สถานะ @status
-                                    @{ var detail = SecurityIssueDetail(issue.Detail); }
-                                    @if (detail.Length > 0)
-                                    {
-                                        <div class="memo-security-issue-detail">@detail</div>
-                                    }
-                                </li>
-                            }
-                        </ol>
-                    }
+                    @await Html.PartialAsync("~/Views/SecurityScans/_ProjectReportContent.cshtml", securityReport)
                 </section>
             }
         }

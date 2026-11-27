@@ -1,0 +1,18 @@
+.security-report-content > * + * { margin-top: 1rem; }
+.security-report-content h1 { text-align: center; font-size: 18pt; margin: 0; }
+.security-report-content h2 { font-size: 14pt; margin: 0 0 4px; break-after: avoid; }
+.security-report-content .report-project { text-align: center; margin: 0; }
+.security-report-content .status-summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0 0 12px; }
+.security-report-content .status-summary dd { margin: 0; }
+.security-report-content .findings { margin: 4px 0; padding-inline-start: 2em; overflow-wrap: anywhere; }
+.security-report-content .findings li + li { margin-top: .45em; }
+.security-report-content .finding-group-title { font-size: 14pt; margin: .7em 0 .2em; break-after: avoid; }
+.security-report-content .finding-heading { break-after: avoid; }
+.security-report-content .finding-detail { line-height: 1.18; white-space: pre-line; }
+.security-report-content .risk-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: center; gap: .55rem .8rem; }
+.security-report-content .risk-track { height: .8rem; border-radius: .4rem; background: var(--bs-tertiary-bg, #e9ecef); }
+.security-report-content .risk-bar { display: block; height: 100%; border-radius: inherit; background: var(--risk-color); }
+@media print {
+    .security-report-content .risk-chart { break-inside: avoid; }
+    .security-report-content .risk-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

@@ -22,10 +22,8 @@ namespace ProjectTracking.ViewModels
         public string BusinessAnalystName { get; set; } = "";
         public List<ProjectProductionMemoPhaseViewModel> Phases { get; set; } = new();
         public List<ProjectProductionMemoOwnerViewModel> Owners { get; set; } = new();
-        public List<ProjectProductionMemoIssueViewModel> SecurityIssues { get; set; } = new();
+        public Security.ProjectSecurityReport? SecurityReport { get; set; }
     }
-
-    public record ProjectProductionMemoIssueViewModel(string Title, string Status, string? Detail, string Section);
 
     public class ProjectProductionMemoPhaseViewModel
     {

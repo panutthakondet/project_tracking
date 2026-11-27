@@ -24,7 +24,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
     private string SelectedWorkflow=>Request.Query["workflow"]=="Development"?"Development":"Formal";
     private int UserId=>HttpContext.Session.GetInt32("UserId")!.Value;
     private bool Can(string key)=>string.Equals(HttpContext.Session.GetString("Role"),"ADMIN",StringComparison.OrdinalIgnoreCase)||(HttpContext.Session.GetString("Menus")??"").Split(',').Any(x=>x.Trim().Equals(key,StringComparison.OrdinalIgnoreCase));
-    private async Task<int?> EmployeeId(CancellationToken ct)=>await db.LoginUsers.Where(u=>u.UserId==UserId).Select(u=>u.EmpId).FirstOrDefaultAsync(ct)??await db.Employees.Where(e=>e.LoginUserId==UserId).Select(e=>(int?)e.EmpId).FirstOrDefaultAsync(ct);
+    private Task<int?> EmployeeId(CancellationToken ct)=>ProjectSecurityReportReader.FindEmployeeIdAsync(db,UserId,ct);
     private async Task<Project?> AllowedProject(int id,CancellationToken ct)
     {
         var project=await db.Projects.Include(p=>p.Coop).Include(p=>p.TeamMembers).AsNoTracking().SingleOrDefaultAsync(p=>p.ProjectId==id,ct);
@@ -45,84 +45,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var project = await AllowedProject(projectId, ct);
         if (project == null) return NotFound();
 
-        var runs = await (from scan in db.SecurityScanRows.AsNoTracking()
-                          join version in db.SecurityVersionRows on scan.VersionId equals version.Id
-                          join system in db.SecuritySystemRows on version.SystemId equals system.Id
-                          where system.ProjectId == projectId && scan.Workflow == "Formal"
-                          select new { Scan = scan, system.Kind, version.SystemId, version.Environment }).ToListAsync(ct);
-        var scanIds = runs.Select(row => row.Scan.Id).ToArray();
-        var parts = await db.SecurityWebsiteScanParts.AsNoTracking()
-            .Where(part => scanIds.Contains(part.ScanId)).ToListAsync(ct);
-        var scopeByScan = runs.ToDictionary(row => row.Scan.Id, row => (row.SystemId, row.Environment));
-        var comparisons = runs.GroupBy(row => SecurityValues.Category(row.Kind))
-            .ToDictionary(group => group.Key, group =>
-            {
-                var ordered = SecurityScanRun.Group(group.Select(row => row.Scan), parts)
-                    .OrderByDescending(run => run.Scan.CreatedAt)
-                    .ThenByDescending(run => run.Scan.Id).ToList();
-                var latest = ordered[0];
-                var previous = latest.Scan.Status == "Completed" ? ordered.Skip(1).FirstOrDefault(run =>
-                    run.Scan.Status == "Completed" && scopeByScan[run.Scan.Id] == scopeByScan[latest.Scan.Id] &&
-                    run.Scan.Engine == latest.Scan.Engine && run.Scan.Mode == latest.Scan.Mode &&
-                    run.ComparisonKey() == latest.ComparisonKey()) : null;
-                return (Latest: latest, Previous: previous);
-            });
-        var completedIds = comparisons.Values.SelectMany(pair => pair.Latest.Scans
-                .Concat(pair.Previous?.Scans ?? Array.Empty<SecurityScan>()))
-            .Where(scan => scan.Status == "Completed").Select(scan => scan.Id).ToArray();
-
-        var findings = await (from observation in db.SecurityScanFindingRows.AsNoTracking()
-                              join finding in db.SecurityFindingRows on observation.FindingId equals finding.Id
-                              where completedIds.Contains(observation.ScanId)
-                              select new
-                              {
-                                  observation.ScanId, observation.FindingId, observation.Title,
-                                  observation.Severity, finding.ReviewStatus,
-                                  observation.Location, observation.Cwe, observation.Description,
-                                  LatestIssueId = (from link in db.SecurityFindingIssueLinkRows
-                                                 join issue in db.ProjectIssues on link.IssueId equals issue.IssueId
-                                                 where link.FindingId == finding.Id && issue.ProjectId == projectId
-                                                 orderby link.Id descending
-                                                 select (int?)issue.IssueId).FirstOrDefault()
-                              }).ToListAsync(ct);
-
-        var issueIds = findings.Select(item => item.LatestIssueId).OfType<int>().Distinct().ToArray();
-        var issues = await db.ProjectIssues.AsNoTracking()
-            .Where(issue => issue.ProjectId == projectId && issueIds.Contains(issue.IssueId))
-            .ToDictionaryAsync(issue => issue.IssueId, ct);
-
-        var groups = SecurityValues.Kinds.Select(category =>
-        {
-            comparisons.TryGetValue(category, out var comparison);
-            var run = comparison.Latest;
-            var previous = comparison.Previous;
-            var previousIds = previous?.Ids.ToHashSet();
-            var previousKeys = previous == null ? null : findings
-                .Where(item => previousIds!.Contains(item.ScanId))
-                .Select(item => (item.FindingId, Section: previous.Section(item.ScanId))).ToHashSet();
-            var ids = run?.Ids.ToHashSet() ?? new HashSet<long>();
-            var items = findings.Where(item => ids.Contains(item.ScanId))
-                .OrderByDescending(item => SecurityValues.Rank(item.Severity))
-                .ThenBy(item => item.Title)
-                .GroupBy(item => (item.FindingId, Section: run!.Section(item.ScanId)))
-                .Select(group =>
-                {
-                    var item = group.First();
-                    var status = item.LatestIssueId is int issueId && issues.TryGetValue(issueId, out var issue)
-                        ? SecurityIssueWorkflow.CurrentReviewStatus(issue) : item.ReviewStatus;
-                    return new ProjectSecurityReportFinding(item.Title, item.Severity,
-                        SecurityValues.SectionLabel(group.Key.Section), status,
-                        previousKeys == null ? null : !previousKeys.Contains(group.Key),
-                        item.Location, item.Cwe, item.Description);
-                })
-                .ToList();
-            var currentKeys = findings.Where(item => ids.Contains(item.ScanId))
-                .Select(item => (item.FindingId, Section: run!.Section(item.ScanId))).ToHashSet();
-            return new ProjectSecurityReportGroup(category, run, items, previous?.Scan.Id,
-                previousKeys?.Count(key => !currentKeys.Contains(key)) ?? 0);
-        }).ToList();
-
-        return View(new ProjectSecurityReport(projectId, project.ProjectDisplayName, groups));
+        return View(await ProjectSecurityReportReader.ReadAsync(db, project, ct));
     }
 
     public async Task<IActionResult> Index(int projectId,CancellationToken ct,string workflow="Formal")

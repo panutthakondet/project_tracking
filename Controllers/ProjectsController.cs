@@ -7,6 +7,7 @@ using ProjectTracking.Middleware;
 using ProjectTracking.Services;
 using ProjectTracking.Services.Security;
 using ProjectTracking.ViewModels;
+using ProjectTracking.ViewModels.Security;
 using System.Globalization;
 
 namespace ProjectTracking.Controllers
@@ -474,58 +475,18 @@ namespace ProjectTracking.Controllers
                 });
             }
 
-            var securityIssues = new List<ProjectProductionMemoIssueViewModel>();
+            ProjectSecurityReport? securityReport = null;
             if (HasMenuPermission("SecurityScans.Index"))
             {
                 var canViewAllProjects = HasMenuPermission("SecurityScans.ViewAllProjects");
-                var employeeId = canViewAllProjects ? null : await GetCurrentEntryIdAsync();
+                var userId = HttpContext.Session.GetInt32("UserId");
+                var employeeId = canViewAllProjects || !userId.HasValue ? null :
+                    await ProjectSecurityReportReader.FindEmployeeIdAsync(_context, userId.Value, HttpContext.RequestAborted);
                 if (canViewAllProjects || (employeeId is int empId &&
                     (project.BaEmpId == empId || project.PmEmpId == empId ||
                      project.TeamMembers.Any(member => member.EmpId == empId))))
                 {
-                    var linkedRisks =
-                        from link in _context.SecurityFindingIssueLinkRows
-                        join finding in _context.SecurityScanFindingRows on link.FindingId equals finding.FindingId
-                        select new
-                        {
-                            link.IssueId,
-                            Rank = finding.Severity == "Critical" ? 5 : finding.Severity == "High" ? 4 :
-                                finding.Severity == "Medium" ? 3 : finding.Severity == "Low" ? 2 :
-                                finding.Severity == "Info" ? 1 : 0
-                        };
-                    var issueRows = await _context.ProjectIssues.AsNoTracking()
-                        .Where(issue => issue.ProjectId == id &&
-                            _context.SecurityFindingIssueLinkRows.Any(link => link.IssueId == issue.IssueId))
-                        .OrderByDescending(issue => issue.IssueStatus == "PASS")
-                        .ThenByDescending(issue => linkedRisks.Where(risk => risk.IssueId == issue.IssueId)
-                            .Max(risk => (int?)risk.Rank) ?? 0)
-                        .ThenBy(issue => issue.IssueId)
-                        .Select(issue => new
-                        {
-                            issue.IssueName,
-                            issue.IssueStatus,
-                            issue.IssueDetail,
-                            Section = (from link in _context.SecurityFindingIssueLinkRows
-                                       join finding in _context.SecurityScanFindingRows on link.FindingId equals finding.FindingId
-                                       join part in _context.SecurityWebsiteScanParts on finding.ScanId equals part.ScanId
-                                       where link.IssueId == issue.IssueId
-                                       orderby link.Id descending, finding.ScanId descending
-                                       select part.Section).FirstOrDefault(),
-                            Kind = (from link in _context.SecurityFindingIssueLinkRows
-                                    join finding in _context.SecurityFindingRows on link.FindingId equals finding.Id
-                                    join system in _context.SecuritySystemRows on finding.SystemId equals system.Id
-                                    where link.IssueId == issue.IssueId && system.ProjectId == id
-                                    orderby link.Id descending
-                                    select system.Kind).FirstOrDefault()
-                        })
-                        .ToListAsync();
-                    securityIssues = issueRows.Select(issue => new ProjectProductionMemoIssueViewModel(
-                        issue.IssueName, issue.IssueStatus, issue.IssueDetail, issue.Section ?? (issue.Kind switch
-                        {
-                            "Android" or "iOS" => issue.Kind,
-                            "WebInformation" or "WebMember" or "WebAdmin" => SecurityValues.LegacySection(issue.Kind),
-                            _ => ""
-                        }))).ToList();
+                    securityReport = await ProjectSecurityReportReader.ReadAsync(_context, project, HttpContext.RequestAborted);
                 }
             }
 
@@ -540,7 +501,7 @@ namespace ProjectTracking.Controllers
                 TorDetail = project.TorDetail,
                 ExtraTorDetail = project.ExtraTorDetail,
                 ProductionInstallationPlan = project.ProductionInstallationPlan,
-                SecurityIssues = securityIssues,
+                SecurityReport = securityReport,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
                 TestAccount = project.TestAccount,
