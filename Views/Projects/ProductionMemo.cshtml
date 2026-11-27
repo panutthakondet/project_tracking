@@ -223,15 +223,8 @@
 
         .phase-line {
             margin-bottom: 7px;
-        }
-
-        .phase-title {
             line-height: 1.28;
-        }
-
-        .phase-meta {
-            margin-left: 24px;
-            line-height: 1.24;
+            overflow-wrap: anywhere;
         }
 
         .owner-list {
@@ -398,8 +391,8 @@
                     {
                         var due = phase.PeriodEndDate ?? phase.PlanEnd;
                         <div class="phase-line">
-                            <div class="phase-title"><strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName</div>
-                            <div class="phase-meta">กำหนดส่งมอบงานวันที่ @DateText(due) ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน</div>
+                            <strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName
+                            · กำหนดส่งมอบงานวันที่ @DateText(due) · ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน
                         </div>
                     }
                 }
