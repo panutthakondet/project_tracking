@@ -143,10 +143,11 @@
 }
 @if (result != null)
 {
+    var visibleMetrics = result.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase));
     <section class="sync-panel" id="sync-result">
         <h2>ผลเปรียบเทียบข้อมูล</h2>
         <dl class="sync-metrics">
-            @foreach (var group in result.Metrics.GroupBy(metric => metric.Status))
+            @foreach (var group in visibleMetrics.GroupBy(metric => metric.Status))
             {
                 <div><dt>@group.Key</dt><dd>@group.Count()</dd></div>
             }
@@ -155,7 +156,7 @@
             <table class="table sync-result-table">
                 <thead><tr><th scope="col">ตาราง</th><th scope="col">ผลเปรียบเทียบรายตัวชี้วัด</th></tr></thead>
                 <tbody>
-                @foreach (var table in result.Metrics.GroupBy(metric => metric.Table))
+                @foreach (var table in visibleMetrics.GroupBy(metric => metric.Table))
                 {
                     <tr>
                         <th scope="row">@table.Key</th>

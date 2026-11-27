@@ -64,7 +64,6 @@ public static class SyncComparison
                 if (name == null) throw new FormatException("เลือก SUM เฉพาะคอลัมน์ตัวเลขที่มีชื่อร่วมกัน");
                 var oracleName = oracle.Columns.Keys.First(value => value.Equals(name, StringComparison.OrdinalIgnoreCase));
                 Add($"SUM:{name}", $"SUM(`{name}`)", $"""SUM("{oracleName}")""");
-                Add($"NON_NULL:{name}", $"COUNT(`{name}`)", $"""COUNT("{oracleName}")""");
             }
 
             void Add(string metric, string mariaExpression, string oracleExpression)
@@ -112,6 +111,8 @@ public static class SyncComparison
         {
             var row = parser.ReadFields() ?? [];
             if (row.Length != 3) throw new FormatException("จำนวนคอลัมน์ CSV ไม่ถูกต้อง");
+            // Older SQL exports also include a count of non-null values for each SUM.
+            if (row[metric].StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)) continue;
             decimal? number = null;
             if (row[value].Length > 0 && !row[value].Equals("NULL", StringComparison.OrdinalIgnoreCase))
             {
