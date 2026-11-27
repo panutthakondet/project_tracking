@@ -423,8 +423,16 @@
                                 @if (index < Model.Owners.Count)
                                 {
                                     var owner = Model.Owners[index];
-                                    <div>@(index + 1). @owner.Name</div>
-                                    <div>ตำแหน่ง @(string.IsNullOrWhiteSpace(owner.Role) ? "-" : owner.Role)</div>
+                                    var role = string.IsNullOrWhiteSpace(owner.Role) ? "-" : owner.Role;
+                                    @if (Model.IsDepartmentTransfer)
+                                    {
+                                        <div>@(index + 1). @owner.Name</div>
+                                        <div>ตำแหน่ง @role</div>
+                                    }
+                                    else
+                                    {
+                                        <div>@(index + 1). @owner.Name · @role</div>
+                                    }
                                 }
                                 </td>
                             }
