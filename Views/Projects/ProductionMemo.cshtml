@@ -295,6 +295,7 @@
             line-height: 1.28;
             overflow-wrap: anywhere;
         }
+        ol.phase-list { padding-inline-start: 2em; }
 
         .owner-list {
             margin: 1px 0 10px 32px;
@@ -507,12 +508,12 @@
                 {
                     <section class="memo-stack">
                         <div class="memo-stack-label">Issue จาก SecurityScans</div>
-                        <ul class="phase-list">
+                        <ol class="phase-list">
                             @foreach (var issue in Model.SecurityIssues)
                             {
                                 <li class="phase-line">@issue.Title · สถานะ Issue @issue.Status</li>
                             }
-                        </ul>
+                        </ol>
                     </section>
                 }
             </section>

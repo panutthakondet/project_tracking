@@ -482,10 +482,22 @@ namespace ProjectTracking.Controllers
                     (project.BaEmpId == empId || project.PmEmpId == empId ||
                      project.TeamMembers.Any(member => member.EmpId == empId))))
                 {
+                    var linkedRisks =
+                        from link in _context.SecurityFindingIssueLinkRows
+                        join finding in _context.SecurityScanFindingRows on link.FindingId equals finding.FindingId
+                        select new
+                        {
+                            link.IssueId,
+                            Rank = finding.Severity == "Critical" ? 5 : finding.Severity == "High" ? 4 :
+                                finding.Severity == "Medium" ? 3 : finding.Severity == "Low" ? 2 :
+                                finding.Severity == "Info" ? 1 : 0
+                        };
                     securityIssues = await _context.ProjectIssues.AsNoTracking()
                         .Where(issue => issue.ProjectId == id &&
                             _context.SecurityFindingIssueLinkRows.Any(link => link.IssueId == issue.IssueId))
-                        .OrderBy(issue => issue.IssueId)
+                        .OrderByDescending(issue => linkedRisks.Where(risk => risk.IssueId == issue.IssueId)
+                            .Max(risk => (int?)risk.Rank) ?? 0)
+                        .ThenBy(issue => issue.IssueId)
                         .Select(issue => new ProjectProductionMemoIssueViewModel(issue.IssueName, issue.IssueStatus))
                         .ToListAsync();
                 }
