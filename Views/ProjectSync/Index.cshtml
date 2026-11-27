@@ -10,19 +10,41 @@
     var plan = Model?.PlanJson == null ? null : JsonSerializer.Deserialize<SyncPair[]>(Model.PlanJson);
     var history = (List<ProjectSyncRun>)ViewBag.History;
 }
-<h1>เทียบข้อมูล Sync</h1>
-<p>@ViewBag.ProjectName</p>
-<a asp-controller="Projects" asp-action="Index" asp-route-projectId="@projectId">กลับโครงการ</a>
+@section Styles {
+    <link rel="stylesheet" href="~/css/project-sync.css" asp-append-version="true" />
+}
+<div class="sync-page">
+<header class="index-hero">
+    <div class="index-hero__content">
+        <h1 class="index-title">เทียบข้อมูล Sync</h1>
+        <p class="index-subtitle">@ViewBag.ProjectName</p>
+    </div>
+    <div class="index-actions">
+        <a class="btn btn-outline-light" asp-controller="Projects" asp-action="Index" asp-route-projectId="@projectId">กลับโครงการ</a>
+    </div>
+</header>
+<nav class="sync-nav" aria-label="ส่วนต่าง ๆ ของหน้าเทียบข้อมูล Sync">
+    <a href="#sync-upload">สร้างรอบ</a>
+    @if (Model != null)
+    {
+        <a href="#sync-setup">รอบ #@Model.Id</a>
+    }
+    @if (result != null)
+    {
+        <a href="#sync-result">ผลเปรียบเทียบ</a>
+    }
+    <a href="#sync-history">ประวัติ</a>
+</nav>
 @if (TempData["SyncError"] is string error)
 {
     <div class="alert alert-danger mt-3" role="alert">@error</div>
 }
-<section class="card p-3 my-3">
-    <h2 class="h5">นำเข้าโครงสร้าง</h2>
-    <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data" class="row g-2">
-        <label class="col-md-5">MariaDB <input class="form-control" type="file" name="maria" accept=".sql" required /></label>
-        <label class="col-md-5">Oracle <input class="form-control" type="file" name="oracle" accept=".sql" required /></label>
-        <div class="col-md-2 align-self-end"><button class="btn btn-primary">สร้างรอบ</button></div>
+<section class="sync-panel" id="sync-upload">
+    <h2>นำเข้าโครงสร้าง</h2>
+    <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data" class="sync-inputs">
+        <label>MariaDB (.sql) <input class="form-control" type="file" name="maria" accept=".sql" required /></label>
+        <label>Oracle (.sql) <input class="form-control" type="file" name="oracle" accept=".sql" required /></label>
+        <div class="sync-action"><button class="btn btn-primary">สร้างรอบ</button></div>
     </form>
 </section>
 @if (draft != null && Model != null)
@@ -31,9 +53,14 @@
         ? plan.Select(pair => pair.Oracle).ToHashSet()
         : draft.Maria.Select(item => SyncComparison.Suggest(item, draft.Oracle)).ToHashSet();
     var unmatchedOracle = draft.Oracle.Where((_, index) => !selectedOracle.Contains(index)).Select(item => item.Name).ToArray();
-    <section class="card p-3 my-3">
-        <h2 class="h5">โครงสร้างรอบ #@Model.Id</h2>
-        <p>MariaDB @draft.Maria.Length รายการ · Oracle @draft.Oracle.Length รายการ</p>
+    <section class="sync-panel" id="sync-setup">
+        <div class="sync-panel-heading">
+            <div>
+                <h2>จับคู่ตาราง · รอบ #@Model.Id</h2>
+                <p>MariaDB @draft.Maria.Length รายการ · Oracle @draft.Oracle.Length รายการ</p>
+            </div>
+            <span class="sync-status">@(result != null ? "บันทึกผลแล้ว" : plan != null ? "รอผล CSV" : "รอยืนยันคู่ตาราง")</span>
+        </div>
         @if (unmatchedOracle.Length > 0)
         {
             <details class="mb-2">
@@ -42,65 +69,73 @@
             </details>
         }
         <form asp-action="Process" asp-route-projectId="@projectId" asp-route-runId="@Model.Id" method="post" enctype="multipart/form-data">
-            <div class="table-responsive">
-                <table class="table align-middle" id="sync-structure"
-                       data-oracle-columns="@(plan == null ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
-                    <thead><tr><th>MariaDB</th><th>Oracle</th><th>SUM</th></tr></thead>
-                    <tbody>
-                    @for (var index = 0; index < draft.Maria.Length; index++)
-                    {
-                        var mariaObject = draft.Maria[index];
-                        var pair = plan?.FirstOrDefault(p => p.Maria == index);
-                        var selection = plan == null ? SyncComparison.Suggest(mariaObject, draft.Oracle) : pair?.Oracle ?? -1;
-                        <tr data-sum-candidates="@(plan == null ? JsonSerializer.Serialize(SyncComparison.Sums(mariaObject, mariaObject)) : null)">
-                            <th scope="row">@mariaObject.Name</th>
-                            <td>
-                                <input type="hidden" name="pairs[@index].Maria" value="@index" />
-                                <select class="form-select" data-sync-oracle name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(plan != null)">
-                                    <option value="-1" selected="@(selection < 0)">ไม่เลือก</option>
-                                    @for (var oracleIndex = 0; oracleIndex < draft.Oracle.Length; oracleIndex++)
+            <details class="sync-pairs" open="@(plan == null)">
+                <summary>รายการจับคู่ตาราง</summary>
+                <div class="table-responsive">
+                    <table class="table align-middle" id="sync-structure"
+                           data-oracle-columns="@(plan == null ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
+                        <thead><tr><th>MariaDB</th><th>Oracle</th><th>SUM</th></tr></thead>
+                        <tbody>
+                        @for (var index = 0; index < draft.Maria.Length; index++)
+                        {
+                            var mariaObject = draft.Maria[index];
+                            var pair = plan?.FirstOrDefault(p => p.Maria == index);
+                            var selection = plan == null ? SyncComparison.Suggest(mariaObject, draft.Oracle) : pair?.Oracle ?? -1;
+                            <tr data-sum-candidates="@(plan == null ? JsonSerializer.Serialize(SyncComparison.Sums(mariaObject, mariaObject)) : null)">
+                                <th scope="row">@mariaObject.Name</th>
+                                <td>
+                                    <input type="hidden" name="pairs[@index].Maria" value="@index" />
+                                    <select class="form-select" data-sync-oracle name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(plan != null)">
+                                        <option value="-1" selected="@(selection < 0)">ไม่เลือก</option>
+                                        @for (var oracleIndex = 0; oracleIndex < draft.Oracle.Length; oracleIndex++)
+                                        {
+                                            <option value="@oracleIndex" selected="@(selection == oracleIndex)">@draft.Oracle[oracleIndex].Name</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    @if (plan == null)
                                     {
-                                        <option value="@oracleIndex" selected="@(selection == oracleIndex)">@draft.Oracle[oracleIndex].Name</option>
+                                        <input type="hidden" name="pairs[@index].SumColumns" data-sum-value />
+                                        <span data-sum-empty></span>
+                                        <details data-sum-picker hidden>
+                                            <summary>เลือกฟิลด์ SUM <span data-sum-count></span></summary>
+                                            <div class="mt-2" data-sum-options role="group" aria-label="ฟิลด์ SUM สำหรับ @mariaObject.Name"></div>
+                                        </details>
                                     }
-                                </select>
-                            </td>
-                            <td>
-                                @if (plan == null)
-                                {
-                                    <input type="hidden" name="pairs[@index].SumColumns" data-sum-value />
-                                    <span data-sum-empty></span>
-                                    <details data-sum-picker hidden>
-                                        <summary>เลือกฟิลด์ SUM <span data-sum-count></span></summary>
-                                        <div class="mt-2" data-sum-options role="group" aria-label="ฟิลด์ SUM สำหรับ @mariaObject.Name"></div>
-                                    </details>
-                                }
-                                else
-                                {
-                                    @(string.IsNullOrWhiteSpace(pair?.SumColumns) ? "—" : pair.SumColumns)
-                                }
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
+                                    else
+                                    {
+                                        @(string.IsNullOrWhiteSpace(pair?.SumColumns) ? "—" : pair.SumColumns)
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            <div class="sync-action-bar">
+                @if (plan == null)
+                {
+                    <p>ตรวจคู่ตารางและเลือกคอลัมน์ยอดรวม จากนั้นยืนยันเพื่อใช้ชุดเดียวกันทั้งสองฝั่ง</p>
+                    <button class="btn btn-primary" name="operation" value="plan">ยืนยันคู่ตาราง</button>
+                }
+                else
+                {
+                    <button class="btn btn-outline-primary" name="operation" value="oracle" formnovalidate>ดาวน์โหลด SQL Oracle</button>
+                    <button class="btn btn-outline-primary" name="operation" value="mariadb" formnovalidate>ดาวน์โหลด SQL MariaDB</button>
+                }
             </div>
-            @if (plan == null)
-            {
-                <p>ตรวจคู่ตารางและเลือกคอลัมน์ยอดรวม จากนั้นยืนยันเพื่อใช้ชุดเดียวกันทั้งสองฝั่ง</p>
-                <button class="btn btn-primary" name="operation" value="plan">ยืนยันคู่ตาราง</button>
-            }
-            else
-            {
-                <button class="btn btn-outline-primary" name="operation" value="oracle" formnovalidate>ดาวน์โหลด SQL Oracle</button>
-                <button class="btn btn-outline-primary" name="operation" value="mariadb" formnovalidate>ดาวน์โหลด SQL MariaDB</button>
-            }
             @if (plan != null && result == null)
             {
-                <p class="mt-3 mb-1">รัน SQL ทั้งสองฝั่งกับข้อมูลรอบ Sync เดียวกัน หาก Sync กรองข้อมูล ให้ใช้เงื่อนไขเดียวกันก่อนส่งออก CSV พร้อมหัวคอลัมน์</p>
-                <div class="row g-2 mt-3">
-                    <label class="col-md-5">ผล MariaDB <input class="form-control" type="file" name="maria" accept=".csv" required /></label>
-                    <label class="col-md-5">ผล Oracle <input class="form-control" type="file" name="oracle" accept=".csv" required /></label>
-                    <div class="col-md-2 align-self-end"><button class="btn btn-primary" name="operation" value="compare">เทียบและบันทึก</button></div>
+                <div class="sync-import">
+                    <h3>นำเข้าผล SQL</h3>
+                    <p>รัน SQL ทั้งสองฝั่งกับข้อมูลรอบ Sync เดียวกัน หาก Sync กรองข้อมูล ให้ใช้เงื่อนไขเดียวกันก่อนส่งออก CSV พร้อมหัวคอลัมน์</p>
+                    <div class="sync-inputs">
+                        <label>ผล MariaDB <input class="form-control" type="file" name="maria" accept=".csv" required /></label>
+                        <label>ผล Oracle <input class="form-control" type="file" name="oracle" accept=".csv" required /></label>
+                        <div class="sync-action"><button class="btn btn-primary" name="operation" value="compare">เทียบและบันทึก</button></div>
+                    </div>
                 </div>
             }
         </form>
@@ -108,9 +143,14 @@
 }
 @if (result != null)
 {
-    <section class="card p-3 my-3">
-        <h2 class="h5">ผลเปรียบเทียบข้อมูล</h2>
-        <p>@string.Join(" · ", result.Metrics.GroupBy(metric => metric.Status).Select(group => $"{group.Key} {group.Count()}"))</p>
+    <section class="sync-panel" id="sync-result">
+        <h2>ผลเปรียบเทียบข้อมูล</h2>
+        <dl class="sync-metrics">
+            @foreach (var group in result.Metrics.GroupBy(metric => metric.Status))
+            {
+                <div><dt>@group.Key</dt><dd>@group.Count()</dd></div>
+            }
+        </dl>
         <div class="table-responsive">
             <table class="table">
                 <thead><tr><th>ตาราง</th><th>ตัวชี้วัด</th><th>MariaDB</th><th>Oracle</th><th>ผลต่าง (MariaDB − Oracle)</th><th>ผลเทียบ</th></tr></thead>
@@ -124,17 +164,27 @@
         </div>
     </section>
 }
-<section class="card p-3 my-3">
-    <h2 class="h5">ประวัติรอบเปรียบเทียบ</h2>
+<section class="sync-panel" id="sync-history">
+    <h2>ประวัติรอบเปรียบเทียบ</h2>
     @if (history.Count == 0)
     {
         <p>ยังไม่มีรอบเปรียบเทียบ</p>
     }
-    @foreach (var run in history)
+    else
     {
-        <div><a asp-action="Index" asp-route-projectId="@projectId" asp-route-runId="@run.Id">รอบ #@run.Id</a> · @run.CreatedAtUtc.AddHours(7).ToString("yyyy-MM-dd HH:mm") น. · @(run.ComparedAtUtc.HasValue ? "บันทึกผลแล้ว" : "รอผล CSV")</div>
+        <ul class="sync-history-list">
+            @foreach (var run in history)
+            {
+                <li>
+                    <a asp-action="Index" asp-route-projectId="@projectId" asp-route-runId="@run.Id" aria-current="@(Model?.Id == run.Id ? "page" : null)">รอบ #@run.Id</a>
+                    <span>@run.CreatedAtUtc.AddHours(7).ToString("yyyy-MM-dd HH:mm") น.</span>
+                    <span class="sync-status">@(run.ComparedAtUtc.HasValue ? "บันทึกผลแล้ว" : "รอดำเนินการ")</span>
+                </li>
+            }
+        </ul>
     }
 </section>
+</div>
 
 @if (plan == null && draft != null)
 {
