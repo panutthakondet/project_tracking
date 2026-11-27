@@ -37,7 +37,7 @@
         forms.clear();
     };
     const eligible=(form,submitter)=>{
-        if(!form||form.dataset.loading==='off')return false;
+        if(!form||form.dataset.loading==='off'||submitter?.dataset.loading==='off')return false;
         const target=submitter?.formTarget||form.target;
         if(target&&target.toLowerCase()!=='_self')return false;
         if((submitter?.formMethod||form.method).toLowerCase()==='dialog')return false;
