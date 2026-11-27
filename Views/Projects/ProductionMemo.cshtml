@@ -22,7 +22,8 @@
         var lines = header.Split('\n').Where(line =>
             !line.TrimStart().StartsWith("ระบบ:", StringComparison.Ordinal) &&
             !line.TrimStart().StartsWith("Version:", StringComparison.OrdinalIgnoreCase));
-        return (string.Join("\n", lines) + body).Trim();
+        return System.Text.RegularExpressions.Regex.Replace(
+            (string.Join("\n", lines) + body).Trim(), @"\n(?:[ \t]*\n)+", "\n");
     }
 
     string ReportDetail(string? value) => System.Text.RegularExpressions.Regex.Replace(
@@ -310,8 +311,8 @@
             line-height: 1.28;
             overflow-wrap: anywhere;
         }
-        .memo-security-issues { padding-inline: 0; }
-        .memo-security-issue-detail { margin: 3px 0 0; white-space: pre-wrap; }
+        .memo-security-issues { margin-block: 3px 8px; padding-inline: 0; }
+        .memo-security-issue-detail { margin-top: 2px; line-height: 1.18; white-space: pre-wrap; }
 
         .owner-list {
             margin: 1px 0 10px 32px;
