@@ -439,6 +439,9 @@ namespace ProjectTracking.Controllers
 
             var owners = assignments
                 .GroupBy(x => x.EmpId)
+                .OrderBy(g => g.First().PhaseOrder)
+                .ThenBy(g => g.First().PeriodOrder)
+                .ThenBy(g => g.First().EmpName)
                 .Select(g =>
                 {
                     var first = g.First();
@@ -452,8 +455,6 @@ namespace ProjectTracking.Controllers
                             .ToList()
                     };
                 })
-                .OrderBy(x => x.Role)
-                .ThenBy(x => x.Name)
                 .ToList();
 
             var assignedEmployeeIds = assignments.Select(x => x.EmpId).ToHashSet();
