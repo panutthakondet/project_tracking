@@ -490,19 +490,7 @@ namespace ProjectTracking.Controllers
                 }
             }
 
-            ProjectSyncRun? syncRun = null;
-            try
-            {
-                syncRun = await _context.Set<ProjectSyncRun>().AsNoTracking()
-                    .Where(run => run.ProjectId == id && run.ComparedAtUtc != null && run.ResultJson != null)
-                    .OrderByDescending(run => run.ComparedAtUtc).ThenByDescending(run => run.Id)
-                    .Select(run => new ProjectSyncRun { Id = run.Id, ComparedAtUtc = run.ComparedAtUtc, ResultJson = run.ResultJson })
-                    .FirstOrDefaultAsync(HttpContext.RequestAborted);
-            }
-            catch (MySqlConnector.MySqlException ex) when (ex.Number == 1146)
-            {
-                // ProductionMemo also runs on databases where the optional Sync feature is not installed.
-            }
+            var syncRun = await ProjectSyncReportReader.ReadLatestAsync(_context, id, HttpContext.RequestAborted);
 
             var model = new ProjectProductionMemoViewModel
             {

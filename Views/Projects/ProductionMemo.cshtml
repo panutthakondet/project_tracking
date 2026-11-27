@@ -103,6 +103,7 @@
     <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/project-security-report.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/project-report-toolbar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/project-sync-report.css" asp-append-version="true" />
     <style>
         @@page {
             size: A4 portrait;
@@ -345,23 +346,6 @@
         @@media screen {
             .production-report .transfer-attachment { margin-top: 24px; border: 0; }
         }
-        .memo-sync-table { width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.35; }
-        .memo-sync-table :is(th, td) { border-bottom: 1px solid #ccc; padding: 4pt; text-align: left; overflow-wrap: anywhere; }
-        .memo-sync-table .numeric { text-align: right; font-variant-numeric: tabular-nums; }
-        .memo-sync-table thead { display: table-header-group; }
-        .memo-sync-table thead th {
-            padding-block: 6pt;
-            vertical-align: middle;
-            white-space: nowrap;
-            background: #eef2f6;
-            border-top: 1px solid #c3ccd6;
-            border-bottom: 1px solid #8796a6;
-            font-weight: 700;
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-        }
-        .memo-sync-table .memo-sync-status { text-align: center; }
-        .memo-sync-table tr { break-inside: avoid; }
         .transfer-report .memo-tail { break-inside: auto; page-break-inside: auto; }
         @@media print {
             .transfer-attachment { break-before: page; page-break-before: always; margin-top: 0; border: 0; padding-top: 0; }

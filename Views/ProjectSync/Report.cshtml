@@ -1,0 +1,49 @@
+@model ProjectTracking.Models.ProjectSyncRun?
+@{
+    Layout = null;
+    const string heading = "ผลการเทียบข้อมูลระหว่าง MariaDB กับ Oracle";
+}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@heading - @ViewBag.ProjectName</title>
+    <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/project-report-toolbar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/project-sync-report.css" asp-append-version="true" />
+    <style>
+        @@page { size: A4 portrait; margin: 14mm 16mm 12mm 18mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #111; background: #edf1f6; font: 14pt/1.36 "Report Sarabun", "TH Sarabun New", Tahoma, sans-serif; }
+        .sync-report { background: #fff; max-width: 210mm; margin: 0 auto 24px; padding: 14mm clamp(16px, 4vw, 16mm); }
+        .sync-report .title { text-align: center; font-size: 16pt; margin: 0 0 4pt; }
+        .sync-report-project { text-align: center; margin: 0 0 12pt; }
+        @@media print {
+            body { background: #fff; }
+            .sync-report { padding: 0; margin: 0; max-width: none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="project-report-toolbar" aria-label="เครื่องมือรายงาน">
+        <a asp-controller="Projects" asp-action="Index" asp-route-projectId="@ViewBag.ProjectId" class="project-report-button"><span aria-hidden="true">←</span> กลับหน้าโครงการ</a>
+        @if (Model != null)
+        {
+            <button type="button" class="project-report-button project-report-button--primary" onclick="window.print()">พิมพ์รายงาน</button>
+        }
+    </nav>
+    <main class="sync-report">
+        <h1 class="title">@heading</h1>
+        <p class="sync-report-project">@ViewBag.ProjectName</p>
+        @if (Model is { } run)
+        {
+            @await Html.PartialAsync("~/Views/Projects/_ProductionMemoSync.cshtml", run, new ViewDataDictionary(ViewData) { ["HideSyncTitle"] = true })
+        }
+        else
+        {
+            <p>ยังไม่มีผลการเทียบข้อมูลที่บันทึกไว้สำหรับโครงการนี้</p>
+        }
+    </main>
+</body>
+</html>

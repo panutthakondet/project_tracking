@@ -31,6 +31,18 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
         return View(selected);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Report(int projectId, CancellationToken ct)
+    {
+        var project = await db.Projects.AsNoTracking().Include(p => p.Coop)
+            .FirstOrDefaultAsync(p => p.ProjectId == projectId, ct);
+        if (project == null) return NotFound();
+
+        ViewBag.ProjectId = projectId;
+        ViewBag.ProjectName = project.ProjectDisplayName;
+        return View(await ProjectSyncReportReader.ReadLatestAsync(db, projectId, ct));
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(int projectId, IFormFile? maria, IFormFile? oracle, CancellationToken ct)
     {
