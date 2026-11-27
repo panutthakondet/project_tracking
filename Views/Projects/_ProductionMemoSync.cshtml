@@ -1,0 +1,43 @@
+@using System.Globalization
+@using System.Text.Json
+@using ProjectTracking.Services
+@model ProjectTracking.Models.ProjectSyncRun
+@functions {
+    private static string NumberText(decimal? value) =>
+        value?.ToString("#,0.############################", CultureInfo.InvariantCulture) ?? "—";
+}
+@{
+    var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
+    var metrics = result?.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
+    var thai = CultureInfo.GetCultureInfo("th-TH");
+}
+<section class="transfer-attachment">
+    <h2 class="title">ผลการเทียบข้อมูล Sync</h2>
+    <p>รอบ #@Model.Id · @Model.ComparedAtUtc?.AddHours(7).ToString("d MMM yyyy HH:mm", thai) น. (เวลาไทย)</p>
+    <p>@string.Join(" · ", metrics.GroupBy(metric => metric.Status).Select(group => $"{group.Key} {group.Count()}"))</p>
+    <table class="memo-sync-table">
+        <thead>
+            <tr>
+                <th scope="col">ตาราง</th><th scope="col">ตัวชี้วัด</th>
+                <th scope="col" class="numeric">MariaDB</th><th scope="col" class="numeric">Oracle</th>
+                <th scope="col" class="numeric">ผลต่าง<br />(MariaDB − Oracle)</th><th scope="col">สถานะ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var table in metrics.GroupBy(metric => metric.Table))
+            {
+                foreach (var metric in table.OrderBy(metric => metric.Metric == "ROW_COUNT" ? 0 : 1))
+                {
+                    <tr>
+                        <td>@table.Key</td>
+                        <td>@(metric.Metric == "ROW_COUNT" ? "จำนวนแถว" : metric.Metric)</td>
+                        <td class="numeric">@NumberText(metric.Maria)</td>
+                        <td class="numeric">@NumberText(metric.Oracle)</td>
+                        <td class="numeric">@NumberText(metric.Maria - metric.Oracle)</td>
+                        <td>@metric.Status</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</section>

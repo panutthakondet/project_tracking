@@ -22,6 +22,7 @@ namespace ProjectTracking.ViewModels
         public string BusinessAnalystName { get; set; } = "";
         public List<ProjectProductionMemoPhaseViewModel> Phases { get; set; } = new();
         public List<ProjectProductionMemoOwnerViewModel> Owners { get; set; } = new();
+        public ProjectTracking.Models.ProjectSyncRun? LatestSyncRun { get; set; }
         public Security.ProjectSecurityReport? SecurityReport { get; set; }
     }
 
