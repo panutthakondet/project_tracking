@@ -12,6 +12,10 @@
 }
 <section class="transfer-attachment">
     <h2 class="title">ผลการเทียบข้อมูลระหว่าง MariaDB กับ Oracle</h2>
+    @if (Model.ComparedAtUtc is DateTime comparedAtUtc)
+    {
+        <p>ข้อมูล ณ วันที่ @comparedAtUtc.AddHours(7).ToString("d MMM yyyy HH:mm", CultureInfo.GetCultureInfo("th-TH")) น.</p>
+    }
     <p>@string.Join(" · ", metrics.GroupBy(metric => metric.Status).Select(group => $"{group.Key} {group.Count()}"))</p>
     <table class="memo-sync-table">
         <thead>
