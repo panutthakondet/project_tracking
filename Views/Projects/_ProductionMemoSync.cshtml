@@ -9,11 +9,9 @@
 @{
     var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
     var metrics = result?.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
-    var thai = CultureInfo.GetCultureInfo("th-TH");
 }
 <section class="transfer-attachment">
     <h2 class="title">ผลการเทียบข้อมูลระหว่าง MariaDB กับ Oracle</h2>
-    <p>รอบ #@Model.Id · @Model.ComparedAtUtc?.AddHours(7).ToString("d MMM yyyy HH:mm", thai) น. (เวลาไทย)</p>
     <p>@string.Join(" · ", metrics.GroupBy(metric => metric.Status).Select(group => $"{group.Key} {group.Count()}"))</p>
     <table class="memo-sync-table">
         <thead>
