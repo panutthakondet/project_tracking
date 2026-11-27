@@ -541,7 +541,7 @@
                                     _ => issue.Status
                                 };
                                 <li class="phase-line">
-                                    @issue.Title · สถานะ @status
+                                    <strong>@issue.Title</strong> · สถานะ @status
                                     @{ var detail = SecurityIssueDetail(issue.Detail); }
                                     @if (detail.Length > 0)
                                     {
