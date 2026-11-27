@@ -135,6 +135,17 @@ namespace ProjectTracking.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ProjectSyncRun>(entity =>
+            {
+                entity.ToTable("project_sync_runs");
+                entity.HasIndex(run => new { run.ProjectId, run.Id });
+                entity.HasOne<Project>().WithMany().HasForeignKey(run => run.ProjectId);
+                entity.Property(run => run.StructureJson).HasColumnType("longtext");
+                entity.Property(run => run.PlanJson).HasColumnType("longtext").IsConcurrencyToken();
+                entity.Property(run => run.ResultJson).HasColumnType("longtext");
+                entity.Property(run => run.ComparedAtUtc).IsConcurrencyToken();
+            });
             ProjectTracking.Services.Security.SecurityModelConfiguration.Configure(modelBuilder);
 
             modelBuilder.Entity<ProjectDepartment>(entity =>

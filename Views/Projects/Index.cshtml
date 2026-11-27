@@ -547,6 +547,7 @@
                                 <li><a asp-controller="SecurityScans" asp-action="ProjectReport" asp-route-projectId="@p.ProjectId" target="_blank" rel="noopener">รายงาน Security</a></li>
                             }
                             <li><a asp-action="ProductionMemo" asp-route-id="@p.ProjectId" target="_blank" rel="noopener noreferrer">หนังสือนำเสนองาน</a></li>
+                            <li><a asp-controller="ProjectSync" asp-action="Index" asp-route-projectId="@p.ProjectId" target="_blank" rel="noopener">เทียบข้อมูล Sync</a></li>
                             <li><a asp-action="DepartmentTransfer" asp-route-id="@p.ProjectId" target="_blank" rel="noopener">หนังสือโอนย้ายงาน</a></li>
                         </ul>
                     </details>
