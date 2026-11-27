@@ -269,10 +269,6 @@
             line-height: 1.28;
         }
 
-        .memo-project-detail {
-            white-space: pre-line;
-        }
-
         .production-installation-plan {
             white-space: pre-wrap;
             overflow-wrap: anywhere;
@@ -433,14 +429,6 @@
         </p>
 
         <section class="detail-block">
-            @if (hasExtraTorDetail)
-            {
-                <div class="memo-stack">
-                    <div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div>
-                    <div class="memo-stack-value memo-project-detail">@Html.Raw(ReportDetail(extraTorDetail))</div>
-                </div>
-            }
-
             <div class="memo-stack">
                 <span class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</span>
                 วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate)
