@@ -43,7 +43,8 @@
         }
         <form asp-action="Process" asp-route-projectId="@projectId" asp-route-runId="@Model.Id" method="post" enctype="multipart/form-data">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle" id="sync-structure"
+                       data-oracle-columns="@(plan == null ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
                     <thead><tr><th>MariaDB</th><th>Oracle</th><th>คอลัมน์</th><th>SUM</th></tr></thead>
                     <tbody>
                     @for (var index = 0; index < draft.Maria.Length; index++)
@@ -51,11 +52,11 @@
                         var mariaObject = draft.Maria[index];
                         var pair = plan?.FirstOrDefault(p => p.Maria == index);
                         var selection = plan == null ? SyncComparison.Suggest(mariaObject, draft.Oracle) : pair?.Oracle ?? -1;
-                        <tr>
+                        <tr data-sum-candidates="@(plan == null ? JsonSerializer.Serialize(SyncComparison.Sums(mariaObject, mariaObject)) : null)">
                             <th scope="row">@mariaObject.Name</th>
                             <td>
                                 <input type="hidden" name="pairs[@index].Maria" value="@index" />
-                                <select class="form-select" name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(plan != null)">
+                                <select class="form-select" data-sync-oracle name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(plan != null)">
                                     <option value="-1" selected="@(selection < 0)">ไม่เลือก</option>
                                     @for (var oracleIndex = 0; oracleIndex < draft.Oracle.Length; oracleIndex++)
                                     {
@@ -73,11 +74,24 @@
                                         <summary>ร่วมกัน @mariaObject.Columns.Keys.Intersect(oracleObject.Columns.Keys, StringComparer.OrdinalIgnoreCase).Count() คอลัมน์</summary>
                                         <div>เฉพาะ MariaDB — @string.Join(", ", onlyMaria)</div>
                                         <div>เฉพาะ Oracle — @string.Join(", ", onlyOracle)</div>
-                                        <div>SUM ที่เลือกได้ — @string.Join(", ", SyncComparison.Sums(mariaObject, oracleObject))</div>
                                     </details>
                                 }
                             </td>
-                            <td><input class="form-control" name="pairs[@index].SumColumns" aria-label="คอลัมน์ SUM สำหรับ @mariaObject.Name" placeholder="คั่นชื่อด้วยจุลภาค" value="@pair?.SumColumns" disabled="@(plan != null)" /></td>
+                            <td>
+                                @if (plan == null)
+                                {
+                                    <input type="hidden" name="pairs[@index].SumColumns" data-sum-value />
+                                    <span data-sum-empty></span>
+                                    <details data-sum-picker hidden>
+                                        <summary>เลือกฟิลด์ SUM <span data-sum-count></span></summary>
+                                        <div class="mt-2" data-sum-options role="group" aria-label="ฟิลด์ SUM สำหรับ @mariaObject.Name"></div>
+                                    </details>
+                                }
+                                else
+                                {
+                                    @(string.IsNullOrWhiteSpace(pair?.SumColumns) ? "—" : pair.SumColumns)
+                                }
+                            </td>
                         </tr>
                     }
                     </tbody>
@@ -135,3 +149,8 @@
         <div><a asp-action="Index" asp-route-projectId="@projectId" asp-route-runId="@run.Id">รอบ #@run.Id</a> · @run.CreatedAtUtc.AddHours(7).ToString("yyyy-MM-dd HH:mm") น. · @(run.ComparedAtUtc.HasValue ? "บันทึกผลแล้ว" : "รอผล CSV")</div>
     }
 </section>
+
+@if (plan == null && draft != null)
+{
+    <script src="~/js/project-sync.js" asp-append-version="true" defer></script>
+}
