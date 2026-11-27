@@ -19,9 +19,13 @@
         var detailStart = text.IndexOf("\nรายละเอียด:\n", StringComparison.Ordinal);
         var header = detailStart < 0 ? text : text[..detailStart];
         var body = detailStart < 0 ? "" : text[detailStart..];
+        const string sectionLabels = "รายละเอียด|หลักฐาน|แนวทางแก้ไขจากเครื่องมือ|อ้างอิง";
+        body = System.Text.RegularExpressions.Regex.Replace(body,
+            $@"(?m)^(?:{sectionLabels}):[^\S\n]*(?:\n[^\S\n]*)*(?=^(?:{sectionLabels}):|\z)", "");
         var lines = header.Split('\n').Where(line =>
             !line.TrimStart().StartsWith("ระบบ:", StringComparison.Ordinal) &&
-            !line.TrimStart().StartsWith("Version:", StringComparison.OrdinalIgnoreCase));
+            !line.TrimStart().StartsWith("Version:", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(line.Trim(), "ตำแหน่ง:", StringComparison.Ordinal));
         return System.Text.RegularExpressions.Regex.Replace(
             (string.Join("\n", lines) + body).Trim(), @"\n(?:[ \t]*\n)+", "\n");
     }
