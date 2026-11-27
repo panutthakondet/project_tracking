@@ -215,6 +215,11 @@
             white-space: pre-line;
         }
 
+        .production-installation-plan {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
         .phase-list {
             margin: 1px 0 6px;
             padding-inline: 10px;
@@ -472,6 +477,13 @@
             <section class="transfer-attachment">
                 <h2 class="title">รายละเอียดประกอบการนำระบบขึ้นใช้งานจริง</h2>
                 @{ RenderAttachmentDetails(); }
+                @if (!string.IsNullOrWhiteSpace(Model.ProductionInstallationPlan))
+                {
+                    <section class="memo-stack">
+                        <div class="memo-stack-label">แผนการติดตั้งระบบจริง</div>
+                        <div class="memo-stack-value production-installation-plan">@Model.ProductionInstallationPlan</div>
+                    </section>
+                }
             </section>
         }
     </main>

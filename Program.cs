@@ -243,7 +243,7 @@ await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureProjectWarrantyDateColumnsAsync(app.Services);
 await EnsureProjectTextColumnsAsync(app.Services);
-await EnsureProjectTorColumnsAsync(app.Services);
+await EnsureProjectDetailColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -4502,7 +4502,7 @@ static async Task PrintStatusCleanupSummaryAsync(IServiceProvider services)
 }
 
 
-static async Task EnsureProjectTorColumnsAsync(IServiceProvider services)
+static async Task EnsureProjectDetailColumnsAsync(IServiceProvider services)
 {
     using var scope = services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -4512,7 +4512,7 @@ static async Task EnsureProjectTorColumnsAsync(IServiceProvider services)
     try
     {
         using var command = connection.CreateCommand();
-        foreach (var column in new[] { "tor_detail", "extra_tor_detail" })
+        foreach (var column in new[] { "tor_detail", "extra_tor_detail", "production_installation_plan" })
         {
             command.CommandText = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='project' AND COLUMN_NAME='{column}';";
             if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) == 0)

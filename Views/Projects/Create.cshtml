@@ -121,6 +121,11 @@
                     <textarea asp-for="ExtraTorDetail" class="form-control" rows="12" style="min-height: 280px; resize: vertical;" placeholder="ระบุรายละเอียดงานนอกเหนือ TOR"></textarea>
                     <span asp-validation-for="ExtraTorDetail" class="text-danger"></span>
                 </div>
+                <div class="col-12">
+                    <label asp-for="ProductionInstallationPlan" class="form-label fw-semibold"></label>
+                    <textarea asp-for="ProductionInstallationPlan" class="form-control" rows="8" placeholder="ระบุแผนการติดตั้งระบบจริง"></textarea>
+                    <span asp-validation-for="ProductionInstallationPlan" class="text-danger"></span>
+                </div>
                 <!-- Status -->
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">

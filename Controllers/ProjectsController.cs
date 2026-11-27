@@ -490,6 +490,7 @@ namespace ProjectTracking.Controllers
                 ProjectDetail = project.ProjectDetail,
                 TorDetail = project.TorDetail,
                 ExtraTorDetail = project.ExtraTorDetail,
+                ProductionInstallationPlan = project.ProductionInstallationPlan,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
                 TestAccount = project.TestAccount,
@@ -713,6 +714,7 @@ namespace ProjectTracking.Controllers
             db.ProjectDetail = model.ProjectDetail;
             db.TorDetail = model.TorDetail;
             db.ExtraTorDetail = model.ExtraTorDetail;
+            db.ProductionInstallationPlan = model.ProductionInstallationPlan;
             db.CoopId = model.CoopId;
             db.DepartmentId = model.DepartmentId;
             db.StartDate = model.StartDate;

@@ -95,6 +95,10 @@ namespace ProjectTracking.Models
         [Column("extra_tor_detail", TypeName = "longtext")]
         public string? ExtraTorDetail { get; set; }
 
+        [Display(Name = "แผนการติดตั้งระบบจริง")]
+        [Column("production_installation_plan", TypeName = "longtext")]
+        public string? ProductionInstallationPlan { get; set; }
+
         // ======================
         // 👤 BUSINESS ANALYST
         // ======================
