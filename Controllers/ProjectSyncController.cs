@@ -61,7 +61,7 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
     {
         var run = await db.Set<ProjectSyncRun>().FirstOrDefaultAsync(r => r.ProjectId == projectId && r.Id == runId, ct);
         if (run == null) return NotFound();
-        if (operation is not ("plan" or "oracle" or "mariadb" or "compare")) return BadRequest();
+        if (operation is not ("plan" or "oracle" or "mariadb" or "compare" or "compare-again")) return BadRequest();
         try
         {
             if (!ModelState.IsValid) throw new FormatException("ข้อมูลที่ส่งมาไม่ถูกต้อง");
@@ -77,13 +77,31 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
                 run.PlanJson = JsonSerializer.Serialize(selected);
                 await db.SaveChangesAsync(ct);
             }
-            else if (operation == "compare")
+            else if (operation is "compare" or "compare-again")
             {
-                if (saved != null) throw new FormatException("รอบนี้บันทึกผลแล้ว");
+                var compareAgain = operation == "compare-again";
+                if (compareAgain != (saved != null))
+                    throw new FormatException(compareAgain ? "กรุณาเลือกใช้โครงสร้างจากรอบที่บันทึกผลแล้ว" : "รอบนี้บันทึกผลแล้ว");
+
                 var metrics = SyncComparison.Compare(await Read(maria, ct), await Read(oracle, ct), sql.Maria);
-                run.ResultJson = JsonSerializer.Serialize(new SyncResult(selected, metrics));
-                run.ComparedAtUtc = DateTime.UtcNow;
+                var comparedAt = DateTime.UtcNow;
+                var destination = run;
+                if (compareAgain)
+                {
+                    destination = new ProjectSyncRun
+                    {
+                        ProjectId = run.ProjectId,
+                        CreatedAtUtc = comparedAt,
+                        StructureJson = run.StructureJson,
+                        PlanJson = run.PlanJson
+                    };
+                    db.Add(destination);
+                }
+
+                destination.ResultJson = JsonSerializer.Serialize(new SyncResult(selected, metrics));
+                destination.ComparedAtUtc = comparedAt;
                 await db.SaveChangesAsync(ct);
+                return RedirectToAction(nameof(Index), controllerName: null, routeValues: new { projectId, runId = destination.Id }, fragment: "sync-result");
             }
             else
             {

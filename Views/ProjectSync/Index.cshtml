@@ -130,15 +130,17 @@
                     <button class="btn btn-outline-primary" name="operation" value="mariadb" data-loading="off" formnovalidate>ดาวน์โหลด SQL MariaDB</button>
                 }
             </div>
-            @if (plan != null && result == null)
+            @if (plan != null)
             {
                 <div class="sync-import">
-                    <h3>นำเข้าผล SQL</h3>
-                    <p>รัน SQL ทั้งสองฝั่งกับข้อมูลรอบ Sync เดียวกัน หาก Sync กรองข้อมูล ให้ใช้เงื่อนไขเดียวกันก่อนส่งออก CSV พร้อมหัวคอลัมน์</p>
+                    <h3>@(result == null ? "นำเข้าผล SQL" : "เทียบซ้ำด้วยโครงสร้างเดิม")</h3>
+                    <p>@(result == null
+                        ? "ส่งออกผล SQL ทั้งสองฝั่งจากข้อมูลรอบ Sync เดียวกันเป็น CSV พร้อมหัวคอลัมน์"
+                        : "เลือก CSV ยอดล่าสุดทั้งสองฝั่ง ระบบจะใช้โครงสร้าง คู่ตาราง และฟิลด์ SUM ของรอบนี้ แล้วบันทึกผลเป็นรอบใหม่")</p>
                     <div class="sync-inputs">
                         <label>ผล MariaDB <input class="form-control" type="file" name="maria" accept=".csv" required /></label>
                         <label>ผล Oracle <input class="form-control" type="file" name="oracle" accept=".csv" required /></label>
-                        <div class="sync-action"><button class="btn btn-primary" name="operation" value="compare">เทียบและบันทึก</button></div>
+                        <div class="sync-action"><button class="btn btn-primary" name="operation" value="@(result == null ? "compare" : "compare-again")">@(result == null ? "เทียบและบันทึก" : "เทียบซ้ำและบันทึกรอบใหม่")</button></div>
                     </div>
                 </div>
             }
