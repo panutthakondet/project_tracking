@@ -1,35 +1,72 @@
 @model ProjectTracking.ViewModels.Security.ProjectSecurityReport
 @using ProjectTracking.Services.Security
 @{
-    ViewData["Title"] = "รายงาน Security";
+    Layout = null;
+    var findings = Model.Groups.SelectMany(group => group.Findings).ToList();
+    var statusCounts = findings.ToLookup(item => item.Status);
+    var statuses = SecurityValues.ReviewStatuses.Union(statusCounts.Select(group => group.Key));
+    var awaitingAction = findings.Count(item => item.Severity is "Critical" or "High" &&
+        item.Status is "Open" or "InProgress" or "FixedPendingVerification");
     var severities = new[] { ("Critical", "#a81939"), ("High", "#c34223"), ("Medium", "#916000"), ("Low", "#2367a0"), ("Info", "#58647a") };
     var totals = severities.Select(level => (level.Item1, level.Item2,
         Count: Model.Groups.Sum(group => group.Findings.Count(item => item.Severity == level.Item1)))).ToList();
     var total = totals.Sum(level => level.Count);
     var scale = Math.Max(1, totals.Max(level => level.Count));
 }
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ผลการทดสอบความปลอดภัย - @Model.ProjectName</title>
+<link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
 <style>
+    @@page { size: A4 portrait; margin: 14mm 16mm 12mm 18mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #111; background: #edf1f6; font: 14pt/1.36 "Report Sarabun", "TH Sarabun New", Tahoma, sans-serif; }
+    .project-security-report { background: #fff; max-width: 210mm; margin: 0 auto 24px; padding: 14mm clamp(16px, 4vw, 16mm); }
+    h1 { text-align: center; font-size: 18pt; margin: 0; }
+    h2 { font-size: 14pt; margin: 0 0 4px; break-after: avoid; }
+    .report-project { text-align: center; margin: 0; }
+    .report-actions { max-width: 210mm; margin: 12px auto; padding-inline: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+    .report-actions > * { font: inherit; padding: 3px 12px; border: 1px solid #102443; border-radius: 5px; background: white; color: #102443; text-decoration: none; cursor: pointer; }
+    .status-summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0 0 12px; }
+    .status-summary dd { margin: 0; }
+    .findings { margin: 4px 0; padding-inline-start: 2em; overflow-wrap: anywhere; }
     .project-security-report { display: grid; gap: 1rem; }
     .project-security-report .risk-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: center; gap: .55rem .8rem; }
     .project-security-report .risk-track { height: .8rem; border-radius: .4rem; background: var(--bs-tertiary-bg, #e9ecef); }
     .project-security-report .risk-bar { display: block; height: 100%; border-radius: inherit; background: var(--risk-color); }
     @@media print {
-        .project-security-report .report-actions { display: none; }
+        .report-actions { display: none; }
+        body { background: #fff; }
+        .project-security-report { padding: 0; margin: 0; max-width: none; }
+        .risk-chart, .findings li { break-inside: avoid; }
         .project-security-report .risk-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
 </style>
-<div class="project-security-report">
+</head>
+<body>
+    <nav class="report-actions">
+        <a asp-action="Index" asp-route-projectId="@Model.ProjectId">กลับศูนย์สแกน</a>
+        <button type="button" onclick="window.print()">พิมพ์รายงาน</button>
+    </nav>
+<main class="project-security-report">
     <header>
-        <h1 class="h3">รายงานผลทดสอบความปลอดภัย</h1>
-        <p>@Model.ProjectName</p>
-        <div class="report-actions d-flex gap-2 flex-wrap">
-            <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-secondary">กลับศูนย์สแกน</a>
-            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">พิมพ์รายงาน</button>
-        </div>
+        <h1>ผลการทดสอบความปลอดภัย</h1>
+        <p class="report-project">@Model.ProjectName</p>
     </header>
-    <section class="card card-body">
-        <h2 class="h5">ประเด็นที่กำลังแก้ไขจากรอบสแกนจริงล่าสุด</h2>
-        <p>พบ @total รายการ ในส่วนที่สแกนเสร็จแล้ว</p>
+    <section>
+        <h2>สรุปผลสแกนจริงล่าสุด</h2>
+        <p>พบ @total รายการจากส่วนที่สแกนเสร็จแล้ว · ความเสี่ยง Critical หรือ High ที่ยังต้องแก้ไขหรือตรวจยืนยัน @awaitingAction รายการ</p>
+        <dl class="status-summary">
+            @foreach (var status in statuses)
+            {
+                <dt>@SecurityValues.StatusLabel(status)</dt>
+                <dd>@statusCounts[status].Count()</dd>
+            }
+        </dl>
+        <h2>จำนวนประเด็นตามระดับความเสี่ยง</h2>
         <div class="risk-chart">
             @foreach (var level in totals)
             {
@@ -41,8 +78,8 @@
     </section>
     @foreach (var group in Model.Groups)
     {
-        <section class="card card-body">
-            <h2 class="h5">@group.Category</h2>
+        <section>
+            <h2>@group.Category · @group.Findings.Count รายการ</h2>
             @if (group.Run is not { } run)
             {
                 <p class="mb-0">ยังไม่มีรอบสแกนจริง</p>
@@ -67,17 +104,19 @@
             }
             @if (group.Findings.Count == 0)
             {
-                <p class="mb-0">@(run.HasResults ? "ไม่พบรายการสถานะกำลังแก้ไขในผลที่มี" : "ยังไม่มีผลสำหรับสรุประดับความเสี่ยง")</p>
+                <p class="mb-0">@(run.HasResults ? "ไม่พบประเด็นในผลที่มี" : "ยังไม่มีผลสำหรับสรุประดับความเสี่ยง")</p>
             }
             else
             {
-                <ol class="mb-0">
+                <ol class="findings">
                     @foreach (var item in group.Findings)
                     {
-                        <li><strong>@item.Severity</strong> · @item.Title @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
+                        <li><strong>@item.Severity</strong> · @item.Title · @SecurityValues.StatusLabel(item.Status) @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
                     }
                 </ol>
             }
         </section>
     }
-</div>
+</main>
+</body>
+</html>

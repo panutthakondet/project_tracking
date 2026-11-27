@@ -6,4 +6,4 @@ public sealed record ProjectSecurityReport(int ProjectId, string ProjectName, IR
 
 public sealed record ProjectSecurityReportGroup(string Category, SecurityScanRun? Run, IReadOnlyList<ProjectSecurityReportFinding> Findings);
 
-public sealed record ProjectSecurityReportFinding(string Title, string Severity, string Section);
+public sealed record ProjectSecurityReportFinding(string Title, string Severity, string Section, string Status);

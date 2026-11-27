@@ -85,14 +85,18 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         {
             latestRuns.TryGetValue(category, out var run);
             var ids = run?.Ids.ToHashSet() ?? new HashSet<long>();
-            var items = findings.Where(item => ids.Contains(item.ScanId) &&
-                    (item.LatestIssueId is int issueId && issues.TryGetValue(issueId, out var issue)
-                        ? SecurityIssueWorkflow.CurrentReviewStatus(issue) : item.ReviewStatus) == "InProgress")
+            var items = findings.Where(item => ids.Contains(item.ScanId))
                 .OrderByDescending(item => SecurityValues.Rank(item.Severity))
                 .ThenBy(item => item.Title)
                 .GroupBy(item => (item.FindingId, Section: run!.Section(item.ScanId)))
-                .Select(group => new ProjectSecurityReportFinding(group.First().Title,
-                    group.First().Severity, SecurityValues.SectionLabel(group.Key.Section)))
+                .Select(group =>
+                {
+                    var item = group.First();
+                    var status = item.LatestIssueId is int issueId && issues.TryGetValue(issueId, out var issue)
+                        ? SecurityIssueWorkflow.CurrentReviewStatus(issue) : item.ReviewStatus;
+                    return new ProjectSecurityReportFinding(item.Title, item.Severity,
+                        SecurityValues.SectionLabel(group.Key.Section), status);
+                })
                 .ToList();
             return new ProjectSecurityReportGroup(category, run, items);
         }).ToList();
