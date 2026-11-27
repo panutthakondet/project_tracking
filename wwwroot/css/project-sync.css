@@ -99,16 +99,24 @@
     .sync-action .btn { width: 100%; }
 }
 
-.sync-panel .sync-result-table { min-width: 52rem; }
+.sync-panel .sync-result-table { min-width: 54rem; }
+.sync-panel .sync-result-table :is(th, td) {
+    font-size: .8rem;
+    line-height: 1.4;
+    padding: .45rem .65rem;
+}
 .sync-result-table th[scope="row"] { width: 24%; vertical-align: top; }
 .sync-table-metrics { list-style: none; padding: 0; margin: 0; }
-.sync-table-metrics li {
+.sync-metric-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(8rem, 1fr)) minmax(5rem, .65fr);
     gap: .6rem;
     align-items: baseline;
-    padding-block: .35rem;
     font-variant-numeric: tabular-nums;
 }
 
 .sync-table-metrics li + li { border-top: 1px solid var(--sync-line); }
+
+.sync-table-metrics li { padding-block: .25rem; }
+.sync-metric-grid > :nth-child(n+2):nth-child(-n+4) { text-align: right; }
+.sync-metric-number { white-space: nowrap; }

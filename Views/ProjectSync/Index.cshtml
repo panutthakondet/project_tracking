@@ -10,6 +10,10 @@
     var plan = Model?.PlanJson == null ? null : JsonSerializer.Deserialize<SyncPair[]>(Model.PlanJson);
     var history = (List<ProjectSyncRun>)ViewBag.History;
 }
+@functions {
+    private static string FormatMetricValue(decimal? value) =>
+        value?.ToString("#,0.############################", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+}
 @section Styles {
     <link rel="stylesheet" href="~/css/project-sync.css" asp-append-version="true" />
 }
@@ -154,7 +158,17 @@
         </dl>
         <div class="table-responsive">
             <table class="table sync-result-table">
-                <thead><tr><th scope="col">ตาราง</th><th scope="col">ผลเปรียบเทียบรายตัวชี้วัด</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th scope="col">ตาราง</th>
+                        <th scope="col">
+                            <div class="sync-metric-grid">
+                                <span>ตัวชี้วัด</span><span>MariaDB</span><span>Oracle</span>
+                                <span title="MariaDB − Oracle">ผลต่าง</span><span>สถานะ</span>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
                 <tbody>
                 @foreach (var table in visibleMetrics.GroupBy(metric => metric.Table))
                 {
@@ -164,11 +178,11 @@
                             <ul class="sync-table-metrics">
                                 @foreach (var metric in table.OrderBy(metric => metric.Metric == "ROW_COUNT" ? 0 : 1))
                                 {
-                                    <li>
-                                        <strong>@metric.Metric</strong>
-                                        <span>MariaDB <b>@(metric.Maria?.ToString() ?? "—")</b></span>
-                                        <span>Oracle <b>@(metric.Oracle?.ToString() ?? "—")</b></span>
-                                        <span title="MariaDB − Oracle">ผลต่าง <b>@((metric.Maria - metric.Oracle)?.ToString() ?? "—")</b></span>
+                                    <li class="sync-metric-grid">
+                                        <strong>@(metric.Metric == "ROW_COUNT" ? "จำนวนแถว" : metric.Metric)</strong>
+                                        <span class="sync-metric-number">@(FormatMetricValue(metric.Maria))</span>
+                                        <span class="sync-metric-number">@(FormatMetricValue(metric.Oracle))</span>
+                                        <span class="sync-metric-number">@(FormatMetricValue(metric.Maria - metric.Oracle))</span>
                                         <span>@metric.Status</span>
                                     </li>
                                 }
