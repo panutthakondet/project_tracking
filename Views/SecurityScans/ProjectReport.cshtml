@@ -1,0 +1,83 @@
+@model ProjectTracking.ViewModels.Security.ProjectSecurityReport
+@using ProjectTracking.Services.Security
+@{
+    ViewData["Title"] = "รายงาน Security";
+    var severities = new[] { ("Critical", "#a81939"), ("High", "#c34223"), ("Medium", "#916000"), ("Low", "#2367a0"), ("Info", "#58647a") };
+    var totals = severities.Select(level => (level.Item1, level.Item2,
+        Count: Model.Groups.Sum(group => group.Findings.Count(item => item.Severity == level.Item1)))).ToList();
+    var total = totals.Sum(level => level.Count);
+    var scale = Math.Max(1, totals.Max(level => level.Count));
+}
+<style>
+    .project-security-report { display: grid; gap: 1rem; }
+    .project-security-report .risk-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: center; gap: .55rem .8rem; }
+    .project-security-report .risk-track { height: .8rem; border-radius: .4rem; background: var(--bs-tertiary-bg, #e9ecef); }
+    .project-security-report .risk-bar { display: block; height: 100%; border-radius: inherit; background: var(--risk-color); }
+    @@media print {
+        .project-security-report .report-actions { display: none; }
+        .project-security-report .risk-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+</style>
+<div class="project-security-report">
+    <header>
+        <h1 class="h3">รายงานผลทดสอบความปลอดภัย</h1>
+        <p>@Model.ProjectName</p>
+        <div class="report-actions d-flex gap-2 flex-wrap">
+            <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-secondary">กลับศูนย์สแกน</a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">พิมพ์รายงาน</button>
+        </div>
+    </header>
+    <section class="card card-body">
+        <h2 class="h5">ประเด็นที่กำลังแก้ไขจากรอบสแกนจริงล่าสุด</h2>
+        <p>พบ @total รายการ ในส่วนที่สแกนเสร็จแล้ว</p>
+        <div class="risk-chart">
+            @foreach (var level in totals)
+            {
+                <span>@level.Item1</span>
+                <span class="risk-track" aria-hidden="true"><span class="risk-bar" style="width: @(level.Count * 100 / scale)%; --risk-color: @level.Item2"></span></span>
+                <strong>@level.Count</strong>
+            }
+        </div>
+    </section>
+    @foreach (var group in Model.Groups)
+    {
+        <section class="card card-body">
+            <h2 class="h5">@group.Category</h2>
+            @if (group.Run is not { } run)
+            {
+                <p class="mb-0">ยังไม่มีรอบสแกนจริง</p>
+                continue;
+            }
+            <p>
+                <a asp-action="Scan" asp-route-id="@run.Scan.Id">รอบ #@run.Scan.Id</a>
+                · @SecurityValues.StatusLabel(run.Scan.Status)
+            </p>
+            @if (run.Scan.Status != "Completed")
+            {
+                <p>ผลยังไม่ครบ สรุปได้เฉพาะส่วนที่สแกนเสร็จแล้ว</p>
+            }
+            @if (run.Parts.Count > 0)
+            {
+                <ul>
+                    @foreach (var scan in run.Scans)
+                    {
+                        <li>@SecurityValues.SectionLabel(run.Section(scan.Id)) · @SecurityValues.StatusLabel(scan.Status)</li>
+                    }
+                </ul>
+            }
+            @if (group.Findings.Count == 0)
+            {
+                <p class="mb-0">@(run.HasResults ? "ไม่พบรายการสถานะกำลังแก้ไขในผลที่มี" : "ยังไม่มีผลสำหรับสรุประดับความเสี่ยง")</p>
+            }
+            else
+            {
+                <ol class="mb-0">
+                    @foreach (var item in group.Findings)
+                    {
+                        <li><strong>@item.Severity</strong> · @item.Title @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
+                    }
+                </ol>
+            }
+        </section>
+    }
+</div>

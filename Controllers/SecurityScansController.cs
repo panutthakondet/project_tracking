@@ -39,6 +39,67 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var version=await db.SecurityVersionRows.AsNoTracking().SingleAsync(x=>x.Id==scan.VersionId,ct);var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);var project=await AllowedProject(system.ProjectId,ct);
         return project==null?null:(scan,version,system,project);
     }
+    [HttpGet]
+    public async Task<IActionResult> ProjectReport(int projectId, CancellationToken ct)
+    {
+        var project = await AllowedProject(projectId, ct);
+        if (project == null) return NotFound();
+
+        var runs = await (from scan in db.SecurityScanRows.AsNoTracking()
+                          join version in db.SecurityVersionRows on scan.VersionId equals version.Id
+                          join system in db.SecuritySystemRows on version.SystemId equals system.Id
+                          where system.ProjectId == projectId && scan.Workflow == "Formal"
+                          select new { Scan = scan, system.Kind }).ToListAsync(ct);
+        var scanIds = runs.Select(row => row.Scan.Id).ToArray();
+        var parts = await db.SecurityWebsiteScanParts.AsNoTracking()
+            .Where(part => scanIds.Contains(part.ScanId)).ToListAsync(ct);
+        var latestRuns = runs.GroupBy(row => SecurityValues.Category(row.Kind))
+            .ToDictionary(group => group.Key, group => SecurityScanRun.Group(
+                    group.Select(row => row.Scan), parts)
+                .OrderByDescending(run => run.Scan.CreatedAt)
+                .ThenByDescending(run => run.Scan.Id)
+                .First());
+        var completedIds = latestRuns.Values.SelectMany(run => run.Scans)
+            .Where(scan => scan.Status == "Completed").Select(scan => scan.Id).ToArray();
+
+        var findings = await (from observation in db.SecurityScanFindingRows.AsNoTracking()
+                              join finding in db.SecurityFindingRows on observation.FindingId equals finding.Id
+                              where completedIds.Contains(observation.ScanId)
+                              select new
+                              {
+                                  observation.ScanId, observation.FindingId, observation.Title,
+                                  observation.Severity, finding.ReviewStatus,
+                                  LatestIssueId = (from link in db.SecurityFindingIssueLinkRows
+                                                 join issue in db.ProjectIssues on link.IssueId equals issue.IssueId
+                                                 where link.FindingId == finding.Id && issue.ProjectId == projectId
+                                                 orderby link.Id descending
+                                                 select (int?)issue.IssueId).FirstOrDefault()
+                              }).ToListAsync(ct);
+
+        var issueIds = findings.Select(item => item.LatestIssueId).OfType<int>().Distinct().ToArray();
+        var issues = await db.ProjectIssues.AsNoTracking()
+            .Where(issue => issue.ProjectId == projectId && issueIds.Contains(issue.IssueId))
+            .ToDictionaryAsync(issue => issue.IssueId, ct);
+
+        var groups = SecurityValues.Kinds.Select(category =>
+        {
+            latestRuns.TryGetValue(category, out var run);
+            var ids = run?.Ids.ToHashSet() ?? new HashSet<long>();
+            var items = findings.Where(item => ids.Contains(item.ScanId) &&
+                    (item.LatestIssueId is int issueId && issues.TryGetValue(issueId, out var issue)
+                        ? SecurityIssueWorkflow.CurrentReviewStatus(issue) : item.ReviewStatus) == "InProgress")
+                .OrderByDescending(item => SecurityValues.Rank(item.Severity))
+                .ThenBy(item => item.Title)
+                .GroupBy(item => (item.FindingId, Section: run!.Section(item.ScanId)))
+                .Select(group => new ProjectSecurityReportFinding(group.First().Title,
+                    group.First().Severity, SecurityValues.SectionLabel(group.Key.Section)))
+                .ToList();
+            return new ProjectSecurityReportGroup(category, run, items);
+        }).ToList();
+
+        return View(new ProjectSecurityReport(projectId, project.ProjectDisplayName, groups));
+    }
+
     public async Task<IActionResult> Index(int projectId,CancellationToken ct,string workflow="Formal")
     {
         if(workflow is not ("Formal" or "Development"))return BadRequest();

@@ -533,6 +533,17 @@
                                 </div>
                             }
                             <div class="project-shortcut-buttons">
+                    @if (canViewSecurityScans)
+                    {
+                        <a asp-controller="SecurityScans" asp-action="ProjectReport" asp-route-projectId="@p.ProjectId"
+                           class="project-phase-tile">
+                            <span class="project-phase-tile__body">
+                                <span class="project-phase-tile__icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                                <span class="project-phase-tile__title">รายงาน Security</span>
+                                <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                            </span>
+                        </a>
+                    }
                     <a asp-action="ProductionMemo"
                        asp-route-id="@p.ProjectId"
                        target="_blank"
