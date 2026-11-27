@@ -21,6 +21,18 @@
         var date = value.Value;
         return $"{date.Day} {date.ToString("MMMM", th)} {date.Year + 543}";
     }
+
+    void RenderAttachmentDetails()
+    {
+        <section class="detail-block">
+            <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
+            <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
+            @if (hasExtraTorDetail)
+            {
+            <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.ExtraTorDetail))</div></div>
+            }
+        </section>
+    }
 }
 
 <!DOCTYPE html>
@@ -330,14 +342,7 @@
             </section>
             @:<section class="transfer-attachment">
             <h2 class="title">รายละเอียดประกอบการส่งมอบและโอนย้ายฝ่าย</h2>
-            <section class="detail-block">
-                <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
-                @if (hasExtraTorDetail)
-                {
-                <div class="memo-stack"><div class="memo-stack-label">รายละเอียดงานนอกเหนือ TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.ExtraTorDetail))</div></div>
-                }
-            </section>
+            RenderAttachmentDetails();
         }
         else
         {
@@ -440,6 +445,13 @@
         @if (Model.IsDepartmentTransfer)
         {
             @:</section>
+        }
+        else
+        {
+            <section class="transfer-attachment">
+                <h2 class="title">รายละเอียดประกอบการนำระบบขึ้นใช้งานจริง</h2>
+                @{ RenderAttachmentDetails(); }
+            </section>
         }
     </main>
 </body>
