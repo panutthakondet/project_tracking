@@ -297,6 +297,7 @@
             overflow-wrap: anywhere;
         }
         .memo-security-issues { padding-inline: 0; }
+        .memo-security-issue-detail { margin: 3px 0 0; white-space: pre-wrap; }
 
         .owner-list {
             margin: 1px 0 10px 32px;
@@ -526,7 +527,13 @@
                                         "REJECT" => "ยอมรับความเสี่ยง",
                                         _ => issue.Status
                                     };
-                                    <li class="phase-line">@issue.Title · สถานะ @status</li>
+                                    <li class="phase-line">
+                                        @issue.Title · สถานะ @status
+                                        @if (!string.IsNullOrWhiteSpace(issue.Detail))
+                                        {
+                                            <div class="memo-security-issue-detail">@issue.Detail.Trim()</div>
+                                        }
+                                    </li>
                                 }
                             </ol>
                         }

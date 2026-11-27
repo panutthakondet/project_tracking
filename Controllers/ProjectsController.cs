@@ -504,6 +504,7 @@ namespace ProjectTracking.Controllers
                         {
                             issue.IssueName,
                             issue.IssueStatus,
+                            issue.IssueDetail,
                             Section = (from link in _context.SecurityFindingIssueLinkRows
                                        join finding in _context.SecurityScanFindingRows on link.FindingId equals finding.FindingId
                                        join part in _context.SecurityWebsiteScanParts on finding.ScanId equals part.ScanId
@@ -519,7 +520,7 @@ namespace ProjectTracking.Controllers
                         })
                         .ToListAsync();
                     securityIssues = issueRows.Select(issue => new ProjectProductionMemoIssueViewModel(
-                        issue.IssueName, issue.IssueStatus, issue.Section ?? (issue.Kind switch
+                        issue.IssueName, issue.IssueStatus, issue.IssueDetail, issue.Section ?? (issue.Kind switch
                         {
                             "Android" or "iOS" => issue.Kind,
                             "WebInformation" or "WebMember" or "WebAdmin" => SecurityValues.LegacySection(issue.Kind),
