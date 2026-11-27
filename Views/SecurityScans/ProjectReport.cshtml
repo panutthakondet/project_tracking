@@ -25,7 +25,7 @@
 </head>
 <body>
     <nav class="project-report-toolbar" aria-label="เครื่องมือรายงาน">
-        <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="project-report-button"><span aria-hidden="true">←</span> กลับศูนย์สแกน</a>
+        <a asp-controller="Projects" asp-action="Index" asp-route-projectId="@Model.ProjectId" class="project-report-button"><span aria-hidden="true">←</span> กลับหน้าโครงการ</a>
         <button type="button" class="project-report-button project-report-button--primary" onclick="window.print()">พิมพ์รายงาน</button>
     </nav>
 <main class="project-security-report">
