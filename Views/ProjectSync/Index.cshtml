@@ -45,7 +45,7 @@
             <div class="table-responsive">
                 <table class="table align-middle" id="sync-structure"
                        data-oracle-columns="@(plan == null ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
-                    <thead><tr><th>MariaDB</th><th>Oracle</th><th>คอลัมน์</th><th>SUM</th></tr></thead>
+                    <thead><tr><th>MariaDB</th><th>Oracle</th><th>SUM</th></tr></thead>
                     <tbody>
                     @for (var index = 0; index < draft.Maria.Length; index++)
                     {
@@ -63,19 +63,6 @@
                                         <option value="@oracleIndex" selected="@(selection == oracleIndex)">@draft.Oracle[oracleIndex].Name</option>
                                     }
                                 </select>
-                            </td>
-                            <td>
-                                @if (selection >= 0)
-                                {
-                                    var oracleObject = draft.Oracle[selection];
-                                    var onlyMaria = mariaObject.Columns.Keys.Except(oracleObject.Columns.Keys, StringComparer.OrdinalIgnoreCase);
-                                    var onlyOracle = oracleObject.Columns.Keys.Except(mariaObject.Columns.Keys, StringComparer.OrdinalIgnoreCase);
-                                    <details>
-                                        <summary>ร่วมกัน @mariaObject.Columns.Keys.Intersect(oracleObject.Columns.Keys, StringComparer.OrdinalIgnoreCase).Count() คอลัมน์</summary>
-                                        <div>เฉพาะ MariaDB — @string.Join(", ", onlyMaria)</div>
-                                        <div>เฉพาะ Oracle — @string.Join(", ", onlyOracle)</div>
-                                    </details>
-                                }
                             </td>
                             <td>
                                 @if (plan == null)
@@ -100,7 +87,6 @@
             @if (plan == null)
             {
                 <p>ตรวจคู่ตารางและเลือกคอลัมน์ยอดรวม จากนั้นยืนยันเพื่อใช้ชุดเดียวกันทั้งสองฝั่ง</p>
-                <p>Oracle View เปรียบเทียบได้จากชื่อคอลัมน์ หากต้องตรวจชนิดข้อมูลด้วย ต้องมีข้อมูลชนิดคอลัมน์จาก Oracle เพิ่มเติม</p>
                 <button class="btn btn-primary" name="operation" value="plan">ยืนยันคู่ตาราง</button>
             }
             else
