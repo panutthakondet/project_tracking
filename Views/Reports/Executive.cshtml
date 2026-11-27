@@ -189,7 +189,7 @@
                         </td><td><span class="work-status status-@StatusTone(string.IsNullOrWhiteSpace(item.StatusCode) ? item.Status : item.StatusCode)">@item.Status</span></td></tr>
                         @if (!string.IsNullOrWhiteSpace(item.Note) && !block.Items.Skip(index + 1).Any(later => later.ProjectId == item.ProjectId))
                         {
-                            <tr class="work-note-row"><td colspan="6"><div class="work-note"><strong>หมายเหตุ:</strong> @item.Note</div></td></tr>
+                            <tr class="work-note-row"><td colspan="6"><div class="work-note"><strong>หมายเหตุ ของโครงการ:</strong> @item.Note</div></td></tr>
                         }
                         </tbody>
                     }
