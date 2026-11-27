@@ -11,24 +11,22 @@
 <title>ผลการทดสอบความปลอดภัย - @Model.ProjectName</title>
 <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/project-security-report.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/project-report-toolbar.css" asp-append-version="true" />
 <style>
     @@page { size: A4 portrait; margin: 14mm 16mm 12mm 18mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #111; background: #edf1f6; font: 14pt/1.36 "Report Sarabun", "TH Sarabun New", Tahoma, sans-serif; }
     .project-security-report { background: #fff; max-width: 210mm; margin: 0 auto 24px; padding: 14mm clamp(16px, 4vw, 16mm); }
-    .report-actions { max-width: 210mm; margin: 12px auto; padding-inline: 16px; display: flex; justify-content: flex-end; gap: 8px; }
-    .report-actions > * { font: inherit; padding: 3px 12px; border: 1px solid #102443; border-radius: 5px; background: white; color: #102443; text-decoration: none; cursor: pointer; }
     @@media print {
-        .report-actions { display: none; }
         body { background: #fff; }
         .project-security-report { padding: 0; margin: 0; max-width: none; }
     }
 </style>
 </head>
 <body>
-    <nav class="report-actions">
-        <a asp-action="Index" asp-route-projectId="@Model.ProjectId">กลับศูนย์สแกน</a>
-        <button type="button" onclick="window.print()">พิมพ์รายงาน</button>
+    <nav class="project-report-toolbar" aria-label="เครื่องมือรายงาน">
+        <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="project-report-button"><span aria-hidden="true">←</span> กลับศูนย์สแกน</a>
+        <button type="button" class="project-report-button project-report-button--primary" onclick="window.print()">พิมพ์รายงาน</button>
     </nav>
 <main class="project-security-report">
     @await Html.PartialAsync("_ProjectReportContent", Model)

@@ -61,7 +61,9 @@
 <html lang="th">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Projects Report</title>
+    <link rel="stylesheet" href="~/css/project-report-toolbar.css" asp-append-version="true" />
     <style>
         @@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap");
         * { box-sizing: border-box; }
@@ -72,13 +74,6 @@
             background: #fff;
             font-family: 'Prompt', Tahoma, Arial, sans-serif;
             font-size: 11px;
-        }
-        .report-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
         }
         .report-btn {
             min-height: 34px;
@@ -348,7 +343,6 @@
                 padding: 0;
                 font-size: 10px;
             }
-            .report-actions,
             .filter-panel { display: none !important; }
             .print-header { padding: 10px 12px; }
             .print-header h1 { font-size: 18px; }
@@ -415,11 +409,11 @@
 @await Html.PartialAsync("_StandaloneTheme")
 </head>
 <body class="pt-standalone-report">
-    <div class="report-actions">
-        <button type="button" class="report-btn primary" onclick="window.print()">พิมพ์</button>
-        <a asp-controller="Reports" asp-action="Index" class="report-btn">ศูนย์รวมรายงาน</a>
-        <a asp-controller="Home" asp-action="Index" class="report-btn">แดชบอร์ด</a>
-    </div>
+    <nav class="project-report-toolbar" aria-label="เครื่องมือรายงาน">
+        <a asp-controller="Reports" asp-action="Index" class="project-report-button"><span aria-hidden="true">←</span> ศูนย์รวมรายงาน</a>
+        <a asp-controller="Home" asp-action="Index" class="project-report-button">แดชบอร์ด</a>
+        <button type="button" class="project-report-button project-report-button--primary" onclick="window.print()">พิมพ์รายงาน</button>
+    </nav>
 
     <header class="print-header">
         <h1>Projects Report</h1>

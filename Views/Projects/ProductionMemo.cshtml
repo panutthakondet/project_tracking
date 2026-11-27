@@ -98,9 +98,11 @@
 <html lang="th">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@(Model.IsDepartmentTransfer ? $"หนังสือโอนย้ายงาน {coopName} - {projectName}" : $"หนังสือขอขึ้นระบบงานจริง {coopName} - {projectName}")</title>
     <link rel="stylesheet" href="~/css/report-font.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/project-security-report.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/project-report-toolbar.css" asp-append-version="true" />
     <style>
         @@page {
             size: A4 portrait;
@@ -130,37 +132,6 @@
             letter-spacing: 0 !important;
             text-shadow: none !important;
             -webkit-text-stroke: 0 transparent !important;
-        }
-
-        .no-print {
-            position: sticky;
-            top: 0;
-            z-index: 5;
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            padding: 10px;
-            background: #eef4fb;
-            border-bottom: 1px solid #cbd8e8;
-        }
-
-        .report-btn {
-            min-height: 34px;
-            padding: 7px 14px;
-            border: 1px solid #102443;
-            border-radius: 999px;
-            color: #102443;
-            background: #fff;
-            font-size: 12px;
-            font-weight: 600;
-            line-height: 1.1;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .report-btn.primary {
-            color: #fff;
-            background: #102443;
         }
 
         .page {
@@ -399,10 +370,10 @@
 @await Html.PartialAsync("_GlobalLoading")
 </head>
 <body class="@(Model.IsDepartmentTransfer ? "transfer-report" : "production-report")">
-    <div class="no-print">
-        <button type="button" class="report-btn primary" onclick="window.print()">พิมพ์</button>
-        <a asp-action="Index" class="report-btn">กลับหน้าโครงการ</a>
-    </div>
+    <nav class="project-report-toolbar project-report-toolbar--sticky no-print" aria-label="เครื่องมือรายงาน">
+        <a asp-action="Index" class="project-report-button"><span aria-hidden="true">←</span> กลับหน้าโครงการ</a>
+        <button type="button" class="project-report-button project-report-button--primary" onclick="window.print()">พิมพ์รายงาน</button>
+    </nav>
 
     <main class="page">
         @if (!Model.IsDepartmentTransfer)
