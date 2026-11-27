@@ -8,6 +8,8 @@
     var draft = Model == null ? null : JsonSerializer.Deserialize<SyncDraft>(Model.StructureJson);
     var result = Model?.ResultJson == null ? null : JsonSerializer.Deserialize<SyncResult>(Model.ResultJson);
     var plan = Model?.PlanJson == null ? null : JsonSerializer.Deserialize<SyncPair[]>(Model.PlanJson);
+    bool editPairs = ViewBag.EditPairs == true;
+    bool canChangePairs = plan == null || editPairs;
     var history = (List<ProjectSyncRun>)ViewBag.History;
 }
 @functions {
@@ -73,11 +75,11 @@
             </details>
         }
         <form asp-action="Process" asp-route-projectId="@projectId" asp-route-runId="@Model.Id" method="post" enctype="multipart/form-data">
-            <details class="sync-pairs" open="@(plan == null)">
+            <details class="sync-pairs" open="@canChangePairs">
                 <summary>รายการจับคู่ตาราง</summary>
                 <div class="table-responsive">
                     <table class="table align-middle" id="sync-structure"
-                           data-oracle-columns="@(plan == null ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
+                           data-oracle-columns="@(canChangePairs ? JsonSerializer.Serialize(draft.Oracle.Select(item => item.Columns.Keys)) : null)">
                         <thead><tr><th>MariaDB</th><th>Oracle</th><th>SUM</th></tr></thead>
                         <tbody>
                         @for (var index = 0; index < draft.Maria.Length; index++)
@@ -85,11 +87,11 @@
                             var mariaObject = draft.Maria[index];
                             var pair = plan?.FirstOrDefault(p => p.Maria == index);
                             var selection = plan == null ? SyncComparison.Suggest(mariaObject, draft.Oracle) : pair?.Oracle ?? -1;
-                            <tr data-sum-candidates="@(plan == null ? JsonSerializer.Serialize(SyncComparison.Sums(mariaObject, mariaObject)) : null)">
+                            <tr data-sum-candidates="@(canChangePairs ? JsonSerializer.Serialize(SyncComparison.Sums(mariaObject, mariaObject)) : null)">
                                 <th scope="row">@mariaObject.Name</th>
                                 <td>
                                     <input type="hidden" name="pairs[@index].Maria" value="@index" />
-                                    <select class="form-select" data-sync-oracle name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(plan != null)">
+                                    <select class="form-select" data-sync-oracle name="pairs[@index].Oracle" aria-label="Oracle สำหรับ @mariaObject.Name" disabled="@(!canChangePairs)">
                                         <option value="-1" selected="@(selection < 0)">ไม่เลือก</option>
                                         @for (var oracleIndex = 0; oracleIndex < draft.Oracle.Length; oracleIndex++)
                                         {
@@ -98,9 +100,9 @@
                                     </select>
                                 </td>
                                 <td>
-                                    @if (plan == null)
+                                    @if (canChangePairs)
                                     {
-                                        <input type="hidden" name="pairs[@index].SumColumns" data-sum-value />
+                                        <input type="hidden" name="pairs[@index].SumColumns" value="@pair?.SumColumns" data-sum-value />
                                         <span data-sum-empty></span>
                                         <details data-sum-picker hidden>
                                             <summary>เลือกฟิลด์ SUM <span data-sum-count></span></summary>
@@ -119,18 +121,25 @@
                 </div>
             </details>
             <div class="sync-action-bar">
-                @if (plan == null)
+                @if (canChangePairs)
                 {
-                    <p>ตรวจคู่ตารางและเลือกคอลัมน์ยอดรวม จากนั้นยืนยันเพื่อใช้ชุดเดียวกันทั้งสองฝั่ง</p>
-                    <button class="btn btn-primary" name="operation" value="plan">ยืนยันคู่ตาราง</button>
+                    <p>@(editPairs
+                        ? result == null ? "หลังบันทึก ให้ดาวน์โหลด SQL ใหม่แล้วรันทั้งสองฝั่ง" : "ระบบจะสร้างรอบใหม่จากคู่ตารางและฟิลด์ SUM ที่แก้ไข"
+                        : "ตรวจคู่ตารางและเลือกคอลัมน์ยอดรวม จากนั้นยืนยันเพื่อใช้ชุดเดียวกันทั้งสองฝั่ง")</p>
+                    <button class="btn btn-primary" name="operation" value="@(editPairs ? "edit-plan" : "plan")">@(editPairs ? "บันทึกคู่ตาราง" : "ยืนยันคู่ตาราง")</button>
+                    @if (editPairs)
+                    {
+                        <a class="btn btn-outline-secondary" asp-action="Index" asp-route-projectId="@projectId" asp-route-runId="@Model.Id" asp-fragment="sync-setup">ยกเลิก</a>
+                    }
                 }
                 else
                 {
+                    <a class="btn btn-outline-primary" asp-action="Index" asp-route-projectId="@projectId" asp-route-runId="@Model.Id" asp-route-edit="true" asp-fragment="sync-setup">แก้ไขคู่ตาราง</a>
                     <button class="btn btn-outline-primary" name="operation" value="oracle" data-loading="off" formnovalidate>ดาวน์โหลด SQL Oracle</button>
                     <button class="btn btn-outline-primary" name="operation" value="mariadb" data-loading="off" formnovalidate>ดาวน์โหลด SQL MariaDB</button>
                 }
             </div>
-            @if (plan != null)
+            @if (plan != null && !editPairs)
             {
                 <div class="sync-import">
                     <h3>@(result == null ? "นำเข้าผล SQL" : "เทียบซ้ำด้วยโครงสร้างเดิม")</h3>
@@ -219,7 +228,7 @@
 </section>
 </div>
 
-@if (plan == null && draft != null)
+@if (canChangePairs && draft != null)
 {
     <script src="~/js/project-sync.js" asp-append-version="true" defer></script>
 }

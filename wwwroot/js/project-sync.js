@@ -22,7 +22,7 @@
 
         function renderOptions() {
             const columns = oracleColumns[Number(oracle.value)];
-            const selected = new Set(value.value.split(","));
+            const selected = new Set(value.value.split(",").map(column => column.trim().toUpperCase()));
             const available = candidates.filter(column => columns?.has(column.toUpperCase()));
             options.replaceChildren();
 
@@ -32,7 +32,7 @@
                 const checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
                 checkbox.value = column;
-                checkbox.checked = selected.has(column);
+                checkbox.checked = selected.has(column.toUpperCase());
                 label.append(checkbox, document.createTextNode(column));
                 options.append(label);
             }

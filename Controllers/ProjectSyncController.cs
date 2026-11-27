@@ -14,7 +14,7 @@ namespace ProjectTracking.Controllers;
 public sealed class ProjectSyncController(AppDbContext db) : BaseController
 {
     [HttpGet]
-    public async Task<IActionResult> Index(int projectId, int? runId, CancellationToken ct)
+    public async Task<IActionResult> Index(int projectId, int? runId, bool edit, CancellationToken ct)
     {
         var project = await db.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.ProjectId == projectId, ct);
         if (project == null) return NotFound();
@@ -26,7 +26,9 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
             .ToListAsync(ct);
         if (runId == null) return View();
         var selected = await runs.FirstOrDefaultAsync(run => run.Id == runId, ct);
-        return selected == null ? NotFound() : View(selected);
+        if (selected == null) return NotFound();
+        ViewBag.EditPairs = edit && selected.PlanJson != null;
+        return View(selected);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -61,7 +63,7 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
     {
         var run = await db.Set<ProjectSyncRun>().FirstOrDefaultAsync(r => r.ProjectId == projectId && r.Id == runId, ct);
         if (run == null) return NotFound();
-        if (operation is not ("plan" or "oracle" or "mariadb" or "compare" or "compare-again")) return BadRequest();
+        if (operation is not ("plan" or "edit-plan" or "oracle" or "mariadb" or "compare" or "compare-again")) return BadRequest();
         try
         {
             if (!ModelState.IsValid) throw new FormatException("ข้อมูลที่ส่งมาไม่ถูกต้อง");
@@ -70,12 +72,28 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
             var plan = run.PlanJson == null ? null : JsonSerializer.Deserialize<SyncPair[]>(run.PlanJson);
             if ((operation == "plan") != (plan == null))
                 throw new FormatException("กรุณายืนยันคู่ตารางก่อนดาวน์โหลด SQL หรือนำเข้า CSV");
-            var selected = plan ?? pairs.Where(pair => pair.Oracle >= 0).ToArray();
+            var selected = operation is "plan" or "edit-plan"
+                ? pairs.Where(pair => pair.Oracle >= 0).ToArray()
+                : plan!;
             var sql = SyncComparison.MakeSql(draft, selected);
-            if (operation == "plan")
+            if (operation is "plan" or "edit-plan")
             {
-                run.PlanJson = JsonSerializer.Serialize(selected);
+                var destination = run;
+                if (saved != null)
+                {
+                    destination = new ProjectSyncRun
+                    {
+                        ProjectId = run.ProjectId,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        StructureJson = run.StructureJson
+                    };
+                    db.Add(destination);
+                }
+
+                destination.PlanJson = JsonSerializer.Serialize(selected);
                 await db.SaveChangesAsync(ct);
+                return RedirectToAction(nameof(Index), controllerName: null,
+                    routeValues: new { projectId, runId = destination.Id }, fragment: "sync-setup");
             }
             else if (operation is "compare" or "compare-again")
             {
@@ -113,7 +131,7 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
         {
             TempData["SyncError"] = ex is FormatException ? ex.Message : "อ่าน CSV ไม่ได้ หรือรอบนี้ถูกบันทึกแล้ว";
         }
-        return RedirectToAction(nameof(Index), new { projectId, runId });
+        return RedirectToAction(nameof(Index), new { projectId, runId, edit = operation == "edit-plan" });
     }
 
     private static async Task<string> Read(IFormFile? file, CancellationToken ct)
