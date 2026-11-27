@@ -392,8 +392,10 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
                 .Include(p => p.PM)
+                    .ThenInclude(e => e!.PositionDefinition)
                 .Include(p => p.TeamMembers)
                     .ThenInclude(m => m.Employee)
+                        .ThenInclude(e => e!.PositionDefinition)
                 .Include(p => p.Department)
                 .Include(p => p.DepartmentLinks)
                     .ThenInclude(link => link.Department)
@@ -454,24 +456,11 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.Name)
                 .ToList();
 
-            var ownerNames = owners
-                .Select(x => x.Name)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var assignedEmployeeIds = assignments.Select(x => x.EmpId).ToHashSet();
 
-            var projectManagers = await _context.Employees
-                .AsNoTracking()
-                .Where(e => e.Status == "ACTIVE"
-                    && e.PositionDefinition != null
-                    && e.PositionDefinition.PositionName == "Project Manager")
-                .OrderBy(e => e.PositionDefinition != null
-                    ? e.PositionDefinition.PositionName
-                    : string.Empty)
-                .ThenBy(e => e.EmpName)
-                .ToListAsync();
-
-            foreach (var manager in projectManagers)
+            foreach (var manager in project.ProjectManagers.OrderBy(e => e.EmpName))
             {
-                if (!ownerNames.Add(manager.EmpName))
+                if (!assignedEmployeeIds.Add(manager.EmpId))
                     continue;
 
                 owners.Add(new ProjectProductionMemoOwnerViewModel
