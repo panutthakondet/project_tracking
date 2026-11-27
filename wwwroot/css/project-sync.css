@@ -119,4 +119,5 @@
 
 .sync-table-metrics li { padding-block: .25rem; }
 .sync-metric-grid > :nth-child(n+2):nth-child(-n+4) { text-align: right; }
+.sync-metric-grid > :last-child { text-align: center; }
 .sync-metric-number { white-space: nowrap; }
