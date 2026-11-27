@@ -13,7 +13,9 @@
 
     string SecurityIssueDetail(string? detail)
     {
-        var text = (detail ?? "").ReplaceLineEndings("\n");
+        var text = System.Text.RegularExpressions.Regex.Replace(
+            (detail ?? "").ReplaceLineEndings("\n"),
+            @"(?m)^[ \t]*ผลสแกน:[ \t]*/SecurityScans/Scan/[0-9]+[ \t]*\n?", "");
         var detailStart = text.IndexOf("\nรายละเอียด:\n", StringComparison.Ordinal);
         var header = detailStart < 0 ? text : text[..detailStart];
         var body = detailStart < 0 ? "" : text[detailStart..];
