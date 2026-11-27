@@ -480,6 +480,24 @@ namespace ProjectTracking.Controllers
                 });
             }
 
+            var securityIssues = new List<ProjectProductionMemoIssueViewModel>();
+            if (HasMenuPermission("SecurityScans.Index"))
+            {
+                var canViewAllProjects = HasMenuPermission("SecurityScans.ViewAllProjects");
+                var employeeId = canViewAllProjects ? null : await GetCurrentEntryIdAsync();
+                if (canViewAllProjects || (employeeId is int empId &&
+                    (project.BaEmpId == empId || project.PmEmpId == empId ||
+                     project.TeamMembers.Any(member => member.EmpId == empId))))
+                {
+                    securityIssues = await _context.ProjectIssues.AsNoTracking()
+                        .Where(issue => issue.ProjectId == id &&
+                            _context.SecurityFindingIssueLinkRows.Any(link => link.IssueId == issue.IssueId))
+                        .OrderBy(issue => issue.IssueId)
+                        .Select(issue => new ProjectProductionMemoIssueViewModel(issue.IssueName, issue.IssueStatus))
+                        .ToListAsync();
+                }
+            }
+
             var model = new ProjectProductionMemoViewModel
             {
                 ProjectId = project.ProjectId,
@@ -491,6 +509,7 @@ namespace ProjectTracking.Controllers
                 TorDetail = project.TorDetail,
                 ExtraTorDetail = project.ExtraTorDetail,
                 ProductionInstallationPlan = project.ProductionInstallationPlan,
+                SecurityIssues = securityIssues,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
                 TestAccount = project.TestAccount,

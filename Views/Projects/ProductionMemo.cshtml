@@ -484,6 +484,18 @@
                         <div class="memo-stack-value production-installation-plan">@Model.ProductionInstallationPlan</div>
                     </section>
                 }
+                @if (Model.SecurityIssues.Count > 0)
+                {
+                    <section class="memo-stack">
+                        <div class="memo-stack-label">Issue จาก SecurityScans</div>
+                        <ul class="phase-list">
+                            @foreach (var issue in Model.SecurityIssues)
+                            {
+                                <li class="phase-line">@issue.Title · สถานะ Issue @issue.Status</li>
+                            }
+                        </ul>
+                    </section>
+                }
             </section>
         }
     </main>
