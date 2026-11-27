@@ -112,6 +112,16 @@
 
         @@media screen {
             .page { max-width: 176mm; }
+
+            body.production-report { background: #edf1f6; }
+            .production-report .page { max-width: 210mm; padding: 0 0 24px; }
+            .production-report .memo-first-page,
+            .production-report .transfer-attachment {
+                min-height: 297mm;
+                padding: 14mm clamp(12px, 4vw, 16mm) 12mm clamp(12px, 4vw, 18mm);
+                background: #fff;
+                box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+            }
         }
 
         .header {
@@ -296,6 +306,9 @@
         .transfer-letter .letter-meta > strong { min-width: 48px; white-space: nowrap; font-weight: 400; }
         .transfer-signature { text-align: center; width: 58%; margin: 18pt 0 0 auto; line-height: 1.7; break-inside: avoid; }
         .transfer-attachment { margin-top: 40px; border-top: 1px solid #bbb; padding-top: 24px; }
+        @@media screen {
+            .production-report .transfer-attachment { margin-top: 24px; border: 0; }
+        }
         .transfer-report .memo-tail { break-inside: auto; page-break-inside: auto; }
         @@media print {
             .transfer-attachment { break-before: page; page-break-before: always; margin-top: 0; border: 0; padding-top: 0; }
@@ -310,6 +323,10 @@
     </div>
 
     <main class="page">
+        @if (!Model.IsDepartmentTransfer)
+        {
+            @:<div class="memo-first-page">
+        }
         <div class="header">
             <img src="@Url.Content("~/images/auth/logosoat.png")" class="logo" alt="SO-AT" />
             <div class="company">
@@ -448,6 +465,7 @@
         }
         else
         {
+            @:</div>
             <section class="transfer-attachment">
                 <h2 class="title">รายละเอียดประกอบการนำระบบขึ้นใช้งานจริง</h2>
                 @{ RenderAttachmentDetails(); }
