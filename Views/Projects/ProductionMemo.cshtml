@@ -378,6 +378,18 @@
         .memo-sync-table :is(th, td) { border-bottom: 1px solid #ccc; padding: 4pt; text-align: left; overflow-wrap: anywhere; }
         .memo-sync-table .numeric { text-align: right; font-variant-numeric: tabular-nums; }
         .memo-sync-table thead { display: table-header-group; }
+        .memo-sync-table thead th {
+            padding-block: 6pt;
+            vertical-align: middle;
+            white-space: nowrap;
+            background: #eef2f6;
+            border-top: 1px solid #c3ccd6;
+            border-bottom: 1px solid #8796a6;
+            font-weight: 700;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+        .memo-sync-table .memo-sync-status { text-align: center; }
         .memo-sync-table tr { break-inside: avoid; }
         .transfer-report .memo-tail { break-inside: auto; page-break-inside: auto; }
         @@media print {
