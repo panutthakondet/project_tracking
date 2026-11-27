@@ -511,7 +511,15 @@
                         <ol class="memo-stack-value memo-security-issues">
                             @foreach (var issue in Model.SecurityIssues)
                             {
-                                <li class="phase-line">@issue.Title · สถานะ Issue @issue.Status</li>
+                                var status = issue.Status switch
+                                {
+                                    "PASS" => "ทดสอบผ่าน",
+                                    "OPEN" => "เปิดงาน",
+                                    "FAIL" => "ทดสอบไม่ผ่าน",
+                                    "REJECT" => "ยอมรับความเสี่ยง",
+                                    _ => issue.Status
+                                };
+                                <li class="phase-line">@issue.Title · สถานะ @status</li>
                             }
                         </ol>
                     </section>

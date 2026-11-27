@@ -495,7 +495,8 @@ namespace ProjectTracking.Controllers
                     securityIssues = await _context.ProjectIssues.AsNoTracking()
                         .Where(issue => issue.ProjectId == id &&
                             _context.SecurityFindingIssueLinkRows.Any(link => link.IssueId == issue.IssueId))
-                        .OrderByDescending(issue => linkedRisks.Where(risk => risk.IssueId == issue.IssueId)
+                        .OrderByDescending(issue => issue.IssueStatus == "PASS")
+                        .ThenByDescending(issue => linkedRisks.Where(risk => risk.IssueId == issue.IssueId)
                             .Max(risk => (int?)risk.Rank) ?? 0)
                         .ThenBy(issue => issue.IssueId)
                         .Select(issue => new ProjectProductionMemoIssueViewModel(issue.IssueName, issue.IssueStatus))
