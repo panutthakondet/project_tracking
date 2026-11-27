@@ -1299,6 +1299,12 @@ document.getElementById("departmentFilter")?.addEventListener("change", function
     document.getElementById(selectId)?.addEventListener("change", window.applyProjectFilter);
 });
 
+document.addEventListener("click", (event) => {
+    document.querySelectorAll(".project-report-menu[open]").forEach(menu => {
+        if (!menu.contains(event.target)) menu.open = false;
+    });
+}, { capture: true });
+
 syncProjectFilterOptions();
 window.applyProjectFilter();
 openRequestedProjectCardTab();
