@@ -444,7 +444,10 @@ namespace ProjectTracking.Controllers
                     return new ProjectProductionMemoOwnerViewModel
                     {
                         Name = first.EmpName,
-                        Role = first.Position ?? ""
+                        Role = first.Position ?? "",
+                        AssignedWork = g.Where(x => !string.IsNullOrWhiteSpace(x.Role))
+                            .Select(x => $"ส่วนที่ {x.PhaseOrder} / งวดที่ {x.PeriodOrder} · {x.Role!.Trim()}")
+                            .ToList()
                     };
                 })
                 .OrderBy(x => x.Role)

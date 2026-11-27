@@ -22,10 +22,68 @@
         return $"{date.Day} {date.ToString("MMMM", th)} {date.Year + 543}";
     }
 
+    void RenderOwners()
+    {
+        <section>
+            <div class="memo-stack">
+                <div class="memo-stack-label">@(Model.IsDepartmentTransfer ? "ทีมงานพัฒนา / ตำแหน่ง" : "ผู้รับผิดชอบส่วนงาน")</div>
+            </div>
+            <table class="owner-table" aria-label="รายชื่อผู้รับผิดชอบและตำแหน่ง">
+                <tbody>
+                @if (Model.Owners.Any())
+                {
+                    for (var ownerIndex = 0; ownerIndex < Model.Owners.Count; ownerIndex += 2)
+                    {
+                        <tr>
+                        @for (var column = 0; column < 2; column++)
+                        {
+                            var index = ownerIndex + column;
+                            <td>
+                            @if (index < Model.Owners.Count)
+                            {
+                                var owner = Model.Owners[index];
+                                var role = string.IsNullOrWhiteSpace(owner.Role) ? "-" : owner.Role;
+                                @if (Model.IsDepartmentTransfer)
+                                {
+                                    <div>@(index + 1). @owner.Name</div>
+                                    <div>ตำแหน่ง @role</div>
+                                }
+                                else
+                                {
+                                    <div>@(index + 1). @owner.Name · @role</div>
+                                    @if (owner.AssignedWork.Count > 0)
+                                    {
+                                        <ul class="memo-owner-work">
+                                            @foreach (var work in owner.AssignedWork)
+                                            {
+                                                <li>@work</li>
+                                            }
+                                        </ul>
+                                    }
+                                }
+                            }
+                            </td>
+                        }
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="2">-</td></tr>
+                }
+                </tbody>
+            </table>
+        </section>
+    }
+
     void RenderAttachmentDetails()
     {
         <section class="detail-block">
             <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
+            @if (!Model.IsDepartmentTransfer)
+            {
+                RenderOwners();
+            }
             <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
             @if (hasExtraTorDetail)
             {
@@ -244,6 +302,7 @@
         .production-report .owner-table td { border: 0; }
         .owner-table th { font-weight: 600; background: #f5f5f5; }
         .owner-table td { width: 50%; }
+        .memo-owner-work { margin: 2px 0 0; padding-inline-start: 1.1em; }
         .owner-table tr { break-inside: avoid; page-break-inside: avoid; }
         .owner-table thead { display: table-header-group; }
         .owner-line {
@@ -412,47 +471,10 @@
 
         }
         <section class="memo-tail">
-            <section>
-                <div class="memo-stack">
-                    <div class="memo-stack-label">@(Model.IsDepartmentTransfer ? "ทีมงานพัฒนา / ตำแหน่ง" : "ผู้รับผิดชอบส่วนงาน")</div>
-                </div>
-                <table class="owner-table" aria-label="รายชื่อผู้รับผิดชอบและตำแหน่ง">
-                    <tbody>
-                    @if (Model.Owners.Any())
-                    {
-                        for (var ownerIndex = 0; ownerIndex < Model.Owners.Count; ownerIndex += 2)
-                        {
-                            <tr>
-                            @for (var column = 0; column < 2; column++)
-                            {
-                                var index = ownerIndex + column;
-                                <td>
-                                @if (index < Model.Owners.Count)
-                                {
-                                    var owner = Model.Owners[index];
-                                    var role = string.IsNullOrWhiteSpace(owner.Role) ? "-" : owner.Role;
-                                    @if (Model.IsDepartmentTransfer)
-                                    {
-                                        <div>@(index + 1). @owner.Name</div>
-                                        <div>ตำแหน่ง @role</div>
-                                    }
-                                    else
-                                    {
-                                        <div>@(index + 1). @owner.Name · @role</div>
-                                    }
-                                }
-                                </td>
-                            }
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr><td colspan="2">-</td></tr>
-                    }
-                    </tbody>
-                </table>
-            </section>
+            @if (Model.IsDepartmentTransfer)
+            {
+                RenderOwners();
+            }
 
             @if (!Model.IsDepartmentTransfer)
             {
