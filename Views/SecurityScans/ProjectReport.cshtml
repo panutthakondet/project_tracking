@@ -3,6 +3,14 @@
 @{
     Layout = null;
     var findings = Model.Groups.SelectMany(group => group.Findings).ToList();
+    var compared = Model.Groups.Where(group => group.PreviousScanId.HasValue).ToList();
+    var changes = new[]
+    {
+        ("พบใหม่", compared.Sum(group => group.Findings.Count(item => item.IsNew == true))),
+        ("ยังพบอยู่", compared.Sum(group => group.Findings.Count(item => item.IsNew == false))),
+        ("ไม่พบซ้ำ", compared.Sum(group => group.NotSeenAgain))
+    };
+    var comparisonScale = Math.Max(1, changes.Max(change => change.Item2));
     var statusCounts = findings.ToLookup(item => item.Status);
     var statuses = SecurityValues.ReviewStatuses.Union(statusCounts.Select(group => group.Key));
     var awaitingAction = findings.Count(item => item.Severity is "Critical" or "High" &&
@@ -76,6 +84,25 @@
             }
         </div>
     </section>
+    <section>
+        <h2>เปรียบเทียบกับรอบสแกนจริงก่อนหน้า</h2>
+        @if (compared.Count == 0)
+        {
+            <p>ยังไม่มีคู่รอบที่สแกนเสร็จและมีขอบเขตเดียวกัน</p>
+        }
+        else
+        {
+            <p>เปรียบเทียบได้ @compared.Count จาก @Model.Groups.Count ประเภท</p>
+            <div class="risk-chart">
+                @foreach (var change in changes)
+                {
+                    <span>@change.Item1</span>
+                    <span class="risk-track" aria-hidden="true"><span class="risk-bar" style="width: @(change.Item2 * 100 / comparisonScale)%; --risk-color: #2367a0"></span></span>
+                    <strong>@change.Item2</strong>
+                }
+            </div>
+        }
+    </section>
     @foreach (var group in Model.Groups)
     {
         <section>
@@ -89,6 +116,17 @@
                 <a asp-action="Scan" asp-route-id="@run.Scan.Id">รอบ #@run.Scan.Id</a>
                 · @SecurityValues.StatusLabel(run.Scan.Status)
             </p>
+            @if (group.PreviousScanId is long previousId)
+            {
+                <p>เทียบกับ <a asp-action="Scan" asp-route-id="@previousId">รอบ #@previousId</a>
+                    · พบใหม่ @group.Findings.Count(item => item.IsNew == true)
+                    · ยังพบอยู่ @group.Findings.Count(item => item.IsNew == false)
+                    · ไม่พบซ้ำ @group.NotSeenAgain</p>
+            }
+            else
+            {
+                <p>ยังเปรียบเทียบผลของประเภทนี้ไม่ได้</p>
+            }
             @if (run.Scan.Status != "Completed")
             {
                 <p>ผลยังไม่ครบ สรุปได้เฉพาะส่วนที่สแกนเสร็จแล้ว</p>
@@ -111,7 +149,7 @@
                 <ol class="findings">
                     @foreach (var item in group.Findings)
                     {
-                        <li><strong>@item.Severity</strong> · @item.Title · @SecurityValues.StatusLabel(item.Status) @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
+                        <li><strong>@item.Severity</strong> · @item.Title · @SecurityValues.StatusLabel(item.Status) @if (item.IsNew is bool isNew) { <span>· @(isNew ? "พบใหม่" : "ยังพบอยู่")</span> } @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
                     }
                 </ol>
             }
