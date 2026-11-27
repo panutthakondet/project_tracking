@@ -78,6 +78,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
                               {
                                   observation.ScanId, observation.FindingId, observation.Title,
                                   observation.Severity, finding.ReviewStatus,
+                                  observation.Location, observation.Cwe, observation.Description,
                                   LatestIssueId = (from link in db.SecurityFindingIssueLinkRows
                                                  join issue in db.ProjectIssues on link.IssueId equals issue.IssueId
                                                  where link.FindingId == finding.Id && issue.ProjectId == projectId
@@ -111,7 +112,8 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
                         ? SecurityIssueWorkflow.CurrentReviewStatus(issue) : item.ReviewStatus;
                     return new ProjectSecurityReportFinding(item.Title, item.Severity,
                         SecurityValues.SectionLabel(group.Key.Section), status,
-                        previousKeys == null ? null : !previousKeys.Contains(group.Key));
+                        previousKeys == null ? null : !previousKeys.Contains(group.Key),
+                        item.Location, item.Cwe, item.Description);
                 })
                 .ToList();
             var currentKeys = findings.Where(item => ids.Contains(item.ScanId))

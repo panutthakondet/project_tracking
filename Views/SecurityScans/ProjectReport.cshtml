@@ -41,6 +41,9 @@
     .status-summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0 0 12px; }
     .status-summary dd { margin: 0; }
     .findings { margin: 4px 0; padding-inline-start: 2em; overflow-wrap: anywhere; }
+    .findings li + li { margin-top: .45em; }
+    .finding-heading { break-after: avoid; }
+    .finding-detail { line-height: 1.18; white-space: pre-line; }
     .project-security-report { display: grid; gap: 1rem; }
     .project-security-report .risk-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: center; gap: .55rem .8rem; }
     .project-security-report .risk-track { height: .8rem; border-radius: .4rem; background: var(--bs-tertiary-bg, #e9ecef); }
@@ -49,7 +52,7 @@
         .report-actions { display: none; }
         body { background: #fff; }
         .project-security-report { padding: 0; margin: 0; max-width: none; }
-        .risk-chart, .findings li { break-inside: avoid; }
+        .risk-chart { break-inside: avoid; }
         .project-security-report .risk-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
 </style>
@@ -149,7 +152,25 @@
                 <ol class="findings">
                     @foreach (var item in group.Findings)
                     {
-                        <li><strong>@item.Severity</strong> · @item.Title · @SecurityValues.StatusLabel(item.Status) @if (item.IsNew is bool isNew) { <span>· @(isNew ? "พบใหม่" : "ยังพบอยู่")</span> } @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }</li>
+                        <li>
+                            <div class="finding-heading">
+                                <strong>@item.Severity · @item.Title</strong> · @SecurityValues.StatusLabel(item.Status)
+                                @if (item.IsNew is bool isNew) { <span>· @(isNew ? "พบใหม่" : "ยังพบอยู่")</span> }
+                                @if (!string.IsNullOrEmpty(item.Section)) { <span>· @item.Section</span> }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.Location))
+                            {
+                                <div class="finding-detail"><strong>ตำแหน่งที่พบ</strong> @item.Location.Trim()</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(item.Cwe))
+                            {
+                                <div class="finding-detail"><strong>CWE</strong> @item.Cwe.Trim()</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <div class="finding-detail"><strong>รายละเอียด</strong> @item.Description.Trim()</div>
+                            }
+                        </li>
                     }
                 </ol>
             }
