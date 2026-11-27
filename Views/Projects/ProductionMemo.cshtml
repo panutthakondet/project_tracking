@@ -24,6 +24,7 @@
 
     void RenderOwners()
     {
+        var columnCount = Model.IsDepartmentTransfer ? 2 : 1;
         <section>
             <div class="memo-stack">
                 <div class="memo-stack-label">@(Model.IsDepartmentTransfer ? "ทีมงานพัฒนา / ตำแหน่ง" : "ผู้รับผิดชอบส่วนงาน")</div>
@@ -32,10 +33,10 @@
                 <tbody>
                 @if (Model.Owners.Any())
                 {
-                    for (var ownerIndex = 0; ownerIndex < Model.Owners.Count; ownerIndex += 2)
+                    for (var ownerIndex = 0; ownerIndex < Model.Owners.Count; ownerIndex += columnCount)
                     {
                         <tr>
-                        @for (var column = 0; column < 2; column++)
+                        @for (var column = 0; column < columnCount; column++)
                         {
                             var index = ownerIndex + column;
                             <td>
@@ -69,7 +70,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="2">-</td></tr>
+                    <tr><td colspan="@columnCount">-</td></tr>
                 }
                 </tbody>
             </table>
@@ -305,7 +306,7 @@
         .owner-table th, .owner-table td { border: 1px solid #aaa; padding: 5px 10px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
         .production-report .owner-table td { border: 0; }
         .owner-table th { font-weight: 600; background: #f5f5f5; }
-        .owner-table td { width: 50%; }
+        .transfer-report .owner-table td { width: 50%; }
         .memo-owner-work { margin: 2px 0 0; padding-inline-start: 1.1em; }
         .owner-table tr { break-inside: avoid; page-break-inside: avoid; }
         .owner-table thead { display: table-header-group; }
