@@ -289,20 +289,20 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var run=await SecurityScanRun.LoadAsync(db,scan,ct);
         var runIds=run.Ids;
         var observationQuery=db.SecurityScanFindingRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId));
+        // Each saved observation has its own card. New cases store their locations on one observation.
         var entries = await observationQuery
-            .Select(SecurityFindingGrouping.Summary)
+            .Select(x => new { x.Id, x.FindingId, x.Severity, x.Title })
             .ToListAsync(ct);
-        var groups = entries.GroupBy(SecurityFindingGrouping.Key)
-            .OrderByDescending(g => SecurityValues.Rank(g.Key.Severity))
-            .ThenBy(g => g.Key.Title, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(g => g.Min(x => x.Id))
-            .Select(g => new SecurityFindingDisplayGroup(g.OrderBy(x => x.Id).Select(x => x.Id).ToArray(), g.Key.Severity))
-            .ToList();
-        var counts = groups.GroupBy(g => g.Severity).ToDictionary(g => g.Key, g => g.Count());
-        var total = groups.Count;
+        var counts = entries.GroupBy(x => x.Severity).ToDictionary(g => g.Key, g => g.Count());
+        var total = entries.Count;
         const int pageSize = 50;
         var pageNumber = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
-        var pageGroups = groups.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var pageGroups = entries.OrderByDescending(x => SecurityValues.Rank(x.Severity))
+            .ThenBy(x => x.Title, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
+            .Select(x => new SecurityFindingDisplayGroup([x.Id], x.Severity))
+            .ToList();
         var observationIds = pageGroups.SelectMany(g => g.ObservationIds).ToArray();
         var observations = await observationQuery.Where(x => observationIds.Contains(x.Id)).ToListAsync(ct);
         var allFindingIds = entries.Select(x => x.FindingId).Distinct().ToList();
