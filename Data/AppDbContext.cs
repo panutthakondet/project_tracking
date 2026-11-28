@@ -111,7 +111,6 @@ namespace ProjectTracking.Data
         public DbSet<MeetingRoomFileShare> MeetingRoomFileShares { get; set; }
         public DbSet<NotificationSendLog> NotificationSendLogs { get; set; }
         public DbSet<StatusApprovalRequest> StatusApprovalRequests { get; set; }
-        public DbSet<LineRecipient> LineRecipients { get; set; }
         public DbSet<TelegramRecipient> TelegramRecipients { get; set; }
         public DbSet<WeeklyReport> WeeklyReports { get; set; }
         public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
@@ -1254,52 +1253,6 @@ namespace ProjectTracking.Data
                     .WithMany()
                     .HasForeignKey(x => x.UploadedByUserId)
                     .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // =========================
-            // LINE RECIPIENTS
-            // =========================
-            modelBuilder.Entity<LineRecipient>(entity =>
-            {
-                entity.ToTable("line_recipients");
-                entity.HasKey(x => x.LineRecipientId);
-
-                entity.Property(x => x.LineRecipientId).HasColumnName("line_recipient_id");
-                entity.Property(x => x.UserId).HasColumnName("user_id").IsRequired(false);
-                entity.Property(x => x.EmpId).HasColumnName("emp_id").IsRequired(false);
-                entity.Property(x => x.RecipientType).HasColumnName("recipient_type").HasColumnType("varchar(20)").HasDefaultValue("USER").IsRequired();
-                entity.Property(x => x.LineUserId).HasColumnName("line_user_id").HasColumnType("varchar(100)").IsRequired(false);
-                entity.Property(x => x.LineGroupId).HasColumnName("line_group_id").HasColumnType("varchar(100)").IsRequired(false);
-                entity.Property(x => x.LineDisplayName).HasColumnName("line_display_name").HasColumnType("varchar(255)").IsRequired(false);
-                entity.Property(x => x.IsActive).HasColumnName("is_active").HasColumnType("tinyint(1)").HasDefaultValue(true);
-                entity.Property(x => x.LastFollowedAt).HasColumnName("last_followed_at").HasColumnType("datetime").IsRequired(false);
-                entity.Property(x => x.LastWebhookAt).HasColumnName("last_webhook_at").HasColumnType("datetime").IsRequired(false);
-                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
-                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAddOrUpdate();
-
-                entity.HasIndex(x => x.LineUserId)
-                    .IsUnique()
-                    .HasDatabaseName("uq_line_recipients_user_id");
-
-                entity.HasIndex(x => x.LineGroupId)
-                    .IsUnique()
-                    .HasDatabaseName("uq_line_recipients_group_id");
-
-                entity.HasIndex(x => new { x.UserId, x.IsActive })
-                    .HasDatabaseName("idx_line_recipients_user");
-
-                entity.HasIndex(x => new { x.EmpId, x.IsActive })
-                    .HasDatabaseName("idx_line_recipients_emp");
-
-                entity.HasOne(x => x.User)
-                    .WithMany()
-                    .HasForeignKey(x => x.UserId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(x => x.Employee)
-                    .WithMany()
-                    .HasForeignKey(x => x.EmpId)
-                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // =========================

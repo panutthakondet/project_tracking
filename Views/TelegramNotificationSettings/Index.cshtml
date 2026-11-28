@@ -1,7 +1,429 @@
-@model ProjectTracking.ViewModels.LineNotificationSettingsViewModel
+@model ProjectTracking.ViewModels.NotificationSettingsViewModel
 @{
-    ViewData["NotificationTitle"] = "Telegram Notification";
-    ViewData["NotificationChannel"] = "Telegram";
+    var notificationTitle = ViewData["NotificationTitle"] as string ?? "Telegram Notification";
+    var notificationChannel = ViewData["NotificationChannel"] as string ?? "Telegram";
+    ViewData["Title"] = notificationTitle;
+    var groups = Model.Items
+        .GroupBy(x => x.Group)
+        .ToList();
+    var groupIndex = 0;
 }
 
-@await Html.PartialAsync("~/Views/LineNotificationSettings/Index.cshtml", Model)
+<style>
+    .telegram-notification-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .telegram-notification-hero {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .telegram-notification-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto auto auto;
+        gap: 10px;
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 18px;
+    }
+
+    .telegram-notification-search {
+        height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-weight: 700;
+        outline: none;
+    }
+
+    .telegram-notification-search:focus {
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, .16);
+    }
+
+    .telegram-notification-count {
+        color: #475569;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .telegram-notification-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .telegram-notification-group {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .telegram-notification-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(20, 184, 166, .13), rgba(31, 59, 99, .08));
+        border-bottom: 1px solid #c8ebe7;
+        padding: 12px 14px;
+        color: #0f3440;
+    }
+
+    .telegram-notification-group-title {
+        font-weight: 900;
+    }
+
+    .telegram-notification-group-count {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .telegram-notification-list {
+        padding: 10px;
+    }
+
+    .telegram-notification-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .telegram-notification-row:hover {
+        background: #f8fafc;
+    }
+
+    .telegram-notification-label {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .telegram-notification-desc {
+        color: #475569;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+        margin-top: 3px;
+    }
+
+    .telegram-notification-key {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        word-break: break-word;
+        margin-top: 2px;
+    }
+
+    .telegram-notification-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .telegram-notification-btn {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 900;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        min-width: 126px;
+    }
+
+    .telegram-notification-btn.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
+    }
+
+    .telegram-notification-btn.muted {
+        color: #10233f;
+        background: #e5eaf0;
+    }
+
+    .telegram-notification-btn.light {
+        color: #0f766e;
+        background: #d9fbf5;
+    }
+
+    .telegram-notification-alert {
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-weight: 800;
+    }
+
+    .telegram-notification-alert.success {
+        color: #065f46;
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+    }
+
+    .telegram-notification-alert.error {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+
+    .telegram-toggle {
+        display: inline-grid;
+        grid-template-columns: auto minmax(36px, auto);
+        gap: 10px;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        margin: 0;
+        min-width: 98px;
+    }
+
+    .telegram-toggle input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .telegram-toggle-track {
+        width: 48px;
+        height: 26px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        position: relative;
+        transition: background .18s ease;
+    }
+
+    .telegram-toggle-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 5px rgba(15, 23, 42, .22);
+        transition: transform .18s ease;
+    }
+
+    .telegram-toggle input[type="checkbox"]:checked + .telegram-toggle-track {
+        background: #14b8a6;
+    }
+
+    .telegram-toggle input[type="checkbox"]:checked + .telegram-toggle-track .telegram-toggle-thumb {
+        transform: translateX(22px);
+    }
+
+    .telegram-toggle-text {
+        color: #334155;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 900px) {
+        .telegram-notification-toolbar,
+        .telegram-notification-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .telegram-notification-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .telegram-notification-row {
+            grid-template-columns: 1fr;
+            align-items: start;
+        }
+    }
+</style>
+
+<div class="telegram-notification-page">
+    <div class="index-hero pt-form-hero telegram-notification-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">@notificationTitle</h2>
+            <p class="index-subtitle">เปิด/ปิดการส่ง @notificationChannel แยกตามหน้าจอและเหตุการณ์</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="telegram-notification-alert success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="telegram-notification-alert error">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Save" method="post" id="telegramNotificationForm" class="card pt-form-card">
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <div class="telegram-notification-toolbar">
+                <input id="telegramNotificationSearch"
+                       class="telegram-notification-search"
+                       type="search"
+                       placeholder="ค้นหาหน้าจอหรือ key..."
+                       autocomplete="off" />
+                <div id="telegramNotificationCount" class="telegram-notification-count">เปิด @Model.EnabledCount รายการ</div>
+                <button type="button" id="enableVisible" class="telegram-notification-btn light">เปิดที่เห็น</button>
+                <button type="button" id="disableVisible" class="telegram-notification-btn muted">ปิดที่เห็น</button>
+            </div>
+
+            @{
+                var index = 0;
+            }
+
+            @if (groups.Count > 0)
+            {
+                <div class="telegram-notification-grid">
+                    @foreach (var group in groups)
+                    {
+                        var groupId = $"telegram_notification_group_{groupIndex++}";
+                        var groupItems = group.ToList();
+
+                        <section class="telegram-notification-group"
+                                 data-group-card
+                                 data-group-text="@($"{group.Key} {string.Join(" ", groupItems.Select(x => $"{x.Label} {x.Description} {x.FeatureKey}"))}".ToLowerInvariant())">
+                            <div class="telegram-notification-group-head">
+                                <div class="telegram-notification-group-title">@group.Key</div>
+                                <div class="telegram-notification-group-count">@groupItems.Count รายการ</div>
+                            </div>
+                            <div id="@groupId" class="telegram-notification-list">
+                                @foreach (var item in groupItems)
+                                {
+                                    <div class="telegram-notification-row"
+                                         data-setting-row
+                                         data-setting-text="@($"{item.Group} {item.Label} {item.Description} {item.FeatureKey}".ToLowerInvariant())">
+                                        <div>
+                                            <div class="telegram-notification-label">@item.Label</div>
+                                            <div class="telegram-notification-desc">@item.Description</div>
+                                            <div class="telegram-notification-key">@item.FeatureKey</div>
+                                        </div>
+                                        <label class="telegram-toggle">
+                                            <input type="hidden" name="Items[@index].FeatureKey" value="@item.FeatureKey" />
+                                            <input type="checkbox"
+                                                   name="Items[@index].IsEnabled"
+                                                   value="true"
+                                                   checked="@item.IsEnabled"
+                                                   data-telegram-toggle />
+                                            <span class="telegram-toggle-track">
+                                                <span class="telegram-toggle-thumb"></span>
+                                            </span>
+                                            <input type="hidden" name="Items[@index].IsEnabled" value="false" />
+                                            <span class="telegram-toggle-text">@(item.IsEnabled ? "เปิด" : "ปิด")</span>
+                                        </label>
+                                    </div>
+
+                                    index++;
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="telegram-notification-alert error">ยังไม่มีรายการตั้งค่า @notificationTitle</div>
+            }
+
+            <div class="telegram-notification-actions">
+                <a asp-controller="UserManagement" asp-action="Index" class="telegram-notification-btn muted">กลับ Settings</a>
+                <button type="submit" class="telegram-notification-btn primary">บันทึก</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const search = document.getElementById('telegramNotificationSearch');
+        const count = document.getElementById('telegramNotificationCount');
+        const enableVisible = document.getElementById('enableVisible');
+        const disableVisible = document.getElementById('disableVisible');
+        const rows = Array.from(document.querySelectorAll('[data-setting-row]'));
+        const groups = Array.from(document.querySelectorAll('[data-group-card]'));
+
+        function syncToggle(input) {
+            const text = input.closest('.telegram-toggle')?.querySelector('.telegram-toggle-text');
+            if (text) text.textContent = input.checked ? 'เปิด' : 'ปิด';
+        }
+
+        function updateCount() {
+            const inputs = rows.map(row => row.querySelector('[data-telegram-toggle]')).filter(Boolean);
+            const enabled = inputs.filter(input => input.checked).length;
+            count.textContent = `เปิด ${enabled} รายการ จาก ${inputs.length} รายการ`;
+        }
+
+        function visibleRows() {
+            return rows.filter(row => row.style.display !== 'none');
+        }
+
+        function applySearch() {
+            const term = (search?.value || '').trim().toLowerCase();
+
+            rows.forEach(row => {
+                const matched = !term || (row.dataset.settingText || '').includes(term);
+                row.style.display = matched ? '' : 'none';
+            });
+
+            groups.forEach(group => {
+                const hasVisibleRow = Array.from(group.querySelectorAll('[data-setting-row]'))
+                    .some(row => row.style.display !== 'none');
+                group.style.display = hasVisibleRow ? '' : 'none';
+            });
+        }
+
+        document.querySelectorAll('[data-telegram-toggle]').forEach(input => {
+            input.addEventListener('change', function () {
+                syncToggle(input);
+                updateCount();
+            });
+            syncToggle(input);
+        });
+
+        search?.addEventListener('input', applySearch);
+
+        enableVisible?.addEventListener('click', function () {
+            visibleRows().forEach(row => {
+                const input = row.querySelector('[data-telegram-toggle]');
+                if (input) {
+                    input.checked = true;
+                    syncToggle(input);
+                }
+            });
+            updateCount();
+        });
+
+        disableVisible?.addEventListener('click', function () {
+            visibleRows().forEach(row => {
+                const input = row.querySelector('[data-telegram-toggle]');
+                if (input) {
+                    input.checked = false;
+                    syncToggle(input);
+                }
+            });
+            updateCount();
+        });
+
+        applySearch();
+        updateCount();
+    })();
+</script>

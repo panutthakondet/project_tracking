@@ -5,6 +5,12 @@ using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Services
 {
+    public sealed record NotificationFeatureDefinition(
+        string FeatureKey,
+        string Group,
+        string Label,
+        string Description);
+
     public static class TelegramNotificationFeatures
     {
         public const string MeetingsAuto = "Meetings.Auto";
@@ -30,8 +36,8 @@ namespace ProjectTracking.Services
         public const string LineOverdueManual = "Employees.LineOverdue";
         public const string OverdueAuto = "Overdue.Auto";
 
-        public static readonly IReadOnlyList<LineNotificationFeatureDefinition> All =
-            new List<LineNotificationFeatureDefinition>
+        public static readonly IReadOnlyList<NotificationFeatureDefinition> All =
+            new List<NotificationFeatureDefinition>
             {
                 new(MeetingsAuto, "Auto", "Auto Meetings", "ส่ง Telegram อัตโนมัติสำหรับเตือนประชุมล่วงหน้า"),
                 new(MeetingsCreate, "Meetings", "Create Meetings", "ส่ง Telegram เมื่อสร้าง Meeting"),
@@ -96,7 +102,7 @@ namespace ProjectTracking.Services
             return IsEnabledValue(value);
         }
 
-        public async Task<LineNotificationSettingsViewModel> BuildViewModelAsync(
+        public async Task<NotificationSettingsViewModel> BuildViewModelAsync(
             CancellationToken cancellationToken = default)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
@@ -115,7 +121,7 @@ namespace ProjectTracking.Services
                     var configKey = TelegramNotificationFeatures.ConfigKey(def.FeatureKey);
                     values.TryGetValue(configKey, out var value);
 
-                    return new LineNotificationSettingItemViewModel
+                    return new NotificationSettingItemViewModel
                     {
                         FeatureKey = def.FeatureKey,
                         ConfigKey = configKey,
@@ -127,14 +133,14 @@ namespace ProjectTracking.Services
                 })
                 .ToList();
 
-            return new LineNotificationSettingsViewModel
+            return new NotificationSettingsViewModel
             {
                 Items = items
             };
         }
 
         public async Task SaveAsync(
-            IEnumerable<LineNotificationSettingInputViewModel> items,
+            IEnumerable<NotificationSettingInputViewModel> items,
             CancellationToken cancellationToken = default)
         {
             var requested = items

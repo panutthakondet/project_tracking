@@ -431,7 +431,6 @@ namespace ProjectTracking.Controllers
                     EmpName = a.EmpName,
                     Position = a.Position,
                     EmailSent = status?.EmailSent ?? false,
-                    LineSent = status?.LineSent ?? false,
                     TelegramSent = status?.TelegramSent ?? false
                 };
             }).ToList();

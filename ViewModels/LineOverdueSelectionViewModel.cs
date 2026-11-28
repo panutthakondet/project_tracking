@@ -4,19 +4,19 @@ namespace ProjectTracking.ViewModels
     {
         public List<LineOverdueSelectionItemViewModel> Items { get; set; } = new();
         public int TotalCount => Items.Count;
-        public int ReadyCount => Items.Count(x => x.Recipients.Any() && x.Recipients.All(r => r.HasLineRecipient));
-        public int MissingLineCount => Items.Count(x => x.Recipients.Any(r => !r.HasLineRecipient));
+        public int ReadyCount => Items.Count(x => x.Recipients.Any() && x.Recipients.All(r => r.HasNotificationRecipient));
+        public int MissingRecipientCount => Items.Count(x => x.Recipients.Any(r => !r.HasNotificationRecipient));
         public int OverdueCount => Items.Count(x => string.Equals(x.Severity, "DANGER", StringComparison.OrdinalIgnoreCase));
         public int RiskCount => Items.Count(x => !string.Equals(x.Severity, "DANGER", StringComparison.OrdinalIgnoreCase));
-        public int SentItemCount => Items.Count(x => x.LineSendCount > 0);
-        public int TotalLineSendCount => Items.Sum(x => x.LineSendCount);
+        public int SentItemCount => Items.Count(x => x.NotificationSendCount > 0);
+        public int TotalNotificationSendCount => Items.Sum(x => x.NotificationSendCount);
     }
 
     public class LineOverdueSelectionItemViewModel
     {
         private string _recipientName = "-";
         private string _recipientRole = "-";
-        private bool _hasLineRecipient;
+        private bool _hasNotificationRecipient;
 
         public string Key { get; set; } = "";
         public string SourceType { get; set; } = "";
@@ -48,21 +48,21 @@ namespace ProjectTracking.ViewModels
         public DateTime? EndDate { get; set; }
         public DateTime? DueDate { get; set; }
         public int OverdueDays { get; set; }
-        public bool HasLineRecipient
+        public bool HasNotificationRecipient
         {
-            get => Recipients.Count == 0 ? _hasLineRecipient : Recipients.Any(x => x.HasLineRecipient);
-            set => _hasLineRecipient = value;
+            get => Recipients.Count == 0 ? _hasNotificationRecipient : Recipients.Any(x => x.HasNotificationRecipient);
+            set => _hasNotificationRecipient = value;
         }
-        public bool HasMissingLineRecipient => Recipients.Any(x => !x.HasLineRecipient);
-        public string LineLinkText
+        public bool HasMissingNotificationRecipient => Recipients.Any(x => !x.HasNotificationRecipient);
+        public string RecipientLinkText
         {
             get
             {
                 if (Recipients.Count == 0)
-                    return _hasLineRecipient ? $"LINK {_recipientName}" : "ยังไม่ลิงค์ LINE/Telegram";
+                    return _hasNotificationRecipient ? $"LINK {_recipientName}" : "ยังไม่มีช่องทางแจ้งเตือน";
 
                 var linked = Recipients
-                    .Where(x => x.HasLineRecipient)
+                    .Where(x => x.HasNotificationRecipient)
                     .Select(x => string.IsNullOrWhiteSpace(x.Username) ? x.Name : x.Username)
                     .Where(x => !string.IsNullOrWhiteSpace(x) && x != "-")
                     .Distinct()
@@ -70,11 +70,11 @@ namespace ProjectTracking.ViewModels
 
                 return linked.Count > 0
                     ? $"LINK {string.Join(", ", linked)}"
-                    : "ยังไม่ลิงค์ LINE/Telegram";
+                    : "ยังไม่มีช่องทางแจ้งเตือน";
             }
         }
-        public int LineSendCount { get; set; }
-        public DateTime? LastLineSentAt { get; set; }
+        public int NotificationSendCount { get; set; }
+        public DateTime? LastNotificationSentAt { get; set; }
         public string TargetUrl { get; set; } = "/";
         public string Message { get; set; } = "";
     }
@@ -86,7 +86,7 @@ namespace ProjectTracking.ViewModels
         public string? Username { get; set; }
         public string Name { get; set; } = "-";
         public string Role { get; set; } = "-";
-        public bool HasLineRecipient { get; set; }
+        public bool HasNotificationRecipient { get; set; }
         public string TargetUrl { get; set; } = "/";
     }
 }

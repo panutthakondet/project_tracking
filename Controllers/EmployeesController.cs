@@ -12,8 +12,6 @@ namespace ProjectTracking.Controllers
     public class EmployeesController : BaseController
     {
         private readonly AppDbContext _context;
-        private readonly LineMessagingService _lineMessagingService;
-        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
@@ -22,8 +20,6 @@ namespace ProjectTracking.Controllers
 
         public EmployeesController(
             AppDbContext context,
-            LineMessagingService lineMessagingService,
-            LineNotificationSettingsService lineNotificationSettings,
             WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
@@ -31,8 +27,6 @@ namespace ProjectTracking.Controllers
             ILogger<EmployeesController> logger)
         {
             _context = context;
-            _lineMessagingService = lineMessagingService;
-            _lineNotificationSettings = lineNotificationSettings;
             _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
@@ -192,17 +186,6 @@ namespace ProjectTracking.Controllers
                     ?? profileUsers.FirstOrDefault(u => u.EmpId == x.EmpId)?.ProfileImagePath
                     ?? "/images/Profile/profile.png");
 
-            var lineLinkedEmpIds = await _context.LineRecipients
-                .AsNoTracking()
-                .Where(x => x.IsActive
-                    && x.EmpId.HasValue
-                    && x.RecipientType == "USER"
-                    && x.LineUserId != null
-                    && x.LineUserId != "")
-                .Select(x => x.EmpId!.Value)
-                .Distinct()
-                .ToListAsync();
-
             var telegramLinkedEmpIds = await _context.TelegramRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive
@@ -214,7 +197,6 @@ namespace ProjectTracking.Controllers
                 .Distinct()
                 .ToListAsync();
 
-            ViewBag.LineLinkedEmpIds = lineLinkedEmpIds.ToHashSet();
             ViewBag.TelegramLinkedEmpIds = telegramLinkedEmpIds.ToHashSet();
 
             return View(employees);
@@ -407,8 +389,6 @@ namespace ProjectTracking.Controllers
         {
             try
             {
-                var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
-                    && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.LineOverdueManual, HttpContext.RequestAborted), _logger);
                 var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
                     && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.LineOverdueManual, HttpContext.RequestAborted), _logger);
 
@@ -424,9 +404,9 @@ namespace ProjectTracking.Controllers
                     .ToList();
 
                 var sentCount = 0;
-                foreach (var item in items.Where(x => x.HasLineRecipient))
+                foreach (var item in items.Where(x => x.HasNotificationRecipient))
                 {
-                    foreach (var recipient in item.Recipients.Where(x => x.HasLineRecipient))
+                    foreach (var recipient in item.Recipients.Where(x => x.HasNotificationRecipient))
                     {
                         try
                         {
@@ -436,7 +416,6 @@ namespace ProjectTracking.Controllers
                                 BuildSelectionLineTitle(item),
                                 item.Message,
                                 targetUrl,
-                                sendLine,
                                 sendTelegram,
                                 item.Key);
 
@@ -455,10 +434,10 @@ namespace ProjectTracking.Controllers
                 if (sentCount > 0)
                     await _context.SaveChangesAsync();
 
-                var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasLineRecipient));
+                var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasNotificationRecipient));
                 TempData["Success"] = $"ส่งแจ้งเตือนแล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
                 if (skippedCount > 0)
-                    TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE หรือ Telegram";
+                    TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก บัญชีเว็บหรือ Telegram";
 
                 return RedirectToAction(nameof(LineOverdue));
             }
@@ -475,28 +454,10 @@ namespace ProjectTracking.Controllers
             string title,
             string message,
             string? targetUrl,
-            bool sendLine,
             bool sendTelegram,
             string itemKey)
         {
             var deliveredCount = await _webNotifications.NotifyEmployeeSafelyAsync(empId, title, message, targetUrl, HttpContext.RequestAborted);
-
-            if (sendLine)
-            {
-                try
-                {
-                    deliveredCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        empId,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", empId, itemKey);
-                }
-            }
 
             if (sendTelegram)
             {
@@ -556,12 +517,6 @@ namespace ProjectTracking.Controllers
             var employeeUsers = employeeRows.ToDictionary(x => x.EmpId, x => x.LoginUserId);
             var employeeUsernames = employeeRows.ToDictionary(x => x.EmpId, x => string.IsNullOrWhiteSpace(x.Username) ? null : x.Username);
             var employeeAvatars = employeeRows.ToDictionary(x => x.EmpId, x => ProfileImage(x.ProfileImagePath));
-            var lineEmpIds = await _context.LineRecipients
-                .AsNoTracking()
-                .Where(x => x.IsActive && x.EmpId.HasValue && x.LineUserId != null && x.LineUserId != "")
-                .Select(x => x.EmpId!.Value)
-                .Distinct()
-                .ToListAsync();
             var telegramEmpIds = await _context.TelegramRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive && x.EmpId.HasValue && x.TelegramChatId != null && x.TelegramChatId != "")
@@ -571,8 +526,8 @@ namespace ProjectTracking.Controllers
             var webEmpIds = await _context.Employees.AsNoTracking().Where(e => _context.LoginUsers.Any(u =>
                 u.Status == "ACTIVE" && (u.EmpId == e.EmpId || (u.EmpId == null && e.LoginUserId == u.UserId))))
                 .Select(e => e.EmpId).ToListAsync();
-            var hasLine = lineEmpIds.Concat(telegramEmpIds).Concat(webEmpIds).Distinct().ToHashSet();
-            var sendStats = await LoadLineSendStatsAsync();
+            var notificationRecipients = telegramEmpIds.Concat(webEmpIds).Distinct().ToHashSet();
+            var sendStats = await LoadOverdueSendStatsAsync();
 
             var items = new List<LineOverdueSelectionItemViewModel>();
 
@@ -625,11 +580,11 @@ namespace ProjectTracking.Controllers
                     row.Remark,
                     includeTitleLine: true);
 
-                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
 
                 foreach (var baEmployee in baEmployees)
                 {
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
                 }
             }
 
@@ -659,9 +614,9 @@ namespace ProjectTracking.Controllers
                 var firstBaEmpId = baEmployees.FirstOrDefault()?.EmpId;
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
-                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
                 foreach (var baEmployee in baEmployees)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
             }
 
             var supports = await _context.ProjectSupportOrders
@@ -692,10 +647,10 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 if (row.AssignTo.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
 
                 foreach (var baEmployee in baEmployees)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
             }
 
             var followups = await _context.ProjectFollowups
@@ -729,15 +684,15 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.Project?.StartDate, row.Project?.EndDate, startDate, row.NextFollowupDate, row.NextFollowupDate, row.PartnerName);
 
                 if (row.OwnerEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, row.OwnerEmpId.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, row.OwnerEmpId.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, firstBaEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
 
                 foreach (var baEmployee in baEmployees)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, notificationRecipients, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, baEmployee.EmpId, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, baEmployee.EmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
             }
 
             return items
                 .OrderBy(x => LineOverdueTypeRank(x.SourceType))
-                .ThenByDescending(x => x.Recipients.Any(r => r.HasLineRecipient))
+                .ThenByDescending(x => x.Recipients.Any(r => r.HasNotificationRecipient))
                 .ThenBy(x => x.EndDate ?? x.DueDate ?? DateTime.MaxValue)
                 .ThenBy(x => x.CoopName)
                 .ThenBy(x => x.ProjectName)
@@ -764,8 +719,8 @@ namespace ProjectTracking.Controllers
             IReadOnlyDictionary<int, string> employees,
             IReadOnlyDictionary<int, int?> employeeUsers,
             IReadOnlyDictionary<int, string?> employeeUsernames,
-            ISet<int> hasLine,
-            IReadOnlyDictionary<string, LineSendStat> sendStats,
+            ISet<int> notificationRecipients,
+            IReadOnlyDictionary<string, OverdueSendStat> sendStats,
             string sourceType,
             string sourceLabel,
             int sourceId,
@@ -794,7 +749,7 @@ namespace ProjectTracking.Controllers
             var existingItem = items.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
             if (existingItem != null)
             {
-                AddRecipient(existingItem, employees, employeeUsers, employeeUsernames, hasLine, recipientEmpId, recipientRole, targetUrl);
+                AddRecipient(existingItem, employees, employeeUsers, employeeUsernames, notificationRecipients, recipientEmpId, recipientRole, targetUrl);
                 return;
             }
 
@@ -819,12 +774,12 @@ namespace ProjectTracking.Controllers
                 EndDate = endDate,
                 DueDate = dueDate,
                 OverdueDays = overdueDays,
-                LineSendCount = sendStat?.Count ?? 0,
-                LastLineSentAt = sendStat?.LastSentAt,
+                NotificationSendCount = sendStat?.Count ?? 0,
+                LastNotificationSentAt = sendStat?.LastSentAt,
                 Message = message,
                 TargetUrl = targetUrl
             };
-            AddRecipient(item, employees, employeeUsers, employeeUsernames, hasLine, recipientEmpId, recipientRole, targetUrl);
+            AddRecipient(item, employees, employeeUsers, employeeUsernames, notificationRecipients, recipientEmpId, recipientRole, targetUrl);
             items.Add(item);
         }
 
@@ -833,7 +788,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyDictionary<int, string> employees,
             IReadOnlyDictionary<int, int?> employeeUsers,
             IReadOnlyDictionary<int, string?> employeeUsernames,
-            ISet<int> hasLine,
+            ISet<int> notificationRecipients,
             int recipientEmpId,
             string recipientRole,
             string targetUrl)
@@ -848,12 +803,12 @@ namespace ProjectTracking.Controllers
                 Username = employeeUsernames.TryGetValue(recipientEmpId, out var username) ? username : null,
                 Name = EmployeeName(employees, recipientEmpId),
                 Role = recipientRole,
-                HasLineRecipient = hasLine.Contains(recipientEmpId),
+                HasNotificationRecipient = notificationRecipients.Contains(recipientEmpId),
                 TargetUrl = targetUrl
             });
         }
 
-        private async Task<Dictionary<string, LineSendStat>> LoadLineSendStatsAsync()
+        private async Task<Dictionary<string, OverdueSendStat>> LoadOverdueSendStatsAsync()
         {
             var sourceTypes = new[] { "ASSIGN_DUE", "ISSUE_DUE", "SUPPORT_DUE", "FOLLOWUP_DUE" };
             var rows = await _context.UserNotifications
@@ -871,7 +826,7 @@ namespace ProjectTracking.Controllers
 
             return rows.ToDictionary(
                 x => $"{x.SourceType}:{x.SourceId}",
-                x => new LineSendStat(x.Count, x.LastSentAt),
+                x => new OverdueSendStat(x.Count, x.LastSentAt),
                 StringComparer.OrdinalIgnoreCase);
         }
 
@@ -1092,6 +1047,6 @@ namespace ProjectTracking.Controllers
 
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
-        private sealed record LineSendStat(int Count, DateTime LastSentAt);
+        private sealed record OverdueSendStat(int Count, DateTime LastSentAt);
     }
 }

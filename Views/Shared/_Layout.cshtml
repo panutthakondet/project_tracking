@@ -2079,7 +2079,6 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                    || canAttendanceHolidays
                    || CanMenu("UserManagement.Index")
                    || CanMenu("StatusApprovals.Index")
-                   || CanMenu("LineNotificationSettings.Index")
                    || CanMenu("TelegramNotificationSettings.Index")
                    || CanMenu("NotificationSendLogs.Index")
                    || CanMenu("SystemConfigs.Index");
@@ -2462,7 +2461,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                         @if (canSettings)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Settings" || controller=="AttendanceHolidays" || controller=="UserManagement" || controller=="StatusApprovals" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Settings" || controller=="AttendanceHolidays" || controller=="UserManagement" || controller=="StatusApprovals" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
                                     <span class="nav-label">Settings</span>

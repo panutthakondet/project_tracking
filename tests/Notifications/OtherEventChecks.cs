@@ -16,7 +16,7 @@ static class OtherEventChecks
         db.FieldServiceVisits.Add(new FieldServiceVisit{VisitId=50,CoopId=100,Title="งานเข้าไซต์ทดสอบ",VisitDate=DateTime.Today,
             Assignees=[new FieldServiceAssignee{EmpId=10},new FieldServiceAssignee{EmpId=20}]});
         await db.SaveChangesAsync();
-        var field=new FieldServiceNotificationService(factory,null!,null!,null!,notifications,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
+        var field=new FieldServiceNotificationService(factory,null!,notifications,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
         var task=(Task)typeof(FieldServiceNotificationService).GetMethod("LoadVisitAsync",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(field,[50,CancellationToken.None])!;await task;
         var details=task.GetType().GetProperty("Result")!.GetValue(task)!;
         var recipients=((IEnumerable)details.GetType().GetProperty("Recipients")!.GetValue(details)!).Cast<object>().ToArray();

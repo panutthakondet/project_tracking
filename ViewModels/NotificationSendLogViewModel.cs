@@ -6,7 +6,7 @@ namespace ProjectTracking.ViewModels
 {
     public class NotificationSendLogPageViewModel
     {
-        public string SelectedChannel { get; set; } = "LINE";
+        public string SelectedChannel { get; set; } = "TELEGRAM";
         public int? SelectedEmpId { get; set; }
         public int? SelectedDepartmentId { get; set; }
         public List<NotificationSendLogDepartmentViewModel> Departments { get; set; } = new();

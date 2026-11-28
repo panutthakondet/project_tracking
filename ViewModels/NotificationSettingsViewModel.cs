@@ -1,14 +1,14 @@
 namespace ProjectTracking.ViewModels
 {
-    public class LineNotificationSettingsViewModel
+    public class NotificationSettingsViewModel
     {
-        public List<LineNotificationSettingItemViewModel> Items { get; set; } = new();
+        public List<NotificationSettingItemViewModel> Items { get; set; } = new();
 
         public int EnabledCount => Items.Count(x => x.IsEnabled);
         public int DisabledCount => Items.Count - EnabledCount;
     }
 
-    public class LineNotificationSettingItemViewModel
+    public class NotificationSettingItemViewModel
     {
         public string FeatureKey { get; set; } = "";
         public string ConfigKey { get; set; } = "";
@@ -18,14 +18,14 @@ namespace ProjectTracking.ViewModels
         public bool IsEnabled { get; set; } = true;
     }
 
-    public class LineNotificationSettingInputViewModel
+    public class NotificationSettingInputViewModel
     {
         public string FeatureKey { get; set; } = "";
         public bool IsEnabled { get; set; }
     }
 
-    public class LineNotificationSettingsPostViewModel
+    public class NotificationSettingsPostViewModel
     {
-        public List<LineNotificationSettingInputViewModel> Items { get; set; } = new();
+        public List<NotificationSettingInputViewModel> Items { get; set; } = new();
     }
 }

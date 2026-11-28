@@ -25,7 +25,7 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         [RequireMenu("TelegramNotificationSettings.Index")]
         public async Task<IActionResult> Save(
-            LineNotificationSettingsPostViewModel model,
+            NotificationSettingsPostViewModel model,
             CancellationToken cancellationToken)
         {
             await _settingsService.SaveAsync(model.Items, cancellationToken);

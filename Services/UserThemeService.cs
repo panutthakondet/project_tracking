@@ -947,13 +947,13 @@ html body main.route-controller-weeklyreports .weekly-btn.dark {
     border-color: var(--pt-border-strong) !important;
 }
 
-html body main :is(.permission-btn, .system-config-btn, .line-notification-btn) {
+html body main :is(.permission-btn, .system-config-btn, .telegram-notification-btn) {
     color: var(--pt-surface-contrast) !important;
     -webkit-text-fill-color: var(--pt-surface-contrast) !important;
     text-shadow: none !important;
 }
 
-html body main :is(.permission-btn.primary, .system-config-btn.primary, .line-notification-btn.primary) {
+html body main :is(.permission-btn.primary, .system-config-btn.primary, .telegram-notification-btn.primary) {
     color: var(--pt-accent-contrast) !important;
     -webkit-text-fill-color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;

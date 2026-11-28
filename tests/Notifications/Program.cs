@@ -19,7 +19,7 @@ using ProjectTracking.Models;
 using ProjectTracking.Services;
 using WebPush;
 
-Environment.SetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN","");Environment.SetEnvironmentVariable("TELEGRAM_BOT_TOKEN","");Environment.SetEnvironmentVariable("APP_BASE_URL","https://app.test");
+Environment.SetEnvironmentVariable("TELEGRAM_BOT_TOKEN","");Environment.SetEnvironmentVariable("APP_BASE_URL","https://app.test");
 void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
 using var connection=new SqliteConnection("DataSource=:memory:");await connection.OpenAsync();
 var options=new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).AddInterceptors(new MysqlSqliteAdapter()).Options;

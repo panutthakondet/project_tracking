@@ -17,8 +17,6 @@ namespace ProjectTracking.Controllers
     public class PhaseAssignsController : BaseController
     {
         private readonly AppDbContext _context;
-        private readonly LineMessagingService _lineMessagingService;
-        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
@@ -28,8 +26,6 @@ namespace ProjectTracking.Controllers
 
         public PhaseAssignsController(
             AppDbContext context,
-            LineMessagingService lineMessagingService,
-            LineNotificationSettingsService lineNotificationSettings,
             WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
@@ -38,8 +34,6 @@ namespace ProjectTracking.Controllers
             ILogger<PhaseAssignsController> logger)
         {
             _context = context;
-            _lineMessagingService = lineMessagingService;
-            _lineNotificationSettings = lineNotificationSettings;
             _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
@@ -1537,8 +1531,6 @@ namespace ProjectTracking.Controllers
 
         private async Task SendCreatedPhaseAssignNotificationSafelyAsync(int assignId)
         {
-            var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted), _logger);
             var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted), _logger);
 
@@ -1571,7 +1563,6 @@ namespace ProjectTracking.Controllers
                         title,
                         message,
                         recipient.Value,
-                        sendLine,
                         sendTelegram);
                 }
             }
@@ -1586,27 +1577,9 @@ namespace ProjectTracking.Controllers
             string title,
             string message,
             string targetUrl,
-            bool sendLine,
             bool sendTelegram)
         {
             await _webNotifications.NotifyEmployeeSafelyAsync(empId, title, message, targetUrl, HttpContext.RequestAborted);
-
-            if (sendLine)
-            {
-                try
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        empId,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "LINE phase assign notification failed. EmpId={EmpId}", empId);
-                }
-            }
 
             if (sendTelegram)
             {

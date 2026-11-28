@@ -137,7 +137,6 @@ namespace ProjectTracking.Controllers
             return new List<NotificationSendLogTabViewModel>
             {
                 new() { Channel = "EMAIL", Label = "Mail", Count = countByChannel.GetValueOrDefault("EMAIL") },
-                new() { Channel = "LINE", Label = "LINE", Count = countByChannel.GetValueOrDefault("LINE") },
                 new() { Channel = "TELEGRAM", Label = "Telegram", Count = countByChannel.GetValueOrDefault("TELEGRAM") }
             };
         }
@@ -247,7 +246,6 @@ namespace ProjectTracking.Controllers
             {
                 "MAIL" or "EMAIL" => "EMAIL",
                 "TELEGRAM" => "TELEGRAM",
-                "LINE" => "LINE",
                 _ => "TELEGRAM"
             };
         }

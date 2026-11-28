@@ -16,8 +16,6 @@ namespace ProjectTracking.Services
         };
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
-        private readonly LineMessagingService _lineMessagingService;
-        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
@@ -26,8 +24,6 @@ namespace ProjectTracking.Services
 
         public OverdueNotificationService(
             IDbContextFactory<AppDbContext> dbFactory,
-            LineMessagingService lineMessagingService,
-            LineNotificationSettingsService lineNotificationSettings,
             WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
@@ -35,8 +31,6 @@ namespace ProjectTracking.Services
             ILogger<OverdueNotificationService> logger)
         {
             _dbFactory = dbFactory;
-            _lineMessagingService = lineMessagingService;
-            _lineNotificationSettings = lineNotificationSettings;
             _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
@@ -542,37 +536,19 @@ namespace ProjectTracking.Services
                 await _webNotifications.NotifyEmployeeSafelyAsync(notification.EmpId, notification.Title,
                     notification.Message, notification.TargetUrl, cancellationToken, deduplicateDaily: true);
 
-            var sendLine = _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
             var sendTelegram = _telegramMessagingService.IsConfigured
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.OverdueAuto, cancellationToken);
 
-            if (!sendLine && !sendTelegram)
+            if (!sendTelegram)
             {
-                _logger.LogInformation("Automatic overdue chat notifications skipped because LINE and Telegram are disabled or not configured.");
+                _logger.LogInformation("Automatic overdue chat notifications skipped because Telegram is disabled or not configured.");
                 return;
             }
 
-            var sentToday = await LoadTodaySuccessfulAutoSendKeysAsync(sendLine, sendTelegram, cancellationToken);
+            var sentToday = await LoadTodaySuccessfulAutoSendKeysAsync(cancellationToken);
 
             foreach (var notification in notifications)
             {
-                if (sendLine)
-                {
-                    var key = BuildSendLogKey("LINE", notification);
-                    if (sentToday.Contains(key))
-                    {
-                        _logger.LogInformation(
-                            "Automatic LINE notification skipped because it was already sent today. EmpId={EmpId}, Title={Title}",
-                            notification.EmpId,
-                            notification.Title);
-                    }
-                    else if (await SendLineNotificationSafelyAsync(notification, cancellationToken))
-                    {
-                        sentToday.Add(key);
-                    }
-                }
-
                 if (sendTelegram)
                 {
                     var key = BuildSendLogKey("TELEGRAM", notification);
@@ -592,19 +568,8 @@ namespace ProjectTracking.Services
         }
 
         private async Task<HashSet<string>> LoadTodaySuccessfulAutoSendKeysAsync(
-            bool includeLine,
-            bool includeTelegram,
             CancellationToken cancellationToken)
         {
-            var channels = new List<string>(capacity: 2);
-            if (includeLine)
-                channels.Add("LINE");
-            if (includeTelegram)
-                channels.Add("TELEGRAM");
-
-            if (channels.Count == 0)
-                return new HashSet<string>(StringComparer.Ordinal);
-
             var today = GetBangkokNow().Date;
             var tomorrow = today.AddDays(1);
 
@@ -614,7 +579,7 @@ namespace ProjectTracking.Services
                 .Where(x => x.SentAt >= today
                     && x.SentAt < tomorrow
                     && x.RecipientEmpId.HasValue
-                    && channels.Contains(x.Channel))
+                    && x.Channel == "TELEGRAM")
                 .Select(x => new
                 {
                     x.Channel,
@@ -627,27 +592,6 @@ namespace ProjectTracking.Services
 
             var result = logs.Select(x => BuildSendLogKey(x.Channel, x.EmpId, x.Title, x.Message, x.TargetUrl)).ToHashSet(StringComparer.Ordinal);
             return result;
-        }
-
-        private async Task<bool> SendLineNotificationSafelyAsync(
-            TelegramNotificationPayload notification,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var sentCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                    notification.EmpId,
-                    notification.Title,
-                    notification.Message,
-                    notification.TargetUrl,
-                    cancellationToken);
-                return sentCount > 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Automatic LINE notification failed for EmpId={EmpId}", notification.EmpId);
-                return false;
-            }
         }
 
         private async Task<bool> SendTelegramNotificationSafelyAsync(

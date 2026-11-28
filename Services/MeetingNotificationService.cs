@@ -8,24 +8,18 @@ namespace ProjectTracking.Services
 {
     public class MeetingNotificationService
     {
-        private static readonly int[] LineReminderDays = { 3, 2, 1, 0 };
         private static readonly int[] TelegramReminderDays = { 3, 2, 1, 0 };
         private static readonly SemaphoreSlim NotificationTableEnsureLock = new(1, 1);
         private const string CreatedEmailKind = "created_email";
-        private const string CreatedLineKind = "created_line";
         private const string CreatedTelegramKind = "created_telegram";
         private const string CancelledEmailKind = "cancelled_email";
-        private const string CancelledLineKind = "cancelled_line";
         private const string CancelledTelegramKind = "cancelled_telegram";
         private const string UpdatedEmailKindPrefix = "updated_email";
-        private const string UpdatedLineKindPrefix = "updated_line";
         private const string UpdatedTelegramKindPrefix = "updated_telegram";
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly WebNotificationService _webNotifications;
         private readonly EmailService _emailService;
-        private readonly LineMessagingService _lineMessagingService;
-        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<MeetingNotificationService> _logger;
@@ -34,8 +28,6 @@ namespace ProjectTracking.Services
         public MeetingNotificationService(
             IDbContextFactory<AppDbContext> dbFactory,
             EmailService emailService,
-            LineMessagingService lineMessagingService,
-            LineNotificationSettingsService lineNotificationSettings,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
@@ -45,8 +37,6 @@ namespace ProjectTracking.Services
             _dbFactory = dbFactory;
             _webNotifications = webNotifications;
             _emailService = emailService;
-            _lineMessagingService = lineMessagingService;
-            _lineNotificationSettings = lineNotificationSettings;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
@@ -95,10 +85,6 @@ namespace ProjectTracking.Services
                         EmailSent: x.Any(n => n.Kind == CreatedEmailKind
                             || n.Kind == CancelledEmailKind
                             || n.Kind.StartsWith(UpdatedEmailKindPrefix)),
-                        LineSent: x.Any(n => n.Kind == CreatedLineKind
-                            || n.Kind == CancelledLineKind
-                            || n.Kind.StartsWith(UpdatedLineKindPrefix)
-                            || n.Kind.StartsWith("line_reminder_")),
                         TelegramSent: x.Any(n => n.Kind == CreatedTelegramKind
                             || n.Kind == CancelledTelegramKind
                             || n.Kind.StartsWith(UpdatedTelegramKindPrefix)
@@ -116,26 +102,21 @@ namespace ProjectTracking.Services
                 "Email",
                 meetingId,
                 () => SendCreatedEmailAsync(meetingId, cancellationToken));
-            var lineTask = SendChannelSafelyAsync(
-                "LINE",
-                meetingId,
-                () => SendCreatedLineAsync(meetingId, cancellationToken));
             var telegramTask = SendChannelSafelyAsync(
                 "Telegram",
                 meetingId,
                 () => SendCreatedTelegramAsync(meetingId, cancellationToken));
 
-            await Task.WhenAll(emailTask, lineTask, telegramTask);
+            await Task.WhenAll(emailTask, telegramTask);
 
             var emailResult = await emailTask;
-            var lineResult = await lineTask;
             var telegramResult = await telegramTask;
 
             return new MeetingNotificationResult(
-                webResult.SentCount + emailResult.SentCount + lineResult.SentCount + telegramResult.SentCount,
-                webResult.SkippedCount + emailResult.SkippedCount + lineResult.SkippedCount + telegramResult.SkippedCount,
-                webResult.FailedCount + emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount,
-                FormatNotificationBreakdown("Web", webResult) + " | " + BuildNotificationBreakdown(emailResult, lineResult, telegramResult));
+                webResult.SentCount + emailResult.SentCount + telegramResult.SentCount,
+                webResult.SkippedCount + emailResult.SkippedCount + telegramResult.SkippedCount,
+                webResult.FailedCount + emailResult.FailedCount + telegramResult.FailedCount,
+                FormatNotificationBreakdown("Web", webResult) + " | " + BuildNotificationBreakdown(emailResult, telegramResult));
         }
 
         private async Task<MeetingNotificationResult> SendWebEventAsync(int meetingId, string eventTitle, CancellationToken ct, bool reminder = false)
@@ -257,7 +238,6 @@ namespace ProjectTracking.Services
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
             var emailKind = UpdatedNotificationKind(UpdatedEmailKindPrefix, meeting);
-            var lineKind = UpdatedNotificationKind(UpdatedLineKindPrefix, meeting);
             var telegramKind = UpdatedNotificationKind(UpdatedTelegramKindPrefix, meeting);
             var sent = webResult.SentCount;
             var skipped = 0;
@@ -299,71 +279,6 @@ namespace ProjectTracking.Services
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.Email);
-                }
-            }
-
-            if (_lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsUpdate, cancellationToken))
-            {
-                var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
-                var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var recipient in lineRecipients)
-                {
-                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken))
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
-                        recipient.EmpId,
-                        cancellationToken);
-                    if (lineUserIds.Count == 0)
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    var unsentLineUserIds = lineUserIds
-                        .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
-                        .ToList();
-
-                    if (unsentLineUserIds.Count == 0)
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    try
-                    {
-                        var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
-                            unsentLineUserIds,
-                            $"อัปเดตประชุม: {meeting.Title}",
-                            BuildUpdatedTelegramMessage(meeting, detailUrl, calendarUrl),
-                            detailUrl,
-                            cancellationToken,
-                            recipient.EmpId);
-
-                        if (lineSendCount > 0)
-                        {
-                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken);
-                            sent += lineSendCount;
-                        }
-                        else
-                        {
-                            skipped++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        failed++;
-                        _logger.LogError(
-                            ex,
-                            "Failed to send meeting updated LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
-                            meeting.Id,
-                            recipient.AttendeeId,
-                            recipient.EmpId);
-                    }
                 }
             }
 
@@ -423,106 +338,6 @@ namespace ProjectTracking.Services
             }
 
             return new MeetingNotificationResult(sent, skipped, failed);
-        }
-
-        private async Task<MeetingNotificationResult> SendCreatedLineAsync(
-            int meetingId,
-            CancellationToken cancellationToken = default)
-        {
-            if (!_lineMessagingService.IsConfigured)
-                return new MeetingNotificationResult(0, 1, 0, "LINE ยังไม่ได้ตั้งค่า");
-
-            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCreate, cancellationToken))
-                return new MeetingNotificationResult(0, 1, 0, "LINE Meetings.Create ปิดอยู่");
-
-            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            await EnsureNotificationTableAsync(db, cancellationToken);
-
-            var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
-            if (meeting == null)
-                return new MeetingNotificationResult(0, 0, 1, "ไม่พบ Meeting");
-
-            var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
-            var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
-            var recipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
-            var sent = 0;
-            var skipped = 0;
-            var failed = 0;
-            var missingRecipientCount = 0;
-            var failureReasons = new List<string>();
-            var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
-
-            if (recipients.Count == 0)
-                return new MeetingNotificationResult(0, 1, 0, "ไม่มีผู้เข้าร่วมสำหรับ LINE");
-
-            foreach (var recipient in recipients)
-            {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
-                {
-                    skipped++;
-                    continue;
-                }
-
-                var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
-                    recipient.EmpId,
-                    cancellationToken);
-                if (lineUserIds.Count == 0)
-                {
-                    skipped++;
-                    missingRecipientCount++;
-                    continue;
-                }
-
-                var unsentLineUserIds = lineUserIds
-                    .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
-                    .ToList();
-
-                if (unsentLineUserIds.Count == 0)
-                {
-                    skipped++;
-                    continue;
-                }
-
-                try
-                {
-                    var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
-                        unsentLineUserIds,
-                        $"เชิญประชุม: {meeting.Title}",
-                        BuildCreatedTelegramMessage(meeting, detailUrl, calendarUrl),
-                        detailUrl,
-                        cancellationToken,
-                        recipient.EmpId);
-
-                    if (lineSendCount > 0)
-                    {
-                        await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken);
-                        sent += lineSendCount;
-                    }
-                    else
-                    {
-                        skipped++;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    failed++;
-                    AddFailureReason(failureReasons, ex.Message);
-                    _logger.LogError(
-                        ex,
-                        "Failed to send meeting created LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
-                        meeting.Id,
-                        recipient.AttendeeId,
-                        recipient.EmpId);
-                }
-            }
-
-            return new MeetingNotificationResult(
-                sent,
-                skipped,
-                failed,
-                BuildDetail(
-                    missingRecipientCount > 0 ? $"ไม่มี LINE user id {missingRecipientCount} คน" : null,
-                    BuildDetail(failureReasons)));
         }
 
         private async Task<MeetingNotificationResult> SendCreatedTelegramAsync(
@@ -671,71 +486,6 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (_lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCancel, cancellationToken))
-            {
-                var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
-                var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var recipient in lineRecipients)
-                {
-                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
-                        recipient.EmpId,
-                        cancellationToken);
-                    if (lineUserIds.Count == 0)
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    var unsentLineUserIds = lineUserIds
-                        .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
-                        .ToList();
-
-                    if (unsentLineUserIds.Count == 0)
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    try
-                    {
-                        var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
-                            unsentLineUserIds,
-                            $"ยกเลิกประชุม: {meeting.Title}",
-                            BuildCancelledTelegramMessage(meeting, detailUrl),
-                            detailUrl,
-                            cancellationToken,
-                            recipient.EmpId);
-
-                        if (lineSendCount > 0)
-                        {
-                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
-                            sent += lineSendCount;
-                        }
-                        else
-                        {
-                            skipped++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        failed++;
-                        _logger.LogError(
-                            ex,
-                            "Failed to send meeting cancelled LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
-                            meeting.Id,
-                            recipient.AttendeeId,
-                            recipient.EmpId);
-                    }
-                }
-            }
-
             if (!_telegramMessagingService.IsConfigured
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCancel, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
@@ -788,146 +538,6 @@ namespace ProjectTracking.Services
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.EmpId);
-                }
-            }
-
-            return new MeetingNotificationResult(sent, skipped, failed);
-        }
-
-        public async Task<MeetingNotificationResult> SendLineRemindersAsync(
-            CancellationToken cancellationToken = default)
-        {
-            if (!_lineMessagingService.IsConfigured)
-            {
-                _logger.LogDebug("Meeting LINE reminder skipped because LINE is not configured.");
-                return new MeetingNotificationResult(0, 0, 0);
-            }
-
-            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsReminder, cancellationToken))
-            {
-                _logger.LogInformation("Meeting LINE reminder skipped because it is disabled in Line Notification settings.");
-                return new MeetingNotificationResult(0, 0, 0);
-            }
-
-            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsAuto, cancellationToken))
-            {
-                _logger.LogInformation("Meeting LINE reminder skipped because LINE meeting auto send is disabled.");
-                return new MeetingNotificationResult(0, 0, 0);
-            }
-
-            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            await EnsureNotificationTableAsync(db, cancellationToken);
-
-            var today = GetBangkokToday();
-            var sent = 0;
-            var skipped = 0;
-            var failed = 0;
-
-            foreach (var daysBefore in LineReminderDays)
-            {
-                var reminderDate = today.AddDays(daysBefore);
-                var meetings = await LoadMeetingsByDateAsync(db, reminderDate, cancellationToken);
-
-                foreach (var meeting in meetings)
-                {
-                    var recipients = await LoadMeetingRecipientsAsync(db, meeting.Id, cancellationToken);
-                    if (recipients.Count == 0)
-                        continue;
-
-                    var kind = LineReminderKind(daysBefore);
-                    var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
-                    foreach (var recipient in recipients)
-                    {
-                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
-                        {
-                            skipped++;
-                            continue;
-                        }
-
-                        var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
-                            recipient.EmpId,
-                            cancellationToken);
-                        if (lineUserIds.Count == 0)
-                        {
-                            skipped++;
-                            continue;
-                        }
-
-                        var unsentLineUserIds = lineUserIds
-                            .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
-                            .ToList();
-
-                        if (unsentLineUserIds.Count == 0)
-                        {
-                            skipped++;
-                            continue;
-                        }
-
-                        var detailPath = $"/Meetings/Show/{meeting.Id}";
-                        var calendarPath = $"/Meetings/Calendar/{meeting.Id}";
-                        var detailUrlForLog = ToAbsoluteUrl(detailPath);
-                        var detailUrl = detailUrlForLog ?? detailPath;
-                        var calendarUrl = ToAbsoluteUrl(calendarPath) ?? calendarPath;
-                        var title = BuildTelegramTitle(daysBefore, meeting.Title);
-                        var message = BuildTelegramMessage(meeting, daysBefore, detailUrl, calendarUrl);
-
-                        if (await HasNotificationSendLogTodayAsync(
-                            db,
-                            "LINE",
-                            recipient.EmpId,
-                            title,
-                            message,
-                            detailUrlForLog,
-                            today,
-                            cancellationToken))
-                        {
-                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
-                            skipped++;
-                            _logger.LogInformation(
-                                "Meeting LINE reminder skipped because NotificationSendLogs already has a successful send today. MeetingId={MeetingId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
-                                meeting.Id,
-                                recipient.EmpId,
-                                daysBefore);
-                            continue;
-                        }
-
-                        try
-                        {
-                            var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
-                                unsentLineUserIds,
-                                title,
-                                message,
-                                detailUrl,
-                                cancellationToken,
-                                recipient.EmpId);
-
-                            if (lineSendCount > 0)
-                            {
-                                await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
-                                sent += lineSendCount;
-                            }
-                            else
-                            {
-                                skipped++;
-                                _logger.LogDebug(
-                                    "Meeting LINE reminder skipped because recipient has no active LINE binding. MeetingId={MeetingId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
-                                    meeting.Id,
-                                    recipient.EmpId,
-                                    daysBefore);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            failed++;
-                            _logger.LogError(
-                                ex,
-                                "Failed to send meeting LINE reminder. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
-                                meeting.Id,
-                                recipient.AttendeeId,
-                                recipient.EmpId,
-                                daysBefore);
-                        }
-                    }
                 }
             }
 
@@ -1162,13 +772,11 @@ VALUES(@mid, @aid, @kind, NOW());";
 
         private static string BuildNotificationBreakdown(
             MeetingNotificationResult emailResult,
-            MeetingNotificationResult lineResult,
             MeetingNotificationResult telegramResult)
         {
             var parts = new[]
             {
                 FormatNotificationBreakdown("Email", emailResult),
-                FormatNotificationBreakdown("LINE", lineResult),
                 FormatNotificationBreakdown("Telegram", telegramResult)
             };
 
@@ -1268,18 +876,6 @@ VALUES(@mid, @aid, @kind, NOW());";
             value = value.Trim();
             return value.Length <= maxLength ? value : value[..maxLength];
         }
-
-        private static Task<bool> HasActiveLineRecipientAsync(
-            AppDbContext db,
-            int empId,
-            CancellationToken cancellationToken)
-            => db.LineRecipients
-                .AsNoTracking()
-                .AnyAsync(x => x.IsActive
-                    && x.EmpId == empId
-                    && x.LineUserId != null
-                    && x.LineUserId != "",
-                    cancellationToken);
 
         private static Task<bool> HasActiveTelegramRecipientAsync(
             AppDbContext db,
@@ -1694,9 +1290,6 @@ WHERE DATE(m.meeting_date) = @meetingDate
             }
         }
 
-        private static string LineReminderKind(int daysBefore)
-            => $"line_reminder_{daysBefore}d";
-
         private static string TelegramReminderKind(int daysBefore)
             => $"telegram_reminder_{daysBefore}d";
 
@@ -1830,5 +1423,5 @@ WHERE DATE(m.meeting_date) = @meetingDate
     }
 
     public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount, string Detail = "");
-    public sealed record MeetingAttendeeNotificationStatus(bool EmailSent, bool LineSent, bool TelegramSent);
+    public sealed record MeetingAttendeeNotificationStatus(bool EmailSent, bool TelegramSent);
 }

@@ -29,24 +29,23 @@ static class IndependentChannelChecks
                 p.ParameterType==typeof(bool)?false:p.Name=="title"?title:p.Name=="targetUrl"?"/":"test").ToArray();
             await (Task)method.Invoke(controller,values)!;
             if(!await db.WebNotifications.AnyAsync(n=>n.UserId==1 && n.Title==title))
-                throw new Exception(type.Name+" failed web delivery with both chat channels disabled");
+                throw new Exception(type.Name+" failed web delivery with Telegram disabled");
         }
-        Console.WriteLine("PASS all six controller dispatchers insert owned inbox with LINE/Telegram disabled and no chat services");
+        Console.WriteLine("PASS all six controller dispatchers insert owned inbox with Telegram disabled and no chat services");
         var before=await db.WebNotifications.CountAsync();
         await telegram.SendNotificationToEmployeeAsync(10,"Telegram transport only","test","/");
         await telegram.SendNotificationToChatIdsAsync([],"Telegram chat only","test","/",empIdForLog:10);
         if(await db.WebNotifications.CountAsync()!=before)throw new Exception("Telegram transport still writes web notifications");
         Console.WriteLine("PASS employee and direct-chat Telegram transports never mirror inbox");
 
-        var line=new LineMessagingService(new HttpClient(),factory,config,NullLogger<LineMessagingService>.Instance);
-        var field=new FieldServiceNotificationService(factory,null!,line,null!,web,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
+        var field=new FieldServiceNotificationService(factory,null!,web,telegram,null!,config,NullLogger<FieldServiceNotificationService>.Instance);
         await field.SendCreatedNotificationsAsync(50);
         if(!await db.WebNotifications.AnyAsync(n=>n.UserId==1 && n.Title.StartsWith("มอบหมายงานเข้าไซต์:")))
             throw new Exception("FieldService event blocked by unavailable external channels");
         var reminders=await field.SendWebRemindersAsync();
         if(reminders.SentCount==0)throw new Exception("Independent site-visit reminder failed");
         if((await field.SendWebRemindersAsync()).SentCount!=0)throw new Exception("Site-visit web reminder daily dedup failed");
-        var meetings=new MeetingNotificationService(factory,null!,null!,null!,telegram,null!,config,NullLogger<MeetingNotificationService>.Instance,web);
+        var meetings=new MeetingNotificationService(factory,null!,telegram,null!,config,NullLogger<MeetingNotificationService>.Instance,web);
         if((await meetings.SendWebRemindersAsync()).SentCount==0)throw new Exception("Independent meeting reminder failed");
         if((await meetings.SendWebRemindersAsync()).SentCount!=0)throw new Exception("Meeting web reminder daily dedup failed");
         foreach(var operation in new[]{"SendUpdatedNotificationsAsync","SendCancelledNotificationsAsync"})
@@ -58,7 +57,7 @@ static class IndependentChannelChecks
         if(!await db.WebNotifications.AnyAsync(n=>n.UserId==1 && n.Title.StartsWith("อัปเดตประชุม:")) ||
            !await db.WebNotifications.AnyAsync(n=>n.UserId==1 && n.Title.StartsWith("ยกเลิกประชุม:")))
             throw new Exception("Meeting update/cancel web events blocked by external channel SQL");
-        var overdue=new OverdueNotificationService(factory,line,null!,web,telegram,null!,config,NullLogger<OverdueNotificationService>.Instance);
+        var overdue=new OverdueNotificationService(factory,web,telegram,null!,config,NullLogger<OverdueNotificationService>.Instance);
         var payloadType=typeof(OverdueNotificationService).GetNestedType("TelegramNotificationPayload",BindingFlags.NonPublic)!;
         var queue=Array.CreateInstance(payloadType,1);
         queue.SetValue(Activator.CreateInstance(payloadType,[10,"งานเกินกำหนดอิสระ","รายละเอียด","/PhaseAssigns/Index"]),0);

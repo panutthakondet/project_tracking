@@ -32,7 +32,7 @@ static class MeetingMultiRecipientChecks
             ProtectedSubscription=corrupt?"invalid-protected-subscription":web.Protector.Protect(JsonSerializer.Serialize(new{endpoint="https://fcm.googleapis.com/fcm/send/"+suffix,keys=new{p256dh=keys.PublicKey,auth=Convert.ToBase64String(new byte[16]).TrimEnd('=').Replace('+','-').Replace('/','_')}}))};
         var bad=Device(100,"multi-bad",true);var good=Device(100,"multi-good");var other=Device(101,"multi-other");
         db.WebPushSubscriptions.AddRange(bad,good,other,Device(104,"multi-outsider"));await db.SaveChangesAsync();
-        var coordinator=new MeetingNotificationService(factory,null!,null!,null!,telegram,null!,new ConfigurationBuilder().Build(),NullLogger<MeetingNotificationService>.Instance,web);
+        var coordinator=new MeetingNotificationService(factory,null!,telegram,null!,new ConfigurationBuilder().Build(),NullLogger<MeetingNotificationService>.Instance,web);
         await coordinator.SendCreatedNotificationsAsync(100);
         var notifications=await db.WebNotifications.AsNoTracking().Where(n=>n.TargetUrl=="/Meetings/Show/100").ToListAsync();
         if(!notifications.Select(n=>n.UserId).Order().SequenceEqual(new[]{100,101,103}))throw new Exception("Meeting multi-attendee fanout missing recipient, duplicated attendee or included inactive/unselected account");

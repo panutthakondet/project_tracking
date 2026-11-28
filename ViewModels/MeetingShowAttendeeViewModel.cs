@@ -7,7 +7,6 @@ namespace ProjectTracking.ViewModels
         public string? EmpName { get; set; }
         public string? Position { get; set; }
         public bool EmailSent { get; set; }
-        public bool LineSent { get; set; }
         public bool TelegramSent { get; set; }
     }
 }

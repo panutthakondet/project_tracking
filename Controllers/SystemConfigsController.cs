@@ -27,7 +27,8 @@ namespace ProjectTracking.Controllers
             var model = new SystemConfigPageViewModel
             {
                 Items = configs
-                    .Where(x => !string.IsNullOrWhiteSpace(x.ConfigKey))
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ConfigKey)
+                        && !x.ConfigKey.Trim().StartsWith("LINE_NOTIFICATION_", StringComparison.OrdinalIgnoreCase))
                     .Select(x => new SystemConfigItemViewModel
                     {
                         ConfigKey = x.ConfigKey!.Trim(),
@@ -710,8 +711,6 @@ namespace ProjectTracking.Controllers
         {
             key = (key ?? "").Trim().ToUpperInvariant();
 
-            if (key.StartsWith("LINE_NOTIFICATION_", StringComparison.Ordinal))
-                return "การแจ้งเตือน LINE";
             if (key.StartsWith("TELEGRAM_NOTIFICATION_", StringComparison.Ordinal))
                 return "การแจ้งเตือน Telegram";
             if (key.StartsWith("MEETING_NOTIFICATION_", StringComparison.Ordinal))
@@ -731,7 +730,6 @@ namespace ProjectTracking.Controllers
             {
                 "แจ้งเตือนประชุมอัตโนมัติ" => 10,
                 "แจ้งเตือนงานล่าช้าอัตโนมัติ" => 20,
-                "การแจ้งเตือน LINE" => 30,
                 "การแจ้งเตือน Telegram" => 40,
                 "การลงเวลา" => 50,
                 "ค่าระบบทั่วไป" => 90,

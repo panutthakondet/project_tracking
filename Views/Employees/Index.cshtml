@@ -25,7 +25,6 @@
         return ProjectTracking.Services.ProfileImagePathResolver.Normalize(path);
     }
 
-    var lineLinkedEmpIds = ViewBag.LineLinkedEmpIds as ISet<int> ?? new HashSet<int>();
     var telegramLinkedEmpIds = ViewBag.TelegramLinkedEmpIds as ISet<int> ?? new HashSet<int>();
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
         ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
@@ -33,11 +32,6 @@
     var employeeOptions = ViewBag.EmployeeOptions as IEnumerable<ProjectTracking.Models.Employee>
         ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
     var selectedEmployeeId = ViewBag.SelectedEmployeeId as int?;
-
-    bool HasLineLink(ProjectTracking.Models.Employee emp)
-    {
-        return lineLinkedEmpIds.Contains(emp.EmpId);
-    }
 
     bool HasTelegramLink(ProjectTracking.Models.Employee emp)
     {
@@ -119,7 +113,7 @@
                 <th>Department</th>
                 <th>Email</th>
                 <th width="120">Status</th>
-                <th width="190">LINE / Telegram</th>
+                <th width="190">Telegram</th>
                 <th width="180">Action</th>
             </tr>
         </thead>
@@ -189,9 +183,6 @@
 
                     <td class="text-center">
                         <div class="employee-link-status-list">
-                            <span class="employee-line-badge @(HasLineLink(emp) ? "is-linked" : "is-missing")">
-                                LINE: @(HasLineLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
-                            </span>
                             <span class="employee-line-badge @(HasTelegramLink(emp) ? "is-linked" : "is-missing")">
                                 Telegram: @(HasTelegramLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
                             </span>
@@ -289,10 +280,6 @@
                         </div>
 
                         <div class="employee-line-inline">
-                            <span class="employee-line-label">LINE</span>
-                            <span class="employee-line-text @(HasLineLink(emp) ? "is-linked" : "is-missing")">
-                                @(HasLineLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
-                            </span>
                         </div>
 
                         <div class="employee-line-inline">

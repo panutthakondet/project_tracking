@@ -189,8 +189,6 @@ builder.Services.Configure<EmailSettings>(options =>
 });
 
 builder.Services.AddScoped<EmailService>();
-builder.Services.AddHttpClient<LineMessagingService>();
-builder.Services.AddScoped<LineNotificationSettingsService>();
 builder.Services.AddScoped<WebNotificationService>();
 builder.Services.AddHttpClient("WebPush", client => client.Timeout = TimeSpan.FromSeconds(10))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
@@ -266,7 +264,6 @@ await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
 await ProjectTracking.Services.Security.SecuritySchema.EnsureAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
-await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);
 await EnsureWeeklyReportTablesAsync(app.Services);
 await EnsureRequirementBoardTablesAsync(app.Services);
@@ -1978,49 +1975,6 @@ static async Task EnsureEmployeeDocumentTypeTableAsync(IServiceProvider services
                   AND TRIM(`document_type`) <> '';";
             await command.ExecuteNonQueryAsync();
         }
-    }
-    finally
-    {
-        if (shouldClose)
-            await connection.CloseAsync();
-    }
-}
-
-static async Task EnsureLineRecipientTableAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var connection = db.Database.GetDbConnection();
-    var shouldClose = connection.State != System.Data.ConnectionState.Open;
-
-    if (shouldClose)
-        await connection.OpenAsync();
-
-    try
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = @"
-            CREATE TABLE IF NOT EXISTS `line_recipients` (
-              `line_recipient_id` int(11) NOT NULL AUTO_INCREMENT,
-              `user_id` int(11) DEFAULT NULL,
-              `emp_id` int(11) DEFAULT NULL,
-              `recipient_type` varchar(20) NOT NULL DEFAULT 'USER',
-              `line_user_id` varchar(100) DEFAULT NULL,
-              `line_group_id` varchar(100) DEFAULT NULL,
-              `line_display_name` varchar(255) DEFAULT NULL,
-              `is_active` tinyint(1) NOT NULL DEFAULT 1,
-              `last_followed_at` datetime DEFAULT NULL,
-              `last_webhook_at` datetime DEFAULT NULL,
-              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-              PRIMARY KEY (`line_recipient_id`),
-              UNIQUE KEY `uq_line_recipients_user_id` (`line_user_id`),
-              UNIQUE KEY `uq_line_recipients_group_id` (`line_group_id`),
-              KEY `idx_line_recipients_user` (`user_id`,`is_active`),
-              KEY `idx_line_recipients_emp` (`emp_id`,`is_active`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
-
-        await command.ExecuteNonQueryAsync();
     }
     finally
     {

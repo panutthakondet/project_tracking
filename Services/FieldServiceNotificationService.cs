@@ -12,8 +12,6 @@ public sealed class FieldServiceNotificationService
 
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly EmailService _emailService;
-    private readonly LineMessagingService _lineMessagingService;
-    private readonly LineNotificationSettingsService _lineSettings;
     private readonly WebNotificationService _webNotifications;
     private readonly TelegramMessagingService _telegramMessagingService;
     private readonly TelegramNotificationSettingsService _telegramSettings;
@@ -23,8 +21,6 @@ public sealed class FieldServiceNotificationService
     public FieldServiceNotificationService(
         IDbContextFactory<AppDbContext> dbFactory,
         EmailService emailService,
-        LineMessagingService lineMessagingService,
-        LineNotificationSettingsService lineSettings,
         WebNotificationService webNotifications,
         TelegramMessagingService telegramMessagingService,
         TelegramNotificationSettingsService telegramSettings,
@@ -33,8 +29,6 @@ public sealed class FieldServiceNotificationService
     {
         _dbFactory = dbFactory;
         _emailService = emailService;
-        _lineMessagingService = lineMessagingService;
-        _lineSettings = lineSettings;
         _webNotifications = webNotifications;
         _telegramMessagingService = telegramMessagingService;
         _telegramSettings = telegramSettings;
@@ -58,10 +52,6 @@ public sealed class FieldServiceNotificationService
         int visitId,
         CancellationToken cancellationToken = default)
         => SendChangeNotificationsAsync(visitId, FieldServiceNotificationKind.Cancelled, cancellationToken);
-
-    public Task<FieldServiceNotificationResult> SendLineRemindersAsync(
-        CancellationToken cancellationToken = default)
-        => SendRemindersAsync("LINE", cancellationToken);
 
     public Task<FieldServiceNotificationResult> SendTelegramRemindersAsync(
         CancellationToken cancellationToken = default)
@@ -122,32 +112,6 @@ public sealed class FieldServiceNotificationService
             }
         }
 
-        var lineFeature = kind switch
-        {
-            FieldServiceNotificationKind.Created => LineNotificationFeatures.FieldServiceCreate,
-            FieldServiceNotificationKind.Cancelled => LineNotificationFeatures.FieldServiceCancel,
-            _ => LineNotificationFeatures.FieldServiceUpdate
-        };
-        if (_lineMessagingService.IsConfigured && await _lineSettings.IsEnabledAsync(lineFeature, cancellationToken))
-        {
-            foreach (var recipient in visit.Recipients)
-            {
-                try
-                {
-                    var count = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId, title, message, targetUrl, cancellationToken);
-                    if (count > 0) sent += count; else skipped++;
-                }
-                catch (Exception ex)
-                {
-                    failed++;
-                    _logger.LogError(ex,
-                        "Failed to send Field Service LINE. VisitId={VisitId}, EmpId={EmpId}, Kind={Kind}",
-                        visit.Id, recipient.EmpId, kind);
-                }
-            }
-        }
-
         var telegramFeature = kind switch
         {
             FieldServiceNotificationKind.Created => TelegramNotificationFeatures.FieldServiceCreate,
@@ -184,16 +148,12 @@ public sealed class FieldServiceNotificationService
         string channel,
         CancellationToken cancellationToken)
     {
-        var isLine = channel == "LINE";
         var isWeb = channel == "WEB";
-        var configured = isWeb || (isLine ? _lineMessagingService.IsConfigured : _telegramMessagingService.IsConfigured);
+        var configured = isWeb || _telegramMessagingService.IsConfigured;
         if (!configured)
             return new FieldServiceNotificationResult(0, 0, 0);
 
-        var featureEnabled = isWeb || (isLine
-            ? await _lineSettings.IsEnabledAsync(LineNotificationFeatures.FieldServiceReminder, cancellationToken)
-              && await _lineSettings.IsEnabledAsync(LineNotificationFeatures.FieldServiceAuto, cancellationToken)
-            : await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceReminder, cancellationToken)
+        var featureEnabled = isWeb || (await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceReminder, cancellationToken)
               && await _telegramSettings.IsEnabledAsync(TelegramNotificationFeatures.FieldServiceAuto, cancellationToken));
         if (!featureEnabled)
             return new FieldServiceNotificationResult(0, 0, 0);
@@ -229,9 +189,6 @@ public sealed class FieldServiceNotificationService
                     {
                         var count = isWeb
                             ? await _webNotifications.NotifyEmployeeSafelyAsync(recipient.EmpId, title, message, targetUrl, cancellationToken, deduplicateDaily: true)
-                            : isLine
-                            ? await _lineMessagingService.SendNotificationToEmployeeAsync(
-                                recipient.EmpId, title, message, targetUrl, cancellationToken)
                             : await _telegramMessagingService.SendNotificationToEmployeeAsync(
                                 recipient.EmpId, title, message, targetUrl, cancellationToken);
                         if (count > 0) sent += count; else skipped++;

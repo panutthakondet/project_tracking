@@ -470,16 +470,16 @@
         <article class="kpi ready">
             <span>Ready</span>
             <strong>@Model.ReadyCount</strong>
-            <small>มีบัญชีรับแจ้งเตือนหรือผูก LINE/Telegram</small>
+            <small>มีบัญชีรับแจ้งเตือนหรือผูก Telegram</small>
         </article>
         <article class="kpi missing">
             <span>Missing Channel</span>
-            <strong>@Model.MissingLineCount</strong>
+            <strong>@Model.MissingRecipientCount</strong>
             <small>ยังส่งไม่ได้</small>
         </article>
         <article class="kpi sent">
             <span>Sent</span>
-            <strong>@Model.TotalLineSendCount</strong>
+            <strong>@Model.TotalNotificationSendCount</strong>
             <small>@Model.SentItemCount รายการเคยส่งแล้ว</small>
         </article>
     </section>
@@ -587,11 +587,11 @@
                                                 <div class="line-overdue-meta">
                                                     <span class="line-overdue-chip @SeverityClass(item.Severity)">@SeverityText(item.Severity)</span>
                                                     <span class="line-overdue-chip @SeverityClass(item.Severity)">@item.StateText</span>
-                                                    <span class="line-overdue-chip @(item.HasMissingLineRecipient ? "missing" : "ready")">
-                                                        @item.LineLinkText
+                                                    <span class="line-overdue-chip @(item.HasMissingNotificationRecipient ? "missing" : "ready")">
+                                                        @item.RecipientLinkText
                                                     </span>
                                                     <span class="line-overdue-chip">@item.RecipientRole</span>
-                                                    <span class="line-overdue-chip">ส่งแล้ว @item.LineSendCount ครั้ง</span>
+                                                    <span class="line-overdue-chip">ส่งแล้ว @item.NotificationSendCount ครั้ง</span>
                                                 </div>
                                                 <div class="line-overdue-people">
                                                     <span class="line-overdue-person">
@@ -608,7 +608,7 @@
                                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                                         <span>BA: @item.BaName</span>
                                                     </span>
-                                                    <span>ส่งล่าสุด: @FormatDateTime(item.LastLineSentAt)</span>
+                                                    <span>ส่งล่าสุด: @FormatDateTime(item.LastNotificationSentAt)</span>
                                                 </div>
                                             </div>
                                             <div class="line-overdue-card-side">

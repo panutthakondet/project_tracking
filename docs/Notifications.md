@@ -4,7 +4,7 @@ The bell in the mobile header and desktop profile shows the signed-in account's 
 
 ## Event coverage
 
-Web inbox/push is an independent channel. Telegram and LINE switches, bot tokens, chat bindings, send logs and transport failures do not gate web events. TelegramMessagingService only sends Telegram and never writes the web inbox. Recipient employee IDs are resolved to ACTIVE `login_user` accounts through `emp_id`; users do not need a Telegram chat or bot token to receive inbox notifications. Telegram bot diagnostics, raw chat messages/webhook replies, and existing legacy `Notifications`/OpenWork routes remain unchanged.
+Web inbox/push is an independent channel. Telegram switches, bot tokens, chat bindings, send logs and transport failures do not gate web events. TelegramMessagingService only sends Telegram and never writes the web inbox. Recipient employee IDs are resolved to ACTIVE `login_user` accounts through `emp_id`; users do not need a Telegram chat or bot token to receive inbox notifications. Telegram bot diagnostics, raw chat messages/webhook replies, and existing legacy `Notifications`/OpenWork routes remain unchanged.
 
 | Existing source | Events mirrored to inbox and opted-in devices |
 | --- | --- |
@@ -62,7 +62,7 @@ FieldService now resolves display positions from `employee_positions` by ID rath
 
 Recipient account lookup supports both `login_users.EmpId` and the employee-side `Employee.LoginUserId` link when the login account has no EmpId. An explicitly different login EmpId takes precedence to prevent cross-employee delivery. This shared lookup applies to Meetings, Assigns, Issues/BA results, Support/SupportDev, Followups, FieldService and overdue events. Regression checks cover the representative payloads for each family with employee-side links and inactive-account exclusion; this is not a live production send test.
 
-Independent channel regression checks invoke all six controller dispatch helpers with LINE/Telegram disabled, the actual meeting-created coordinator with unavailable external channels, FieldService change events, and separate meeting/site web reminder methods. The scheduled reminder worker runs both web jobs separately before external reminder jobs. Manual overdue selection includes ACTIVE web recipients without chat bindings. No production messages are sent by these tests.
+Independent channel regression checks invoke all six controller dispatch helpers with Telegram disabled, the actual meeting-created coordinator with unavailable external channels, FieldService change events, and separate meeting/site web reminder methods. The scheduled reminder worker runs both web jobs separately before external reminder jobs. Manual overdue selection includes ACTIVE web recipients without chat bindings. No production messages are sent by these tests.
 
 Push dispatcher diagnostics include the failed stage (`DecryptSubscription`, `ReadVapidKey`, `EncryptAndSend`), exception type and provider HTTP status. Cryptographic errors also include the error message to identify a missing key; subscription endpoints, subscription JSON, auth secrets and private keys are not logged. When a local development instance points at production storage without sharing its Data Protection ring, set `WEB_PUSH_DISPATCH_ENABLED=false` on that instance (or stop it); leave the production dispatcher enabled. This stops local delivery processing, but a separate development database is still required to isolate subscription/key writes.
 

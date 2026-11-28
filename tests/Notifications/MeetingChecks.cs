@@ -51,7 +51,7 @@ static class MeetingChecks
         await db.LoginUsers.Where(u=>u.UserId==5).ExecuteUpdateAsync(s=>s.SetProperty(u=>u.EmpId,20));
         await notifications.NotifyEmployeeSafelyAsync(30,"ต้องไม่ส่งข้ามพนักงาน","test","/Meetings/Show/70");
         if(await db.WebNotifications.AnyAsync(n=>n.UserId==5 && n.Title=="ต้องไม่ส่งข้ามพนักงาน"))throw new Exception("Conflicting employee link received another employee notification");
-        var creator = new MeetingNotificationService(factory,null!,null!,null!,telegram,null!,
+        var creator = new MeetingNotificationService(factory,null!,telegram,null!,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<MeetingNotificationService>.Instance,notifications);
         var created = await creator.SendCreatedNotificationsAsync(70);

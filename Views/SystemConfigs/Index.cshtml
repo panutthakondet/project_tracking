@@ -22,7 +22,6 @@
         {
             "แจ้งเตือนประชุมอัตโนมัติ" => "กำหนดเวลาส่งแจ้งเตือนการประชุมอัตโนมัติ",
             "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "กำหนดเวลาส่งและจำนวนวันที่ใช้ตรวจงานล่าช้าหรือเสี่ยงล่าช้า",
-            "การแจ้งเตือน LINE" => "เปิดหรือปิดการส่ง LINE แยกตามเหตุการณ์",
             "การแจ้งเตือน Telegram" => "เปิดหรือปิดการส่ง Telegram แยกตามเหตุการณ์",
             "การลงเวลา" => "กำหนดเงื่อนไขและค่ากลางสำหรับการลงเวลา",
             _ => "ค่ากลางอื่นของระบบ"
@@ -35,7 +34,6 @@
         {
             "แจ้งเตือนประชุมอัตโนมัติ" => "/images/menu-icons/meetings.svg",
             "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "/images/menu-icons/issues.svg",
-            "การแจ้งเตือน LINE" => "/images/menu-icons/followups.svg",
             "การแจ้งเตือน Telegram" => "/images/menu-icons/reports.svg",
             "การลงเวลา" => "/images/menu-icons/attendance.svg",
             _ => "/images/menu-icons/settings.svg"
@@ -85,10 +83,6 @@
     string ConfigDisplayName(string key)
     {
         var normalized = (key ?? "").Trim().ToUpperInvariant();
-        var lineEvent = NotificationEventFromKey(normalized, "LINE_NOTIFICATION_");
-        if (lineEvent.Length > 0)
-            return $"LINE · {NotificationEventLabel(lineEvent)}";
-
         var telegramEvent = NotificationEventFromKey(normalized, "TELEGRAM_NOTIFICATION_");
         if (telegramEvent.Length > 0)
             return $"Telegram · {NotificationEventLabel(telegramEvent)}";
@@ -114,10 +108,6 @@
     string ConfigDisplayDescription(string key, string currentDescription)
     {
         var normalized = (key ?? "").Trim().ToUpperInvariant();
-        var lineEvent = NotificationEventFromKey(normalized, "LINE_NOTIFICATION_");
-        if (lineEvent.Length > 0)
-            return $"กำหนดการส่ง LINE: {NotificationEventLabel(lineEvent)}";
-
         var telegramEvent = NotificationEventFromKey(normalized, "TELEGRAM_NOTIFICATION_");
         if (telegramEvent.Length > 0)
             return $"กำหนดการส่ง Telegram: {NotificationEventLabel(telegramEvent)}";
@@ -467,12 +457,6 @@
         --group-ring: rgba(220, 38, 38, .14);
     }
 
-    .system-config-group.theme-line {
-        --group-color: #16a34a;
-        --group-soft: #f0fdf4;
-        --group-border: #bbf7d0;
-        --group-ring: rgba(22, 163, 74, .14);
-    }
 
     .system-config-group.theme-telegram {
         --group-color: #0284c7;
@@ -1065,7 +1049,6 @@
                             {
                                 "แจ้งเตือนประชุมอัตโนมัติ" => "theme-meeting",
                                 "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "theme-overdue",
-                                "การแจ้งเตือน LINE" => "theme-line",
                                 "การแจ้งเตือน Telegram" => "theme-telegram",
                                 "การลงเวลา" => "theme-attendance",
                                 _ => "theme-system"

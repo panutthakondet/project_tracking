@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace ProjectTracking.Services
 {
-    // Sends meeting reminders to LINE and Telegram 3, 2, 1, and 0 days before the meeting.
+    // Sends meeting reminders to Web and Telegram 3, 2, 1, and 0 days before the meeting.
     // Email is sent once immediately when a meeting is created, not by this background service.
     public class MeetingReminderBackgroundService : BackgroundService
     {
@@ -143,14 +143,12 @@ namespace ProjectTracking.Services
                 var fieldService = scope.ServiceProvider.GetRequiredService<FieldServiceNotificationService>();
                 try { await fieldService.SendWebRemindersAsync(cancellationToken); }
                 catch (Exception ex) { _logger.LogError(ex, "Field Service Web reminder failed"); }
-                var lineResult = await SendLineRemindersSafelyAsync(service, cancellationToken);
                 var telegramResult = await SendTelegramRemindersSafelyAsync(service, cancellationToken);
-                var fieldLineResult = await SendFieldServiceLineRemindersSafelyAsync(fieldService, cancellationToken);
                 var fieldTelegramResult = await SendFieldServiceTelegramRemindersSafelyAsync(fieldService, cancellationToken);
                 var result = new MeetingNotificationResult(
-                    lineResult.SentCount + telegramResult.SentCount + fieldLineResult.SentCount + fieldTelegramResult.SentCount,
-                    lineResult.SkippedCount + telegramResult.SkippedCount + fieldLineResult.SkippedCount + fieldTelegramResult.SkippedCount,
-                    lineResult.FailedCount + telegramResult.FailedCount + fieldLineResult.FailedCount + fieldTelegramResult.FailedCount);
+                    telegramResult.SentCount + fieldTelegramResult.SentCount,
+                    telegramResult.SkippedCount + fieldTelegramResult.SkippedCount,
+                    telegramResult.FailedCount + fieldTelegramResult.FailedCount);
 
                 if (result.SentCount > 0 || result.FailedCount > 0)
                 {
@@ -171,21 +169,6 @@ namespace ProjectTracking.Services
             }
         }
 
-        private async Task<MeetingNotificationResult> SendLineRemindersSafelyAsync(
-            MeetingNotificationService service,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                return await service.SendLineRemindersAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Meeting LINE reminder failed");
-                return new MeetingNotificationResult(0, 0, 1, ex.Message);
-            }
-        }
-
         private async Task<MeetingNotificationResult> SendTelegramRemindersSafelyAsync(
             MeetingNotificationService service,
             CancellationToken cancellationToken)
@@ -198,21 +181,6 @@ namespace ProjectTracking.Services
             {
                 _logger.LogError(ex, "Meeting Telegram reminder failed");
                 return new MeetingNotificationResult(0, 0, 1, ex.Message);
-            }
-        }
-
-        private async Task<FieldServiceNotificationResult> SendFieldServiceLineRemindersSafelyAsync(
-            FieldServiceNotificationService service,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                return await service.SendLineRemindersAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Field Service LINE reminder failed");
-                return new FieldServiceNotificationResult(0, 0, 1, ex.Message);
             }
         }
 

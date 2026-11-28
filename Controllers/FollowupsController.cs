@@ -12,8 +12,6 @@ namespace ProjectTracking.Controllers
     public class FollowupsController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly LineMessagingService _lineMessagingService;
-        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly WebNotificationService _webNotifications;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
@@ -23,16 +21,12 @@ namespace ProjectTracking.Controllers
 
         public FollowupsController(
             AppDbContext context,
-            LineMessagingService lineMessagingService,
-            LineNotificationSettingsService lineNotificationSettings,
             WebNotificationService webNotifications,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<FollowupsController> logger)
         {
             _context = context;
-            _lineMessagingService = lineMessagingService;
-            _lineNotificationSettings = lineNotificationSettings;
             _webNotifications = webNotifications;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
@@ -706,7 +700,6 @@ namespace ProjectTracking.Controllers
             await SendFollowupNotificationSafelyAsync(
                 followupId,
                 recipientSelector: followup => followup.OwnerEmpId,
-                lineFeature: LineNotificationFeatures.FollowupsCreate,
                 telegramFeature: TelegramNotificationFeatures.FollowupsCreate,
                 title: "แจ้ง Follow-up ใหม่:",
                 eventText: "สร้าง Follow-up ใหม่",
@@ -721,7 +714,6 @@ namespace ProjectTracking.Controllers
             await SendFollowupNotificationSafelyAsync(
                 followupId,
                 recipientSelector: followup => followup.OwnerEmpId,
-                lineFeature: LineNotificationFeatures.FollowupsAck,
                 telegramFeature: TelegramNotificationFeatures.FollowupsAck,
                 title: "แจ้ง Follow-up รับทราบแล้ว:",
                 eventText: "ผู้สั่งงานรับทราบงานติดตามแล้ว",
@@ -741,7 +733,6 @@ namespace ProjectTracking.Controllers
             await SendFollowupNotificationSafelyAsync(
                 followupId,
                 recipientSelector: followup => followup.CreatedByEmpId,
-                lineFeature: LineNotificationFeatures.FollowupsOwnerUpdate,
                 telegramFeature: TelegramNotificationFeatures.FollowupsOwnerUpdate,
                 title: title,
                 eventText: contactType == "Done" ? "Owner ปิดงาน Done แล้ว" : "Owner บันทึก Log แล้ว",
@@ -754,7 +745,6 @@ namespace ProjectTracking.Controllers
         private async Task SendFollowupNotificationSafelyAsync(
             int followupId,
             Func<ProjectFollowup, int?> recipientSelector,
-            string lineFeature,
             string telegramFeature,
             string title,
             string eventText,
@@ -763,8 +753,6 @@ namespace ProjectTracking.Controllers
             DateTime? nextFollowupDate,
             string logMessage)
         {
-            var sendLine = await NotificationChannelAvailability.CheckAsync(async () => _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(lineFeature, HttpContext.RequestAborted), _logger);
             var sendTelegram = await NotificationChannelAvailability.CheckAsync(async () => _telegramMessagingService.IsConfigured
                 && await _telegramNotificationSettings.IsEnabledAsync(telegramFeature, HttpContext.RequestAborted), _logger);
 
@@ -798,7 +786,6 @@ namespace ProjectTracking.Controllers
                     title,
                     message,
                     targetUrl,
-                    sendLine,
                     sendTelegram,
                     "follow-up",
                     followup.FollowupId);
@@ -814,29 +801,11 @@ namespace ProjectTracking.Controllers
             string title,
             string message,
             string targetUrl,
-            bool sendLine,
             bool sendTelegram,
             string context,
             int sourceId)
         {
             await _webNotifications.NotifyEmployeeSafelyAsync(empId, title, message, targetUrl, HttpContext.RequestAborted);
-
-            if (sendLine)
-            {
-                try
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        empId,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "LINE notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
-                }
-            }
 
             if (sendTelegram)
             {
