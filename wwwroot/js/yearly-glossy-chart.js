@@ -12,9 +12,6 @@
             const rows=[...root.querySelectorAll('.bar-group[data-month]')].map(e=>({month:e.dataset.month,counts:[Number(e.dataset.completed)||0,Number(e.dataset.progress)||0],heights:[Number(e.dataset.completedHeight)||0,Number(e.dataset.progressHeight)||0]}));
             const svg=node('svg',{viewBox:`0 0 ${width} ${height}`,class:'yearly-glossy-svg',role:'group','aria-label':'ความคืบหน้าของงานรายเดือน Completed และ In Progress'}),defs=node('defs');svg.append(defs);
             const palettes=[['#A8FF80','#42E51C','#159B13','rgba(72,255,40,.25)'],['#8AD8FF','#2196F3','#0757A8','rgba(33,150,243,.25)']];
-            if(window.ptColorVisionEnabled?.())['success','primary'].forEach((tone,i)=>{
-                palettes[i]=[window.ptChartColor(tone+'-light','#cccccc'),window.ptChartColor(tone,'#707070'),window.ptChartColor(tone+'-dark','#333333'),window.ptChartColor(tone,'#707070')+'40'];
-            });
             palettes.forEach((p,i)=>{
                 const grad=node('linearGradient',{id:`${id}-fill-${i}`,x1:0,y1:0,x2:0,y2:1});[p[0],p[1],p[2]].forEach((c,j)=>grad.append(node('stop',{offset:[0,.38,1][j],'stop-color':c})));defs.append(grad);
                 const shade=node('linearGradient',{id:`${id}-shade-${i}`,x1:0,y1:0,x2:1,y2:0});[[0,'#fff',.38],[.22,'#fff',.04],[.65,'#000',0],[1,'#000',.3]].forEach(([o,c,a])=>shade.append(node('stop',{offset:o,'stop-color':c,'stop-opacity':a})));defs.append(shade);
@@ -40,16 +37,6 @@
                     surface.append(node('path',{d:path,fill:palettes[i][3],filter:`url(#${id}-glow-${i})`}),node('path',{d:path,fill:`url(#${id}-fill-${i})`}),node('path',{d:path,fill:`url(#${id}-shade-${i})`}));
                     surface.append(node('ellipse',{cx:x+barWidth/2,cy:y+r*.55,rx:barWidth*.39,ry:Math.max(1,r*.5),fill:`url(#${id}-cap)`}));
                     if(h>8)surface.append(node('path',{d:`M ${x+barWidth*.15} ${y+r+1} V ${bottom-3}`,stroke:'#fff','stroke-opacity':.28,'stroke-width':Math.max(.7,barWidth*.06),'stroke-linecap':'round'}));
-                    if(window.ptColorVisionEnabled?.()){
-                        surface.append(node('path',{d:path,fill:'none',stroke:'#fff','stroke-width':1.5,...(i===1?{'stroke-dasharray':'4 3'}:{})}));
-                        // Different textures identify each series even without any hue information.
-                        const patternId=`${id}-pattern-${i}`;
-                        if(!defs.querySelector(`#${patternId}`)){
-                            const pattern=node('pattern',{id:patternId,width:8,height:8,patternUnits:'userSpaceOnUse'});
-                            pattern.append(i===0?node('path',{d:'M0 8L8 0',stroke:'#000','stroke-opacity':.45,'stroke-width':2}):node('circle',{cx:4,cy:4,r:1.6,fill:'#000','fill-opacity':.5}));defs.append(pattern);
-                        }
-                        surface.append(node('path',{d:path,fill:`url(#${patternId})`}));
-                    }
                     group.append(surface);
                     const text=String(count),badgeWidth=Math.max(compact?16:22,text.length*font*.65+10),bx=x+barWidth/2;
                     let by=Math.max(21,badgeY[i]);
@@ -62,12 +49,11 @@
                 svg.append(node('text',{x:center,y:bottom+24,'text-anchor':'middle',fill:'#c5c9c8','font-size':compact?9:12,...(compact?{transform:`rotate(-40 ${center} ${bottom+24})`,'text-anchor':'end'}:{})},row.month));
             });
             const legendY=height-12,legendGap=compact?85:115;
-            ['Completed','In Progress'].forEach((label,i)=>{const x=width/2-legendGap+(i*legendGap);svg.append(node('circle',{cx:x,cy:legendY-4,r:5,fill:palettes[i][1],...(window.ptColorVisionEnabled?.()&&i===1?{'stroke':'#fff','stroke-width':2,'stroke-dasharray':'2 2'}:{})}),node('text',{x:x+11,y:legendY,fill:'#f0f3ed','font-size':compact?10:13},label));});
+            ['Completed','In Progress'].forEach((label,i)=>{const x=width/2-legendGap+(i*legendGap);svg.append(node('circle',{cx:x,cy:legendY-4,r:5,fill:palettes[i][1]}),node('text',{x:x+11,y:legendY,fill:'#f0f3ed','font-size':compact?10:13},label));});
             stage.replaceChildren(svg,tooltip);tooltip.hidden=true;
         };
         new ResizeObserver(()=>{const w=Math.round(stage.clientWidth);if(w!==previousWidth){previousWidth=w;draw();}}).observe(stage);
         new MutationObserver(draw).observe(root.querySelector('.bar-chart'),{subtree:true,attributes:true,attributeFilter:['data-month','data-completed','data-progress','data-completed-height','data-progress-height'],childList:true});
-        window.addEventListener('pt:color-vision-change',draw);
         draw();
     });
 })();

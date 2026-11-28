@@ -17,7 +17,7 @@
         const tooltip=chart.querySelector('.assign-neon-tooltip');tooltip.id=id+'Tip';
         const total=Math.max(0,Number(chart.dataset.assignTotal)||0);
         const palette=['#2996F3','#A56AFF','#20D9D2','#E76DAA'];
-        const rows=[...host.querySelectorAll('[data-assign-neon-metric]')].map((node,index)=>({count:Math.max(0,Number(node.dataset.count)||0),label:node.querySelector('.metric-name').textContent.trim(),href:node.dataset.href,state:node.dataset.state,color:window.ptChartColor?.(node.dataset.state,({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length])||({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length]})).filter(row=>row.count>0);
+        const rows=[...host.querySelectorAll('[data-assign-neon-metric]')].map((node,index)=>({count:Math.max(0,Number(node.dataset.count)||0),label:node.querySelector('.metric-name').textContent.trim(),href:node.dataset.href,state:node.dataset.state,color:({DONE:'#65E548',WARNING:'#FF9F1C',DANGER:'#FF4560'})[node.dataset.state]||palette[index%palette.length]})).filter(row=>row.count>0);
         const defs=add(svg,'defs',{});
         const glow=add(defs,'filter',{id:id+'Glow',x:'-25%',y:'-25%',width:'150%',height:'150%'});
         add(glow,'feGaussianBlur',{stdDeviation:'2',result:'blur'});const merge=add(glow,'feMerge',{});add(merge,'feMergeNode',{in:'blur'});add(merge,'feMergeNode',{in:'SourceGraphic'});
@@ -46,7 +46,7 @@
             add(body,'path',{d,fill:'none',stroke:color,'stroke-width':1.8,opacity:'.85',filter:`url(#${id}Glow)`,class:'assign-neon-edge'});
             add(body,'path',{d:ring(start+.15,end-.15,137,93),fill:'none',stroke:'#ddffff','stroke-width':'.65',opacity:'.28'});
             if(span>14) [99,105,131].forEach((radius,i)=>add(body,'path',{d:arc(radius,start+3+i,end-3-i),fill:'none',stroke:color,'stroke-width':'.55',opacity:'.18'}));
-            if(span>=32){const labelPoint=point(115,mid).split(' ');add(body,'text',{x:labelPoint[0],y:Number(labelPoint[1])+6,class:'assign-neon-percent'}).textContent=(window.ptColorVisionEnabled?.()?({DONE:'✓ ',WARNING:'! ',DANGER:'× '}[row.state]||''):'')+percent.toLocaleString('th-TH',{maximumFractionDigits:1})+'%';}
+            if(span>=32){const labelPoint=point(115,mid).split(' ');add(body,'text',{x:labelPoint[0],y:Number(labelPoint[1])+6,class:'assign-neon-percent'}).textContent=percent.toLocaleString('th-TH',{maximumFractionDigits:1})+'%';}
             const text=`${row.label}: ${row.count.toLocaleString('th-TH')} รายการ (${percent.toLocaleString('th-TH',{maximumFractionDigits:1})}%)`;
             add(link,'title',{}).textContent=text;
             const show=()=>{tooltip.textContent=text;tooltip.hidden=false;};const hide=()=>tooltip.hidden=true;
@@ -54,7 +54,6 @@
         });
         const value=svg.querySelector('.assign-neon-total');if(total>=10000)value.style.fontSize='38px';
     };
-    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll('[data-assign-neon-chart]').forEach(chart=>{ready.delete(chart);chart.querySelector('.assign-neon-segments')?.replaceChildren();chart.querySelectorAll('svg > defs').forEach(d=>d.remove());enhance(chart);}));
     document.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);
     const dashboard=document.querySelector('.dashboard-view');
     if(dashboard)new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(!(node instanceof Element))return;if(node.matches('[data-assign-neon-chart]'))enhance(node);node.querySelectorAll('[data-assign-neon-chart]').forEach(enhance);}))).observe(dashboard,{childList:true,subtree:true});

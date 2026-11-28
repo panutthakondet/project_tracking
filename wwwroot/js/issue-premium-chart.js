@@ -9,7 +9,6 @@
         parent.append(node); return node;
     };
     const palette = tone => {
-        if(window.ptColorVisionEnabled?.())return [window.ptChartColor(tone,'#707070'),window.ptChartColor(tone+'-light','#aaaaaa'),window.ptChartColor(tone+'-dark','#333333')];
         if (['green','lime','success'].includes(tone)) return ['#70E000','#A5FF55','#348C12'];
         if (['purple','violet'].includes(tone)) return ['#9945FF','#C18AFF','#5822A0'];
         if (['blue','primary'].includes(tone)) return ['#2996F3','#86CDFF','#135CA5'];
@@ -74,7 +73,6 @@
             total.setAttribute('y','65');
         }
     };
-    window.addEventListener('pt:color-vision-change',()=>document.querySelectorAll(chartSelector).forEach(figure=>{if(figure.classList.contains('support-three-ready'))return;ready.delete(figure);enhance(figure);}));
     document.querySelectorAll(chartSelector).forEach(enhance);
     const dashboard = document.querySelector('.dashboard-view');
     if(dashboard) new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{

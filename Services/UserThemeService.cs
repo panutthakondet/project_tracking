@@ -21,35 +21,6 @@ namespace ProjectTracking.Services
             _context = context;
         }
 
-        public async Task<Dictionary<string, string>> GetColorVisionStylesAsync(int userId, CancellationToken ct = default)
-        {
-            var theme = await GetResolvedThemeAsync(userId, ct);
-            var styles = new Dictionary<string, string>();
-            foreach (var mode in new[] { "standard", "red-green", "blue-yellow", "monochrome" })
-            {
-                theme.ColorBlindModeEnabled = mode != "standard";
-                theme.ColorVisionMode = mode;
-                styles[mode] = BuildThemeCss(theme);
-            }
-            return styles;
-        }
-
-        // Only update colour-vision preferences; keep every stored theme/custom value intact.
-        public async Task SetColorVisionModeAsync(int userId, string mode, CancellationToken ct = default)
-        {
-            var preference = await _context.UserThemePreferences.FirstOrDefaultAsync(x => x.UserId == userId, ct);
-            if (preference == null)
-            {
-                var appearance = await GetAppearanceAsync(userId, ct);
-                preference = new UserThemePreference { UserId = userId, ThemeId = appearance.ThemeId };
-                _context.UserThemePreferences.Add(preference);
-            }
-            preference.ColorBlindModeEnabled = mode != "standard";
-            if (mode != "standard") preference.ColorVisionMode = ColorVisionTheme.NormalizeMode(mode);
-            preference.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync(ct);
-        }
-
         public async Task<string> GetThemeCssAsync(int? userId, CancellationToken cancellationToken = default)
         {
             var theme = await GetResolvedThemeAsync(userId, cancellationToken);
@@ -78,8 +49,6 @@ namespace ProjectTracking.Services
             var dinoColor = NormalizeHexOrDefault(preference?.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(preference?.DinoFoodColorHex, DefaultDinoFoodColorHex);
             var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, profilePanel, bodyBg, chartPanel, menuPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
-            resolved.ColorBlindModeEnabled = preference?.ColorBlindModeEnabled ?? false;
-            resolved.ColorVisionMode = ColorVisionTheme.NormalizeMode(preference?.ColorVisionMode);
 
             return new AppearanceViewModel
             {
@@ -94,8 +63,6 @@ namespace ProjectTracking.Services
                 CustomMenuPanelHex = menuPanel,
                 FontScale = fontScale,
                 ProfileBallEnabled = profileBallEnabled,
-                ColorBlindModeEnabled = preference?.ColorBlindModeEnabled ?? false,
-                ColorVisionMode = ColorVisionTheme.NormalizeMode(preference?.ColorVisionMode),
                 DinoName = dinoName,
                 DinoColorHex = dinoColor,
                 DinoFoodColorHex = dinoFoodColor,
@@ -157,8 +124,6 @@ namespace ProjectTracking.Services
             preference.CustomMenuPanelHex = model.UseCustom ? menuPanel : null;
             preference.FontScale = fontScale;
             preference.ProfileBallEnabled = model.ProfileBallEnabled;
-            preference.ColorBlindModeEnabled = model.ColorBlindModeEnabled;
-            preference.ColorVisionMode = ColorVisionTheme.NormalizeMode(model.ColorVisionMode);
             preference.DinoName = dinoName;
             preference.DinoColorHex = dinoColor;
             preference.DinoFoodColorHex = dinoFoodColor;
@@ -207,8 +172,6 @@ namespace ProjectTracking.Services
                 var dinoColor = NormalizeHexOrDefault(preference.DinoColorHex, DefaultDinoColorHex);
                 var dinoFoodColor = NormalizeHexOrDefault(preference.DinoFoodColorHex, DefaultDinoFoodColorHex);
                 var resolved = ResolveTheme(preset, preference.UseCustom, accent, sidebar, profilePanel, bodyBg, chartPanel, menuPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
-                resolved.ColorBlindModeEnabled = preference.ColorBlindModeEnabled;
-                resolved.ColorVisionMode = ColorVisionTheme.NormalizeMode(preference.ColorVisionMode);
                 return resolved;
             }
             catch
@@ -343,17 +306,6 @@ namespace ProjectTracking.Services
 
         private static string BuildThemeCss(ResolvedThemeViewModel theme)
         {
-            if (theme.ColorBlindModeEnabled)
-            {
-                var mode = ColorVisionTheme.NormalizeMode(theme.ColorVisionMode);
-                var accent = mode == "monochrome" ? "#454545" : mode == "blue-yellow" ? "#8D2459" : "#005A91";
-                theme = ResolveTheme(new ThemePreset { SurfaceHex = "#FFFFFF", TextHex = mode == "monochrome" ? "#202020" : "#17212B", MutedHex = mode == "monochrome" ? "#505050" : "#47515C" },
-                    true, accent, mode == "monochrome" ? "#242424" : "#20252B", mode == "monochrome" ? "#383838" : "#303840",
-                    mode == "monochrome" ? "#F2F2F2" : "#F1F3F5", mode == "monochrome" ? "#242424" : "#20252B", mode == "monochrome" ? "#383838" : "#303840", theme.FontScale,
-                    theme.ProfileBallEnabled, theme.DinoColorHex, theme.DinoFoodColorHex);
-                theme.ColorBlindModeEnabled = true;
-                theme.ColorVisionMode = mode;
-            }
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
             var sidebarContrast = GetReadableContrast(theme.SidebarHex);
             // Custom Background changes the page canvas only; page text follows the selected preset.
@@ -3096,7 +3048,7 @@ html body main.route-controller-requirementboard :is(
     color: var(--pt-accent) !important;
 }
 ");
-            return sb.ToString() + ColorVisionTheme.BuildCss(theme.ColorBlindModeEnabled, theme.ColorVisionMode);
+            return sb.ToString();
         }
 
         private static void AppendVar(StringBuilder sb, string name, string value)

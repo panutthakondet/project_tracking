@@ -29,7 +29,7 @@
         if (signature === lastCounts) return;
         lastCounts = signature;
         const counts = new Map(chart.dataset.statusCounts ? JSON.parse(chart.dataset.statusCounts) : metrics.map(m => [m.dataset.projectStatusMetric, Number(m.dataset.projectStatusCount)]));
-        let rows = metrics.map(m => ({ label: m.querySelector('.metric-name')?.textContent || m.dataset.projectStatusMetric, count: Math.max(0, Number(counts.get(m.dataset.projectStatusMetric)) || 0), color: window.ptChartColor?.(m.dataset.projectStatusTone,m.dataset.projectStatusColor||'#64748b') || m.dataset.projectStatusColor || '#64748b' })).filter(m => m.count > 0);
+        let rows = metrics.map(m => ({ label: m.querySelector('.metric-name')?.textContent || m.dataset.projectStatusMetric, count: Math.max(0, Number(counts.get(m.dataset.projectStatusMetric)) || 0), color: m.dataset.projectStatusColor || '#64748b' })).filter(m => m.count > 0);
         if (!rows.length) rows = [{ count: 1, color: '#435e6b' }];
         const total = rows.reduce((sum, m) => sum + m.count, 0);
         svg.replaceChildren();
@@ -69,7 +69,6 @@
         element('text', { x: 160, y: 163, 'text-anchor': 'middle', 'font-size': countText.length > 3 ? 50 : 76, 'font-weight': '800', class: 'project-status-sculpture-label project-status-sculpture-total' }, svg).textContent = countText;
         element('text', { x: 160, y: 198, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': '700', class: 'project-status-sculpture-label project-status-sculpture-caption' }, svg).textContent = 'โครงการ';
     };
-    window.addEventListener('pt:color-vision-change',()=>{if(chart.classList.contains('support-three-ready'))return;lastCounts=undefined;render();});
     render();
     new MutationObserver(render).observe(chart, { attributes: true, attributeFilter: ['data-status-counts'] });
 })();

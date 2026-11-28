@@ -96,7 +96,6 @@ const mutations=new MutationObserver(records=>{
     for(const [root,instance]of instances)if(!root.isConnected){visible.unobserve(root);instance.destroy();}
 });mutations.observe(document.querySelector('.dashboard-view')||document.body,{childList:true,subtree:true});
 const refreshThemes=()=>instances.forEach(instance=>instance.refreshTheme());
-addEventListener('pt:color-vision-change',refreshThemes);
 new MutationObserver(records=>{if(records.some(r=>r.target.id==='pt-user-theme'||r.target.parentElement?.id==='pt-user-theme'||[...r.addedNodes].some(n=>n.id==='pt-user-theme')))refreshThemes();}).observe(document.head,{childList:true,subtree:true,characterData:true});
 new MutationObserver(refreshThemes).observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});
 addEventListener('pagehide',()=>[...instances.values()].forEach(instance=>instance.destroy()));
