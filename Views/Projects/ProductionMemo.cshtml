@@ -429,12 +429,25 @@
                 max-width: none;
                 padding: 0;
             }
-            .production-report .memo-first-page .intro {
-                margin-block: 6pt;
+            .production-report .memo-first-page {
+                line-height: 1.24;
             }
 
-            .production-report .memo-first-page .phase-line {
-                margin-bottom: 2pt;
+            .production-report .memo-first-page .intro {
+                margin-block: 4pt;
+            }
+
+            .production-report .memo-attachment-list {
+                margin-block: 4pt;
+            }
+
+            .production-report .memo-attachment-list li {
+                margin-bottom: 1pt;
+            }
+
+            .production-report .signature {
+                margin-top: 6pt;
+                line-height: 1.25;
             }
 
             .production-report .memo-tail {
@@ -443,7 +456,9 @@
             }
 
             .production-report .memo-approval {
-                padding-bottom: 0;
+                margin-top: 6pt;
+                padding-block: 4pt 0;
+                line-height: 1.25;
             }
         }
         .transfer-letter, .transfer-attachment { font-size: 14pt; line-height: 1.42; }
