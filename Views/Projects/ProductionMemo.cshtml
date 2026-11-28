@@ -83,6 +83,28 @@
             <div class="memo-stack"><div class="memo-stack-value">@coopName @projectName</div></div>
             @if (!Model.IsDepartmentTransfer)
             {
+                <div class="memo-stack">
+                    <div class="memo-stack-label">รายละเอียดสัญญา</div>
+                </div>
+
+                <div class="phase-list">
+                    @if (Model.Phases.Any())
+                    {
+                        foreach (var phase in Model.Phases)
+                        {
+                            var due = phase.PeriodEndDate ?? phase.PlanEnd;
+                            <div class="phase-line">
+                                <strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName
+                                · กำหนดส่งมอบงานวันที่ @DateText(due) · ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="phase-line">-</div>
+                    }
+                </div>
+
                 RenderOwners();
             }
             <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
@@ -483,30 +505,6 @@
         <p class="intro">
             เพื่อให้การดำเนินโครงการเป็นไปอย่างมีประสิทธิภาพ และเป็นไปตามแผนงานที่กำหนด จึงขอสรุปข้อมูลการดำเนินโครงการ ขอบเขตงานเพิ่มเติม กำหนดการส่งมอบงานตามสัญญา ตลอดจนรายชื่อผู้รับผิดชอบโครงการ เพื่อเสนอให้พิจารณาและรับทราบ โดยมีรายละเอียดดังต่อไปนี้
         </p>
-
-        <section class="detail-block">
-            <div class="memo-stack">
-                <div class="memo-stack-label">รายละเอียดสัญญา</div>
-            </div>
-
-            <div class="phase-list">
-                @if (Model.Phases.Any())
-                {
-                    foreach (var phase in Model.Phases)
-                    {
-                        var due = phase.PeriodEndDate ?? phase.PlanEnd;
-                        <div class="phase-line">
-                            <strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName
-                            · กำหนดส่งมอบงานวันที่ @DateText(due) · ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="phase-line">-</div>
-                }
-            </div>
-        </section>
 
         }
         <section class="memo-tail">
