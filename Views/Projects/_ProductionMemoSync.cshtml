@@ -9,7 +9,6 @@
 @{
     var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
     var metrics = result?.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
-    var mergeTableNames = ViewData["MergeSyncTableNames"] is true;
     var summary = SyncComparison.SummarizeTables(metrics);
 }
 <section class="transfer-attachment">
@@ -39,11 +38,7 @@
                 {
                     var metric = tableMetrics[index];
                     <tr>
-                        @if (!mergeTableNames)
-                        {
-                            <td>@table.Key</td>
-                        }
-                        else if (index == 0)
+                        @if (index == 0)
                         {
                             <td rowspan="@tableMetrics.Length" class="memo-sync-table-name">@table.Key</td>
                         }
