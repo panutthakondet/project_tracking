@@ -17,11 +17,11 @@ public static class SecurityReportParser
     {
         if(Encoding.UTF8.GetByteCount(json)>SecurityReportLimits.MaxReportBytes)throw new InvalidOperationException("รายงานมีขนาดเกิน 50 MB กรุณาลดขอบเขตการสแกน");
         using var doc=JsonDocument.Parse(json,new JsonDocumentOptions{MaxDepth=64});var root=doc.RootElement;var result=new List<ScanObservation>();
-        var fingerprints=new HashSet<string>(StringComparer.Ordinal);var rawCount=0;
+        var fingerprints=new HashSet<(string RuleId,string Title,string Severity,string? Cwe,string Location)>();var rawCount=0;
         void Add(ScanObservation observation){
             if(++rawCount>SecurityReportLimits.MaxRawFindings)throw new InvalidOperationException("รายงานมีรายการดิบเกิน 100,000 รายการ กรุณาลดขอบเขตการสแกน");
             var normalized=observation with{RuleId=SecurityValues.Cut(observation.RuleId,200),Title=SecurityValues.Cut(observation.Title,500),Location=SecurityValues.Cut(observation.Location,4000),Cwe=SecurityValues.Cut(observation.Cwe,100),Description=SecurityValues.Cut(observation.Description,50000),Evidence=SecurityValues.Cut(observation.Evidence,50000),Remediation=SecurityValues.Cut(observation.Remediation,50000),References=SecurityValues.Cut(observation.References,20000)};
-            if(!fingerprints.Add(Fingerprint(engine,normalized)))return;
+            if(!fingerprints.Add((normalized.RuleId,normalized.Title,normalized.Severity,normalized.Cwe,normalized.Location)))return;
             if(result.Count>=SecurityReportLimits.MaxUniqueFindings)throw new InvalidOperationException("รายงานมีประเด็นไม่ซ้ำเกิน 50,000 รายการ กรุณาลดขอบเขตการสแกน");
             result.Add(normalized);
         }

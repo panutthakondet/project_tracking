@@ -21,12 +21,14 @@ public static class AutoIssueChecks
   async Task Scan(){var id=await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var job=await service.ClaimAsync(default);await service.CompleteAsync(id,job!.LeaseToken,json,new("fake","fake"),default);await service.CompleteAsync(id,job.LeaseToken,json,new("fake","fake"),default);}
   await Scan();
   var issues=await db.ProjectIssues.ToListAsync();
-  if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=5)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
+  if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=4)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
   var grouped=issues.Single(x=>x.IssueName.Contains("Finding Critical"));
   if(!grouped.IssueDetail!.Contains("https://example.com/0\nhttps://example.com/other")||
-     await db.SecurityFindingIssueLinkRows.CountAsync(x=>x.IssueId==grouped.IssueId)!=2)
+     await db.SecurityFindingIssueLinkRows.CountAsync(x=>x.IssueId==grouped.IssueId)!=1)
    throw new Exception("Grouped Issue must contain both locations and link both findings");
-  var alternateLocation=await db.SecurityScanFindingRows.SingleAsync(x=>x.Location=="https://example.com/other");
+  var alternateLocation=await db.SecurityScanFindingRows.SingleAsync(x=>x.RuleId=="0");
+  if(!alternateLocation.Location.Contains("https://example.com/0\nhttps://example.com/other") || await db.SecurityScanFindingRows.CountAsync()!=5)
+   throw new Exception("One stored case must retain both locations");
   if(await service.CreateIssueAsync(alternateLocation.Id,employee.EmpId,start,end,1,employee.EmpId,default)!=grouped.IssueId)
    throw new Exception("Selecting another location must reuse the grouped Issue");
   await Scan();if(await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated scan duplicated Issues");
@@ -48,7 +50,7 @@ public static class AutoIssueChecks
   var devKey=Guid.NewGuid().ToString();
   var devId=await service.QueueAsync(devVersion.Id,"Passive",devKey,1,default,workflow:"Development");var devJob=await service.ClaimAsync(default);
   await service.CompleteAsync(devId,devJob!.LeaseToken,json,new("fake","development"),default);
-  if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=12||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
+  if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=10||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
   var devObservation=await db.SecurityScanFindingRows.FirstAsync(x=>x.ScanId==devId);
   try{await service.CreateIssueAsync(devObservation.Id,employee.EmpId,start,end,1,employee.EmpId,default);throw new Exception("Development finding converted to Issue");}catch(InvalidOperationException){}
   try{await service.QueueAsync(version.Id,"Passive",devKey,1,default);throw new Exception("Request key changed workflow");}catch(InvalidOperationException){}
@@ -96,6 +98,15 @@ public static class AutoIssueChecks
   if((await db.SecurityFindingRows.SingleAsync(x=>x.Id==recurringLink.FindingId)).ReviewStatus!="InProgress")throw new Exception("Old Issue must not overwrite the current recurrence status");
   await CheckAccepted(nextVersion.Id,5);
   Console.WriteLine("PASS recurring PASS finding creates one new Issue, keeps original Issue/link and ignores stale status updates; REJECT persists");
+  var movedScanId=await service.QueueAsync(nextVersion.Id,"Passive",Guid.NewGuid().ToString(),1,default);
+  var movedJob=await service.ClaimAsync(default);
+  var movedReport=json.Replace("https://example.com/0","https://example.com/new/first")
+      .Replace("https://example.com/other","https://example.com/new/second");
+  await service.CompleteAsync(movedScanId,movedJob!.LeaseToken,movedReport,new("fake","moved locations"),default);
+  var movedCase=await db.SecurityScanFindingRows.SingleAsync(x=>x.ScanId==movedScanId&&x.RuleId=="0");
+  if(movedCase.FindingId!=alternateLocation.FindingId||await db.ProjectIssues.CountAsync()!=5)
+   throw new Exception("Changing every location must preserve case identity across versions");
+  Console.WriteLine("PASS one stored case and one Issue across multiple and changed locations");
   var queuedForDelete=await service.QueueAsync(nextVersion.Id,"Passive",Guid.NewGuid().ToString(),1,default);
   try{await service.DeleteVersionAsync(nextVersion.Id,default);throw new Exception("Queued version deleted");}catch(InvalidOperationException){}
   if(!await db.SecurityVersionRows.AnyAsync(x=>x.Id==nextVersion.Id))throw new Exception("Blocked deletion must preserve version");

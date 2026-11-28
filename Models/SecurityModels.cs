@@ -97,7 +97,7 @@ public class SecurityScanFinding
     [MaxLength(20)] public string Severity { get; set; } = "Info";
     [MaxLength(200)] public string RuleId { get; set; } = "";
     [MaxLength(100)] public string? Cwe { get; set; }
-    [MaxLength(4000)] public string Location { get; set; } = "";
+    [Column(TypeName="longtext")] public string Location { get; set; } = "";
     [Column(TypeName="longtext")] public string Description { get; set; } = "";
     [Column(TypeName="longtext")] public string Evidence { get; set; } = "";
     [Column(TypeName="longtext")] public string Remediation { get; set; } = "";

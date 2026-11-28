@@ -195,16 +195,60 @@ await transaction.CommitAsync(ct);return ids;
             await using var transaction=await db.Database.BeginTransactionAsync(ct);
             var claimed=await db.SecurityScanRows.Where(x=>x.Id==id&&x.Status=="Running"&&x.LeaseToken==lease&&x.LeaseUntil>DateTime.UtcNow).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"Processing"),ct);
             if(claimed!=1)throw new InvalidOperationException("งานถูกยกเลิกหรือมีผู้ส่งผลแล้ว");
+            // Serialize case identity updates for scans of the same registered system.
+            await db.SecuritySystemRows.Where(x=>x.Id==version.SystemId)
+                .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Name,x=>x.Name),ct);
+            var system=await db.SecuritySystemRows.AsNoTracking().SingleAsync(x=>x.Id==version.SystemId,ct);
+            var section=scan.Engine=="ZAP"
+                ? await db.SecurityWebsiteScanParts.Where(x=>x.ScanId==id).Select(x=>x.Section).SingleOrDefaultAsync(ct)
+                    ?? SecurityValues.LegacySection(system.Kind)
+                : "";
             var known=await db.SecurityFindingRows.Where(x=>x.SystemId==version.SystemId).ToDictionaryAsync(x=>x.Fingerprint,ct);
-            foreach(var o in observations){
-                var fingerprint=SecurityReportParser.Fingerprint((scan.Workflow=="Development"?"Development:":"")+scan.Engine+":"+version.Environment,o);
-                if(!known.TryGetValue(fingerprint,out var finding)){finding=new SecurityFinding{SystemId=version.SystemId,Fingerprint=fingerprint,Title=o.Title};db.SecurityFindingRows.Add(finding);known.Add(fingerprint,finding);}
+            var legacyScope=(scan.Workflow=="Development"?"Development:":"")+scan.Engine+":"+version.Environment;
+            var cases=new List<(SecurityFinding Finding, ScanObservation[] Observations)>();
+            foreach(var group in observations.GroupBy(SecurityFindingGrouping.Key)){
+                var members=group.ToArray();
+                var first=members[0];
+                var fingerprint=SecurityFindingGrouping.Fingerprint(scan.Workflow,scan.Engine,version.Environment,section,first);
+                if(!known.TryGetValue(fingerprint,out var finding)){
+                    var legacyCandidates=members.Select(x=>SecurityReportParser.Fingerprint(legacyScope,x))
+                        .Distinct().Where(known.ContainsKey).Select(key=>known[key]).OrderBy(x=>x.Id).ToArray();
+                    if(legacyCandidates.Length>0){
+                        var candidateIds=legacyCandidates.Select(x=>x.Id).ToArray();
+                        var allowsLegacySection=section==SecurityValues.LegacySection(system.Kind)||section=="";
+                        var sameSectionIds=await (from observation in db.SecurityScanFindingRows
+                            join part in db.SecurityWebsiteScanParts on observation.ScanId equals part.ScanId into parts
+                            from part in parts.DefaultIfEmpty()
+                            where candidateIds.Contains(observation.FindingId)
+                                && (part==null ? allowsLegacySection : part.Section==section)
+                            select observation.FindingId).Distinct().ToListAsync(ct);
+                        finding=legacyCandidates.Where(x=>sameSectionIds.Contains(x.Id))
+                            .OrderBy(x=>x.ReviewStatus switch { "AcceptedRisk"=>0, "VerifiedFixed"=>1, _=>2 })
+                            .ThenBy(x=>x.Id).FirstOrDefault();
+                    }
+                    if(finding==null){
+                        finding=new SecurityFinding{SystemId=version.SystemId,Fingerprint=fingerprint,Title=first.Title};
+                        db.SecurityFindingRows.Add(finding);
+                    }else{
+                        known.Remove(finding.Fingerprint);
+                        finding.Fingerprint=fingerprint;
+                    }
+                    known.Add(fingerprint,finding);
+                }
+                finding.LastSeenAt=DateTime.UtcNow;
+                cases.Add((finding,members));
             }
             await db.SaveChangesAsync(ct);
-            foreach(var o in observations){
-                var finding=known[SecurityReportParser.Fingerprint((scan.Workflow=="Development"?"Development:":"")+scan.Engine+":"+version.Environment,o)];
-                finding.LastSeenAt=DateTime.UtcNow;
-                db.SecurityScanFindingRows.Add(new(){ScanId=id,FindingId=finding.Id,Title=o.Title,RuleId=o.RuleId,Severity=o.Severity,Location=o.Location,Description=o.Description,Evidence=o.Evidence,Remediation=o.Remediation,References=o.References,Cwe=o.Cwe});
+            foreach(var (finding,members) in cases){
+                var first=members[0];
+                var locations=members.Select(x=>x.Location).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal);
+                var evidence=members.Length==1 ? first.Evidence : string.Join("\n\n",members
+                    .Where(x=>!string.IsNullOrWhiteSpace(x.Evidence)).Select(x=>$"{x.Location}\n{x.Evidence}"));
+                db.SecurityScanFindingRows.Add(new(){
+                    ScanId=id,FindingId=finding.Id,Title=first.Title,RuleId=first.RuleId,Severity=first.Severity,
+                    Location=string.Join("\n",locations),Description=first.Description,Evidence=evidence,
+                    Remediation=first.Remediation,References=first.References,Cwe=first.Cwe
+                });
             }
             db.SecurityReportRows.Add(new(){ScanId=id,StorageKey=file.Key,Sha256=file.Hash,Size=file.Size});
             scan.Status="Completed";scan.EngineVersion=SecurityValues.Cut(completion.EngineVersion,200);scan.Coverage=SecurityValues.Cut(completion.Coverage,2000);scan.FinishedAt=DateTime.UtcNow;
@@ -287,7 +331,7 @@ await transaction.CommitAsync(ct);return ids;
             .Select(SecurityFindingGrouping.Summary).ToListAsync(ct);
         var members=candidates.Where(x=>SecurityFindingGrouping.Key(x)==key).OrderBy(x=>x.Id).ToArray();
         var findingIds=members.Select(x=>x.FindingId).Distinct().OrderBy(x=>x).ToArray();
-        var locations=members.Select(x=>x.Location).Where(x=>!string.IsNullOrWhiteSpace(x))
+        var locations=members.SelectMany(x=>SecurityFindingGrouping.Locations(x.Location)).Where(x=>!string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.Ordinal).ToArray();
         await using var tx=db.Database.CurrentTransaction==null?await BeginIssueTransactionAsync(ct):null;
         // Lock in ID order so overlapping groups cannot create competing Issues for the same findings.

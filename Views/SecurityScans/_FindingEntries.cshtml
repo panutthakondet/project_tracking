@@ -17,7 +17,18 @@
  @if(!grouped && page.Run?.IsWebsiteBatch==true){<p class="security-finding-origin">@SecurityValues.SectionLabel(page.Run.Section(item.ScanId))</p>}
  @if (!grouped)
  {
-     <p><code>@item.RuleId</code> · CWE @item.Cwe<br /><strong>@item.Location</strong></p>
+     <p><code>@item.RuleId</code> · CWE @item.Cwe</p>
+     var locations = SecurityFindingGrouping.Locations(item.Location);
+     if (locations.Length > 0)
+     {
+         <h3>ตำแหน่งที่พบ (@locations.Length)</h3>
+         <ul class="security-finding-locations">
+             @foreach (var location in locations)
+             {
+                 <li>@location</li>
+             }
+         </ul>
+     }
  }
  @if (!grouped || item.Description != first.Description)
  {
