@@ -393,9 +393,21 @@
                 max-width: none;
                 padding: 0;
             }
-            .memo-tail {
-                break-inside: avoid-page;
-                page-break-inside: avoid;
+            .production-report .memo-first-page .intro {
+                margin-block: 6pt;
+            }
+
+            .production-report .memo-first-page .phase-line {
+                margin-bottom: 2pt;
+            }
+
+            .production-report .memo-tail {
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+
+            .production-report .memo-approval {
+                padding-bottom: 0;
             }
         }
         .transfer-letter, .transfer-attachment { font-size: 14pt; line-height: 1.42; }
