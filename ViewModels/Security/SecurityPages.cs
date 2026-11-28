@@ -26,6 +26,8 @@ public class SecurityProjectPage
     public Dictionary<long,SecurityLoginSettings> LoginSettings { get; set; }=[];
     public HashSet<long> UnreadableLoginSettings { get; set; }=[];
 }
+public sealed record SecurityFindingDisplayGroup(long[] ObservationIds, string Severity);
+
 public class SecurityScanPage
 {
     public ProjectTracking.Services.Security.SecurityScanRun? Run { get; set; }
@@ -34,6 +36,7 @@ public class SecurityScanPage
     public bool LoginComparisonChanged { get; set; }
     public SecurityWebsiteScanPart? WebsitePart { get; set; }
     public List<SecurityWebsiteScanPart> WebsiteBatchParts { get; set; }=[];
+    public IReadOnlyList<SecurityFindingDisplayGroup> FindingGroups { get; set; } = [];
     public int TotalObservations { get; set; }
     public int PageNumber { get; set; }=1;
     public int PageSize { get; set; }=50;

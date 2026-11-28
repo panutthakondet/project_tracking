@@ -283,17 +283,44 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             }
             var id=await scans.QueueAsync(versionId,mode,requestKey,UserId,ct,workflow:workflow);return RedirectToAction(nameof(Scan),new{id});}catch(InvalidOperationException e){TempData["Error"]=e.Message;return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});}
     }
+    private static string FindingParameter(string location)
+    {
+        var start = location.LastIndexOf(" [param: ", StringComparison.Ordinal);
+        return start < 0 ? "" : location[start..];
+    }
+
     public async Task<IActionResult> Scan(long id,long? baselineId,CancellationToken ct,int page=1)
     {
         var scope=await Scope(id,ct);if(scope==null)return NotFound();var (scan,version,system,project)=scope.Value;
         var run=await SecurityScanRun.LoadAsync(db,scan,ct);
         var runIds=run.Ids;
         var observationQuery=db.SecurityScanFindingRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId));
-        var counts=await observationQuery.GroupBy(x=>x.Severity).Select(g=>new{Severity=g.Key,Count=g.Count()}).ToDictionaryAsync(x=>x.Severity,x=>x.Count,ct);
-        var total=counts.Values.Sum();const int pageSize=50;
-        var pageNumber=Math.Clamp(page,1,Math.Max(1,(int)Math.Ceiling(total/(double)pageSize)));
-        var allFindingIds=await observationQuery.Select(x=>x.FindingId).ToListAsync(ct);
-        var observations=await observationQuery.OrderByDescending(x=>x.Severity=="Critical"?5:x.Severity=="High"?4:x.Severity=="Medium"?3:x.Severity=="Low"?2:1).ThenBy(x=>x.Title).ThenBy(x=>x.Id).Skip((pageNumber-1)*pageSize).Take(pageSize).ToListAsync(ct);var fids=observations.Select(x=>x.FindingId).ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
+        var entries = await observationQuery
+            .Select(x => new { x.Id, x.ScanId, x.FindingId, x.Severity, x.RuleId, x.Cwe, x.Title, x.Location })
+            .ToListAsync(ct);
+        var groups = entries.GroupBy(x => new
+            {
+                x.ScanId,
+                x.RuleId,
+                x.Title,
+                x.Severity,
+                x.Cwe,
+                Parameter = FindingParameter(x.Location)
+            })
+            .OrderByDescending(g => SecurityValues.Rank(g.Key.Severity))
+            .ThenBy(g => g.Key.Title, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(g => g.Min(x => x.Id))
+            .Select(g => new SecurityFindingDisplayGroup(g.OrderBy(x => x.Id).Select(x => x.Id).ToArray(), g.Key.Severity))
+            .ToList();
+        var counts = groups.GroupBy(g => g.Severity).ToDictionary(g => g.Key, g => g.Count());
+        var total = groups.Count;
+        const int pageSize = 50;
+        var pageNumber = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
+        var pageGroups = groups.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var observationIds = pageGroups.SelectMany(g => g.ObservationIds).ToArray();
+        var observations = await observationQuery.Where(x => observationIds.Contains(x.Id)).ToListAsync(ct);
+        var allFindingIds = entries.Select(x => x.FindingId).Distinct().ToList();
+        var fids=observations.Select(x=>x.FindingId).Distinct().ToArray();var versions=await db.SecurityVersionRows.Where(x=>x.SystemId==system.Id&&x.Environment==version.Environment).Select(x=>x.Id).ToListAsync(ct);
         var websitePart=run.Parts.FirstOrDefault(x=>x.ScanId==id);
         var baselines=await SecurityScanComparison.Candidates(db.SecurityScanRows.AsNoTracking(),db.SecurityWebsiteScanParts.AsNoTracking(),versions.ToArray(),scan,scan.Engine=="ZAP"?websitePart?.Section??SecurityValues.LegacySection(system.Kind):null,SecurityValues.LegacySection(system.Kind)).ToListAsync(ct);
         SecurityScanRun? baselineRun=null;
@@ -314,7 +341,7 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var baselineFindings=baselineRun==null?null:await db.SecurityScanFindingRows.AsNoTracking().Where(x=>baselineIds.Contains(x.ScanId)).Select(x=>new SecurityScanFinding{FindingId=x.FindingId}).ToListAsync(ct);
         var loginChanged=baselineRun!=null&&run.Scans.Any(current=>baselineRun.Scans.Any(old=>baselineRun.Section(old.Id)==run.Section(current.Id)&&old.AuthProfile!=current.AuthProfile));
         var runProgress=run.IsWebsiteBatch?ScanProgressPage.FromRun(run,await db.SecurityScanProgressRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId)).ToListAsync(ct)):null;
-        return View(new SecurityScanPage{Run=run,RunProgress=runProgress,LoginComparisonChanged=loginChanged,WebsitePart=websitePart,WebsiteBatchParts=run.Parts.ToList(),TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=run.Scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineFindings,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=scan.Workflow=="Formal"&&Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
+        return View(new SecurityScanPage{Run=run,RunProgress=runProgress,LoginComparisonChanged=loginChanged,WebsitePart=websitePart,WebsiteBatchParts=run.Parts.ToList(),FindingGroups=pageGroups,TotalObservations=total,PageNumber=pageNumber,PageSize=pageSize,BaselineId=baselineId,SeverityCounts=counts,AllFindingIds=allFindingIds,Progress=await db.SecurityScanProgressRows.AsNoTracking().SingleOrDefaultAsync(x=>x.ScanId==id,ct),Project=project,System=system,Version=version,Scan=run.Scan,Observations=observations,Findings=await db.SecurityFindingRows.AsNoTracking().Where(x=>fids.Contains(x.Id)).ToListAsync(ct),History=await db.SecurityFindingHistoryRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)).OrderByDescending(x=>x.CreatedAt).Take(200).ToListAsync(ct),Links=await db.SecurityFindingIssueLinkRows.AsNoTracking().Where(x=>fids.Contains(x.FindingId)&&db.ProjectIssues.Any(issue=>issue.IssueId==x.IssueId&&issue.ProjectId==project.ProjectId)).ToListAsync(ct),Employees=await db.Employees.AsNoTracking().Where(x=>x.Status=="ACTIVE").OrderBy(x=>x.EmpName).ToListAsync(ct),LinkedIssues=await db.ProjectIssues.AsNoTracking().Where(issue=>issue.ProjectId==project.ProjectId&&db.SecurityFindingIssueLinkRows.Any(link=>link.IssueId==issue.IssueId&&fids.Contains(link.FindingId))).ToListAsync(ct),ExistingIssues=await db.ProjectIssues.AsNoTracking().Where(x=>x.ProjectId==project.ProjectId).OrderByDescending(x=>x.IssueId).Take(200).ToListAsync(ct),Baselines=baselines,BaselineFindings=baselineFindings,CanManage=Can("SecurityScans.Edit"),CanCreateIssue=scan.Workflow=="Formal"&&Can("SecurityScans.CreateIssues")&&Can("ProjectIssues.Create")});
     }
     [HttpGet,ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Progress(long id,CancellationToken ct)

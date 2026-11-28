@@ -35,32 +35,52 @@
 @if(Model.CanCreateIssue){<form asp-action="CreateIssues" method="post" id="securityIssueBatch" data-loading-delay="0" data-loading-message="กำลังสร้าง / เชื่อม Issue…" class="security-card security-form"><input type="hidden" name="scanId" value="@Model.Scan.Id" /><h2>สร้าง Issues จากประเด็นที่เลือก</h2><label>ผู้รับผิดชอบ<select class="form-select" name="employeeId" required><option value="">เลือกพนักงาน</option>@foreach(var emp in Model.Employees){<option value="@emp.EmpId">@emp.EmpName</option>}</select></label><label>วันเริ่ม<input type="date" class="form-control" name="startDate" required /></label><label>กำหนดส่ง<input type="date" class="form-control" name="endDate" required /></label><button class="btn btn-primary" type="submit">สร้าง / เชื่อม Issue เดิมจากรายการที่เลือก</button><small>เลือกช่องหน้าประเด็นด้านล่าง สูงสุด 50 รายการ ประเด็นที่มี Issue แล้วจะไม่สร้างซ้ำ</small></form>}
 <div id="security-findings">
 @await Html.PartialAsync("_FindingPagination",Model)
-@foreach(var item in Model.Observations.OrderByDescending(x=>SecurityValues.Rank(x.Severity)).ThenBy(x=>x.Title)){
- var finding=Model.Findings.Single(x=>x.Id==item.FindingId);var link=Model.Links.Where(x=>x.FindingId==finding.Id).OrderByDescending(x=>x.Id).FirstOrDefault();
- var linkedIssue=Model.LinkedIssues.FirstOrDefault(x=>x.IssueId==link?.IssueId);
- var reviewStatus=linkedIssue==null?finding.ReviewStatus:ProjectTracking.Services.Security.SecurityIssueWorkflow.CurrentReviewStatus(linkedIssue);
- var issueState=(linkedIssue?.IssueStatus,linkedIssue?.DevStatus) switch {
-     ("PASS",_)=>"PASS", ("REJECT",_)=>"REJECT", (_,"FIXED")=>"FIXED", ("FAIL",_)=>"FAIL", (_,"WIP")=>"WIP", _=>"OPEN"
- };
- <article class="security-card security-finding @(linkedIssue!=null?"is-issue-linked":"")" data-issue-state="@(linkedIssue!=null?issueState:null)"><header class="security-card-head"><h2>@if(Model.CanCreateIssue){<input type="checkbox" name="observationIds" form="securityIssueBatch" value="@item.Id" aria-label="เลือก @item.Title" />} <span class="security-severity security-severity-@item.Severity.ToLowerInvariant()">@item.Severity</span> @item.Title</h2><div class="security-finding-state"><span>@SecurityValues.StatusLabel(reviewStatus)</span>@if(linkedIssue!=null){<small>Issue: @linkedIssue.IssueStatus · Dev: @linkedIssue.DevStatus</small>}@if(link!=null){<a class="btn btn-outline-primary btn-sm security-open-issue" asp-controller="ProjectIssues" asp-action="DevDetails" asp-route-id="@link.IssueId">เปิด Issue</a>}</div></header>
- @if(Model.Run?.IsWebsiteBatch==true){<p class="security-finding-origin">@SecurityValues.SectionLabel(Model.Run.Section(item.ScanId))</p>}
- <p><code>@item.RuleId</code> · CWE @item.Cwe<br /><strong>@item.Location</strong></p><p class="security-text">@item.Description</p>
- <details><summary>หลักฐาน</summary><pre>@item.Evidence</pre></details><h3>แนวทางแก้ไขจากเครื่องมือ</h3><p class="security-text">@(string.IsNullOrWhiteSpace(item.Remediation)?"เครื่องมือไม่ได้ให้คำแนะนำเฉพาะ กรุณาตรวจเอกสารอ้างอิงและให้ผู้ตรวจวิเคราะห์เพิ่มเติม":item.Remediation)</p><details><summary>เอกสารอ้างอิง</summary><pre>@item.References</pre></details>
-
- @if(Model.CanCreateIssue&&link==null){<details><summary>เชื่อมกับ Issue ที่มีอยู่ในโครงการ</summary><form asp-action="LinkIssue" method="post" data-loading-delay="0" data-loading-message="กำลังเชื่อม Issue…" class="security-inline"><input type="hidden" name="observationId" value="@item.Id" /><select class="form-select" name="issueId" required aria-label="Issue เดิม"><option value="">เลือก Issue</option>@foreach(var issue in Model.ExistingIssues){<option value="@issue.IssueId">#@issue.IssueId @issue.IssueName</option>}</select><button type="submit" class="btn btn-outline-primary">เชื่อม Issue</button></form></details>}
- <details><summary>ติดตามและตรวจยืนยันการแก้ไข</summary>
- <p><strong>สถานะ:</strong> @SecurityValues.StatusLabel(reviewStatus)</p>
- @if(linkedIssue!=null){
-     <p><strong>อ้างอิง:</strong> Issue #@linkedIssue.IssueId · ข้อมูลอัปเดตจาก Issue เท่านั้น</p>
-     <p><strong>ผู้รับผิดชอบ:</strong> @(Model.Employees.FirstOrDefault(x=>x.EmpId==linkedIssue.AssignTo)?.EmpName ?? $"พนักงาน #{linkedIssue.AssignTo}")</p>
-     <p><strong>วันเริ่ม:</strong> @SecurityDisplayDate.Local(linkedIssue.StartDate) · <strong>กำหนดส่ง:</strong> @SecurityDisplayDate.Local(linkedIssue.EndDate)</p>
-     <p><strong>สร้าง Issue:</strong> @SecurityDisplayDate.Local(linkedIssue.CreatedAt,true) · <strong>อัปเดต Issue ล่าสุด:</strong> @SecurityDisplayDate.Local(linkedIssue.UpdatedAt,true)</p>
-     <h3>รายละเอียดการแก้ไขจาก Dev</h3><p class="security-text">@(string.IsNullOrWhiteSpace(linkedIssue.DevDetail)?"ยังไม่มีรายละเอียดการแก้ไข":linkedIssue.DevDetail)</p>
-     <a class="btn btn-outline-primary" asp-controller="ProjectIssues" asp-action="DevDetails" asp-route-id="@linkedIssue.IssueId">ดู / จัดการที่ Issue #@linkedIssue.IssueId</a>
- }else{<p>ยังไม่ได้เชื่อม Issue กรุณาสร้างหรือเชื่อม Issue เพื่อจัดการการแก้ไขและวันที่</p>}
- </details>
- <details><summary>ประวัติการติดตาม</summary>@foreach(var history in Model.History.Where(x=>x.FindingId==finding.Id)){<p>@SecurityDisplayDate.Utc(history.CreatedAt) · ผู้ใช้ #@history.CreatedBy · @SecurityValues.StatusLabel(history.Status)<br />@history.Note</p>}</details>
- </article>
+@{
+    var observationsById = Model.Observations.ToDictionary(x => x.Id);
+}
+@foreach (var group in Model.FindingGroups)
+{
+    IReadOnlyList<ProjectTracking.Models.SecurityScanFinding> items = group.ObservationIds
+        .Where(observationsById.ContainsKey).Select(id => observationsById[id]).ToList();
+    if (items.Count == 0) continue;
+    var first = items[0];
+    var locations = items.Select(x => x.Location).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).ToList();
+    var grouped = items.Count > 1;
+    <article class="@(grouped ? "security-card security-finding" : null)">
+    @if (grouped)
+    {
+        <header class="security-card-head">
+            <h2><span class="security-severity security-severity-@first.Severity.ToLowerInvariant()">@first.Severity</span> @first.Title</h2>
+        </header>
+        @if (Model.Run?.IsWebsiteBatch == true)
+        {
+            <p class="security-finding-origin">@SecurityValues.SectionLabel(Model.Run.Section(first.ScanId))</p>
+        }
+        <p><code>@first.RuleId</code> · CWE @first.Cwe</p>
+        @if (locations.Count > 0)
+        {
+            <h3>ตำแหน่งที่พบ (@locations.Count)</h3>
+            <ul class="security-finding-locations">
+                @foreach (var location in locations)
+                {
+                    <li>@location</li>
+                }
+            </ul>
+        }
+        <p class="security-text">@first.Description</p>
+    }
+    @if (grouped)
+    {
+        <details>
+            <summary>สถานะและหลักฐานรายตำแหน่ง</summary>
+            @await Html.PartialAsync("_FindingEntries", (Model, items))
+        </details>
+    }
+    else
+    {
+        @await Html.PartialAsync("_FindingEntries", (Model, items))
+    }
+    </article>
 }
 @await Html.PartialAsync("_FindingPagination",Model)
 </div>
