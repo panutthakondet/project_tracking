@@ -9,6 +9,7 @@
 @{
     var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
     var metrics = result?.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
+    var summary = SyncComparison.SummarizeTables(metrics);
 }
 <section class="transfer-attachment">
     @if (ViewData["HideSyncTitle"] is not true)
@@ -19,7 +20,7 @@
     {
         <p>ข้อมูล ณ วันที่ @comparedAtUtc.AddHours(7).ToString("d MMM yyyy HH:mm", CultureInfo.GetCultureInfo("th-TH")) น.</p>
     }
-    <p>@string.Join(" · ", metrics.GroupBy(metric => metric.Status).Select(group => $"{group.Key} {group.Count()}"))</p>
+    <p>ทั้งหมด @summary.Total ตาราง · ตรงกัน @summary.Matching ตาราง · ไม่ตรงกัน @summary.Different ตาราง</p>
     <table class="memo-sync-table">
         <thead>
             <tr>

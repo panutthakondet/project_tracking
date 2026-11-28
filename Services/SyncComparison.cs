@@ -14,6 +14,16 @@ public static class SyncComparison
 {
     private const string Identifier = "[A-Za-z_][A-Za-z0-9_]*";
 
+    public static (int Total, int Matching, int Different) SummarizeTables(IEnumerable<SyncMetric> metrics)
+    {
+        var tables = metrics
+            .Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(metric => metric.Table, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var matching = tables.Count(table => table.All(metric => metric.Status == "ตรงกัน"));
+        return (tables.Count, matching, tables.Count - matching);
+    }
+
     public static SyncObject[] ReadStructure(string input, bool oracle)
     {
         var pattern = oracle

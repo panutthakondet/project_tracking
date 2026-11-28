@@ -160,13 +160,13 @@
 @if (result != null)
 {
     var visibleMetrics = result.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase));
+    var summary = SyncComparison.SummarizeTables(visibleMetrics);
     <section class="sync-panel" id="sync-result">
         <h2>ผลเปรียบเทียบข้อมูล</h2>
         <dl class="sync-metrics">
-            @foreach (var group in visibleMetrics.GroupBy(metric => metric.Status))
-            {
-                <div><dt>@group.Key</dt><dd>@group.Count()</dd></div>
-            }
+            <div><dt>ทั้งหมด</dt><dd>@summary.Total ตาราง</dd></div>
+            <div><dt>ตรงกัน</dt><dd>@summary.Matching ตาราง</dd></div>
+            <div><dt>ไม่ตรงกัน</dt><dd>@summary.Different ตาราง</dd></div>
         </dl>
         <div class="table-responsive">
             <table class="table sync-result-table">
