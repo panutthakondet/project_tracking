@@ -6,6 +6,10 @@
     var th = new CultureInfo("th-TH");
     var projectName = string.IsNullOrWhiteSpace(Model.ProjectName) ? "-" : Model.ProjectName.Trim();
     var coopName = string.IsNullOrWhiteSpace(Model.CoopName) ? "-" : Model.CoopName.Trim();
+    var isFisheriesMemo = string.Concat(coopName.Where(c => !char.IsWhiteSpace(c))) == "สหกรณ์ออมทรัพย์กรมประมงจำกัด"
+        && projectName.Contains("Website Info", StringComparison.OrdinalIgnoreCase)
+        && projectName.Contains("Website Member", StringComparison.OrdinalIgnoreCase);
+    var productionSubject = isFisheriesMemo ? "Website Info, Website Member" : projectName;
     var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var extraTorDetail = Model.ExtraTorDetail?.Trim();
     var hasExtraTorDetail = !string.IsNullOrWhiteSpace(ProjectTracking.Services.ProjectRichText.PlainText(extraTorDetail).Replace("\u200B", "").Replace("\uFEFF", ""));
@@ -217,8 +221,20 @@
             font-weight: 400;
         }
 
+        .production-report .memo-first-page .memo-attachment-list strong,
+        .production-report .memo-first-page .memo-conclusion strong,
         .production-report .memo-first-page .title {
             font-weight: 700;
+        }
+
+        .memo-attachment-list {
+            margin: 6pt 0;
+            padding-inline-start: 22pt;
+        }
+
+        .memo-attachment-list li {
+            margin-bottom: 3pt;
+            break-inside: avoid;
         }
 
         .date {
@@ -496,15 +512,37 @@
         }
         else
         {
-        <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน@(projectName) เพื่อเตรียมติดตั้งบนระบบงานจริง (Production)</span></div>
+        <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนอสรุปผลการดำเนินงานและแผนการนำระบบ @productionSubject ขึ้นใช้งานจริง (Production)</span></div>
         <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการฝ่ายพัฒนาธุรกิจ</span></div>
 
         <p class="intro">
-            ตามที่ฝ่ายพัฒนาธุรกิจได้รับมอบหมายให้ดำเนิน@(projectName) ให้แก่@(coopName) วันที่พัฒนาโครงการตามสัญญา วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate) โดยทีมผู้พัฒนาได้ดำเนินการพัฒนาระบบตามขอบเขตงานที่กำหนด และปัจจุบันอยู่ระหว่างการเตรียมความพร้อมเพื่อติดตั้งและนำระบบขึ้นใช้งานจริง (Production) นั้น
+            ตามที่ทีมพัฒนาระบบได้รับมอบหมายให้ดำเนิน@(isFisheriesMemo ? "โครงการพัฒนาระบบ Website Info และ Website Member" : projectName) ให้แก่@(coopName) ตามสัญญาซึ่งกำหนดระยะเวลาดำเนินโครงการตั้งแต่วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate) นั้น ปัจจุบันทีมพัฒนาระบบได้ดำเนินการพัฒนาระบบตามขอบเขตงานที่กำหนด และอยู่ระหว่างการเตรียมความพร้อมเพื่อนำระบบขึ้นใช้งานจริง (Production)
         </p>
         <p class="intro">
-            เพื่อให้การดำเนินโครงการเป็นไปอย่างมีประสิทธิภาพ และเป็นไปตามแผนงานที่กำหนด จึงขอสรุปข้อมูลการดำเนินโครงการ ขอบเขตงานเพิ่มเติม กำหนดการส่งมอบงานตามสัญญา ตลอดจนรายชื่อผู้รับผิดชอบโครงการ เพื่อเสนอให้พิจารณาและรับทราบ โดยมีรายละเอียดดังต่อไปนี้
+            ในการนี้ ทีมพัฒนาระบบขอนำเสนอรายงานสรุปผลการดำเนินงาน ความพร้อมของระบบ และแผนการติดตั้งระบบงานจริง เพื่อประกอบการพิจารณา โดยมีรายละเอียดตามเอกสารแนบ ดังนี้
         </p>
+        <ol class="memo-attachment-list">
+            <li><strong>รายละเอียดและกำหนดการส่งมอบงานตามสัญญา</strong> แสดงขอบเขตงาน ระยะเวลาดำเนินงาน และกำหนดการส่งมอบงานในแต่ละงวดตามสัญญา</li>
+            @if (isFisheriesMemo || Model.LatestSyncRun != null)
+            {
+                <li><strong>ผลการตรวจสอบความถูกต้องของข้อมูล</strong> @(isFisheriesMemo
+                    ? "แสดงผลการเปรียบเทียบข้อมูลระหว่างฐานข้อมูล MariaDB และ Oracle จำนวน 35 ตาราง ซึ่งผลการตรวจสอบพบว่าข้อมูลตรงกันทั้ง 35 ตาราง ไม่พบรายการที่มีผลแตกต่าง ณ วันที่ 28 พฤศจิกายน 2569"
+                    : "แสดงผลการเปรียบเทียบข้อมูลระหว่างฐานข้อมูล MariaDB และ Oracle ตามเอกสารแนบ")</li>
+            }
+            <li><strong>รายละเอียดขอบเขตงานและผู้รับผิดชอบโครงการ</strong> ประกอบด้วยรายชื่อผู้รับผิดชอบในแต่ละส่วนงาน รายละเอียดการพัฒนาระบบตามข้อกำหนด (TOR) และงานพัฒนาเพิ่มเติมนอกเหนือจากขอบเขตสัญญา</li>
+            @if (isFisheriesMemo || !string.IsNullOrWhiteSpace(Model.ProductionInstallationPlan))
+            {
+                <li><strong>แผนการติดตั้งและนำระบบขึ้นใช้งานจริง (Production)</strong> @(isFisheriesMemo
+                    ? "แสดงขั้นตอนการเตรียมความพร้อม การระงับการปรับปรุงข้อมูลบนเว็บไซต์เดิมและเว็บไซต์ใหม่ (Freeze) ตลอดจนกำหนดการปรับเปลี่ยน URL เพื่อเปิดให้บริการระบบใหม่ โดยมีกำหนดนำระบบขึ้นใช้งานจริงในวันที่ 8 ธันวาคม 2569"
+                    : "แสดงขั้นตอนและกำหนดการนำระบบขึ้นใช้งานจริงตามเอกสารแนบ")</li>
+            }
+            @if (isFisheriesMemo || Model.SecurityReport != null)
+            {
+                <li><strong>ผลการตรวจสอบความปลอดภัยของระบบ</strong> @(isFisheriesMemo
+                    ? "แสดงผลการสแกนช่องโหว่ด้านความปลอดภัยของระบบ Website Information, Website Member และ Web Admin โดยผลการตรวจสอบล่าสุดไม่พบประเด็นความเสี่ยงระดับ Critical หรือ High ทั้งนี้ รายละเอียดผลการตรวจสอบและสถานะการจัดการความเสี่ยงปรากฏตามเอกสารแนบ"
+                    : "แสดงผลการตรวจสอบและสถานะการจัดการความเสี่ยงตามเอกสารแนบ")</li>
+            }
+        </ol>
 
         }
         <section class="memo-tail">
@@ -515,8 +553,8 @@
 
             @if (!Model.IsDepartmentTransfer)
             {
-            <p class="intro">ทั้งนี้ ทีมผู้พัฒนาจะดำเนินการประสานงานและเตรียมความพร้อมในส่วนที่เกี่ยวข้อง เพื่อให้การติดตั้งและนำระบบขึ้นใช้งานจริงเป็นไปอย่างเรียบร้อย มีประสิทธิภาพ และสอดคล้องกับข้อกำหนดของโครงการ</p>
-            <p class="intro">จึงเรียนมาเพื่อโปรดทราบและพิจารณาให้ข้อเสนอแนะในการดำเนินงานต่อไป</p>
+            <p class="intro">ทั้งนี้ ทีมพัฒนาระบบจะดำเนินการประสานงานกับผู้เกี่ยวข้อง รวมถึงเตรียมความพร้อมด้านระบบงาน ฐานข้อมูล และการปรับเปลี่ยนช่องทางการเข้าใช้งาน เพื่อให้การนำระบบขึ้นใช้งานจริงเป็นไปอย่างเรียบร้อย ลดผลกระทบต่อการให้บริการสมาชิก และสอดคล้องกับแผนการดำเนินโครงการ</p>
+            <p class="intro memo-conclusion"><strong>จึงเรียนมาเพื่อโปรดทราบและพิจารณาแผนการนำระบบขึ้นใช้งานจริง (Production) ตามรายละเอียดและเอกสารแนบ เพื่อให้ทีมพัฒนาระบบดำเนินการในขั้นตอนที่เกี่ยวข้องต่อไป</strong></p>
 
             <div class="signature">
                 <div>ขอแสดงความนับถือ</div>
