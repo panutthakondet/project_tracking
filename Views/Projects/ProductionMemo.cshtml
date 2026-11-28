@@ -221,10 +221,6 @@
             font-weight: 400;
         }
 
-        .production-report .memo-first-page .title {
-            font-weight: 700;
-        }
-
         .memo-attachment-list {
             margin: 6pt 0;
             padding-inline-start: 22pt;
@@ -464,6 +460,12 @@
         .transfer-letter, .transfer-attachment { font-size: 14pt; line-height: 1.42; }
         .production-report .transfer-attachment :is(h1, h2, h3, .finding-group-title, .memo-sync-table) {
             font-size: inherit;
+        }
+
+        .production-report :is(.memo-first-page, .transfer-attachment) .title,
+        .production-report .transfer-attachment .security-report-content h1 {
+            font-size: 18pt;
+            font-weight: 700;
         }
 
         .transfer-attachment :is(.memo-stack-label, .memo-stack-value, .owner-line, .owner-list) { font-size: inherit; line-height: 1.42; }
