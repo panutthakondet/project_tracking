@@ -113,7 +113,7 @@ public sealed class ProjectSyncController(AppDbContext db) : BaseController
                 if (compareAgain != (saved != null))
                     throw new FormatException(compareAgain ? "กรุณาเลือกใช้โครงสร้างจากรอบที่บันทึกผลแล้ว" : "รอบนี้บันทึกผลแล้ว");
 
-                var metrics = SyncComparison.Compare(await Read(maria, ct), await Read(oracle, ct), sql.Maria);
+                var metrics = SyncComparison.Compare(await Read(maria, ct), await Read(oracle, ct), sql.Maria, draft);
                 var comparedAt = DateTime.UtcNow;
                 var destination = run;
                 if (compareAgain)

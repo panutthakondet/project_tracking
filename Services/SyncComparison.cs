@@ -79,12 +79,15 @@ public static class SyncComparison
         static string Join(List<string> statements) => string.Join("\nUNION ALL\n", statements) + "\nORDER BY table_key, metric;\n";
     }
 
-    public static SyncMetric[] Compare(string maria, string oracle, string expectedSql)
+    public static SyncMetric[] Compare(string maria, string oracle, string expectedSql, SyncDraft draft)
     {
         var expected = Regex.Matches(expectedSql, @"^SELECT '([^']+)' AS table_key, '([^']+)' AS metric", RegexOptions.Multiline)
             .Select(match => (match.Groups[1].Value.ToUpperInvariant(), match.Groups[2].Value.ToUpperInvariant())).ToHashSet();
-        var left = ReadCsv(maria);
-        var right = ReadCsv(oracle);
+        var selectedTables = expected.Select(key => key.Item1).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var excludedTables = draft.Maria.Select(table => table.Name)
+            .Where(name => !selectedTables.Contains(name)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var left = ReadCsv(maria, excludedTables);
+        var right = ReadCsv(oracle, excludedTables);
         if (left.Keys.Concat(right.Keys).Any(key => !expected.Contains(key)))
             throw new FormatException("พบตัวชี้วัดที่ไม่อยู่ในชุด SELECT ของรอบนี้");
         return expected.OrderBy(key => key.Item1).ThenBy(key => key.Item2).Select(key =>
@@ -96,7 +99,7 @@ public static class SyncComparison
         }).ToArray();
     }
 
-    private static Dictionary<(string, string), decimal?> ReadCsv(string input)
+    private static Dictionary<(string, string), decimal?> ReadCsv(string input, HashSet<string> excludedTables)
     {
         using var parser = new TextFieldParser(new StringReader(input));
         parser.SetDelimiters(",");
@@ -111,6 +114,7 @@ public static class SyncComparison
         {
             var row = parser.ReadFields() ?? [];
             if (row.Length != 3) throw new FormatException("จำนวนคอลัมน์ CSV ไม่ถูกต้อง");
+            if (excludedTables.Contains(row[table])) continue;
             // Older SQL exports also include a count of non-null values for each SUM.
             if (row[metric].StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)) continue;
             decimal? number = null;

@@ -146,6 +146,7 @@
                     <p>@(result == null
                         ? "ส่งออกผล SQL ทั้งสองฝั่งจากข้อมูลรอบ Sync เดียวกันเป็น CSV พร้อมหัวคอลัมน์"
                         : "เลือก CSV ยอดล่าสุดทั้งสองฝั่ง ระบบจะใช้โครงสร้าง คู่ตาราง และฟิลด์ SUM ของรอบนี้ แล้วบันทึกผลเป็นรอบใหม่")</p>
+                    <p>ใช้ CSV เดิมได้เมื่อเอาบางตารางออกจากการเทียบ ระบบจะข้ามตารางที่ไม่ได้เลือก</p>
                     <div class="sync-inputs">
                         <label>ผล MariaDB <input class="form-control" type="file" name="maria" accept=".csv" required /></label>
                         <label>ผล Oracle <input class="form-control" type="file" name="oracle" accept=".csv" required /></label>
