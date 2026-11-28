@@ -19,6 +19,9 @@
         .sync-report { background: #fff; max-width: 210mm; margin: 0 auto 24px; padding: 14mm clamp(16px, 4vw, 16mm); }
         .sync-report .title { text-align: center; font-size: 16pt; margin: 0 0 4pt; }
         .sync-report-project { text-align: center; margin: 0 0 12pt; }
+        @@media screen {
+            .sync-report-table-scroll { overflow-x: auto; }
+        }
         @@media print {
             body { background: #fff; }
             .sync-report { padding: 0; margin: 0; max-width: none; }
@@ -38,7 +41,9 @@
         <p class="sync-report-project">@ViewBag.ProjectName</p>
         @if (Model is { } run)
         {
-            @await Html.PartialAsync("~/Views/Projects/_ProductionMemoSync.cshtml", run, new ViewDataDictionary(ViewData) { ["HideSyncTitle"] = true })
+            <div class="sync-report-table-scroll">
+                @await Html.PartialAsync("~/Views/Projects/_ProductionMemoSync.cshtml", run, new ViewDataDictionary(ViewData) { ["HideSyncTitle"] = true })
+            </div>
         }
         else
         {
