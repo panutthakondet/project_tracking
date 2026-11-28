@@ -462,6 +462,10 @@
             }
         }
         .transfer-letter, .transfer-attachment { font-size: 14pt; line-height: 1.42; }
+        .production-report .transfer-attachment :is(h1, h2, h3, .finding-group-title, .memo-sync-table) {
+            font-size: inherit;
+        }
+
         .transfer-attachment :is(.memo-stack-label, .memo-stack-value, .owner-line, .owner-list) { font-size: inherit; line-height: 1.42; }
         .transfer-letter p { margin: 10pt 0; text-indent: 2em; text-align: justify; }
         .transfer-letter .letter-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 12px; margin-bottom: 8pt; }
