@@ -3,8 +3,8 @@
 @using ProjectTracking.Services
 @model ProjectTracking.Models.ProjectSyncRun
 @functions {
-    private static string NumberText(decimal? value) =>
-        value?.ToString("#,0.############################", CultureInfo.InvariantCulture) ?? "—";
+    private static string NumberText(decimal? value, bool isSum) =>
+        value?.ToString(isSum ? "#,0.00##########################" : "#,0.############################", CultureInfo.InvariantCulture) ?? "—";
 }
 @{
     var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
@@ -37,15 +37,16 @@
                 for (var index = 0; index < tableMetrics.Length; index++)
                 {
                     var metric = tableMetrics[index];
+                    var isSum = metric.Metric.StartsWith("SUM:", StringComparison.OrdinalIgnoreCase);
                     <tr>
                         @if (index == 0)
                         {
                             <td rowspan="@tableMetrics.Length" class="memo-sync-table-name">@table.Key</td>
                         }
                         <td>@(metric.Metric == "ROW_COUNT" ? "จำนวนแถว" : metric.Metric)</td>
-                        <td class="numeric">@NumberText(metric.Maria)</td>
-                        <td class="numeric">@NumberText(metric.Oracle)</td>
-                        <td class="numeric">@NumberText(metric.Maria - metric.Oracle)</td>
+                        <td class="numeric">@NumberText(metric.Maria, isSum)</td>
+                        <td class="numeric">@NumberText(metric.Oracle, isSum)</td>
+                        <td class="numeric">@NumberText(metric.Maria - metric.Oracle, isSum)</td>
                         <td class="memo-sync-status">@metric.Status</td>
                     </tr>
                 }
