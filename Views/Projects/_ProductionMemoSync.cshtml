@@ -9,6 +9,7 @@
 @{
     var result = JsonSerializer.Deserialize<SyncResult>(Model.ResultJson!);
     var metrics = result?.Metrics.Where(metric => !metric.Metric.StartsWith("NON_NULL:", StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
+    var mergeTableNames = ViewData["MergeSyncTableNames"] is true;
     var summary = SyncComparison.SummarizeTables(metrics);
 }
 <section class="transfer-attachment">
@@ -33,10 +34,19 @@
         <tbody>
             @foreach (var table in metrics.GroupBy(metric => metric.Table))
             {
-                foreach (var metric in table.OrderBy(metric => metric.Metric == "ROW_COUNT" ? 0 : 1))
+                var tableMetrics = table.OrderBy(metric => metric.Metric == "ROW_COUNT" ? 0 : 1).ToArray();
+                for (var index = 0; index < tableMetrics.Length; index++)
                 {
+                    var metric = tableMetrics[index];
                     <tr>
-                        <td>@table.Key</td>
+                        @if (!mergeTableNames)
+                        {
+                            <td>@table.Key</td>
+                        }
+                        else if (index == 0)
+                        {
+                            <td rowspan="@tableMetrics.Length" class="memo-sync-table-name">@table.Key</td>
+                        }
                         <td>@(metric.Metric == "ROW_COUNT" ? "จำนวนแถว" : metric.Metric)</td>
                         <td class="numeric">@NumberText(metric.Maria)</td>
                         <td class="numeric">@NumberText(metric.Oracle)</td>
