@@ -98,7 +98,7 @@
                         {
                             var due = phase.PeriodEndDate ?? phase.PlanEnd;
                             <div class="phase-line">
-                                <strong>ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder</strong> @phase.PhaseName
+                                ส่วนที่ @phase.PhaseOrder งวดที่ @phase.PeriodOrder @phase.PhaseName
                                 · กำหนดส่งมอบงานวันที่ @DateText(due) · ระยะเวลาดำเนินงาน @(phase.DurationDays?.ToString("N0") ?? "-") วัน
                             </div>
                         }
