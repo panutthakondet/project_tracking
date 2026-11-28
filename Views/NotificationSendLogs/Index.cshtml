@@ -9,16 +9,17 @@
     var selectedDepartmentName = Model.SelectedDepartmentId.HasValue
         ? Model.Departments.FirstOrDefault(x => x.DepartmentId == Model.SelectedDepartmentId.Value)?.DepartmentName ?? "ทุกฝ่าย"
         : "ทุกฝ่าย";
+    var today = Model.SelectedChannel == "WEB" ? DateTime.UtcNow.AddHours(7).Date : DateTime.Today;
     string FormatLogDate(DateTime value)
-        => value.Date == DateTime.Today
+        => value.Date == today
             ? "วันนี้"
-            : value.Date == DateTime.Today.AddDays(-1)
+            : value.Date == today.AddDays(-1)
                 ? "เมื่อวาน"
                 : value.ToString("dd MMM yyyy", thaiCulture);
     string FormatLogTime(DateTime value)
         => value.ToString("HH.mm น.", thaiCulture);
     string ChannelClass(string channel)
-        => channel == "EMAIL" ? "mail" : channel == "TELEGRAM" ? "telegram" : "line";
+        => channel == "EMAIL" ? "mail" : channel == "TELEGRAM" ? "telegram" : "web";
     var selectedThemeClass = $"send-log-theme-{ChannelClass(Model.SelectedChannel)}";
 }
 
@@ -76,7 +77,7 @@
         --send-log-border: #ddd6fe;
     }
 
-    .send-log-theme-line {
+    .send-log-theme-web {
         --send-log-accent: #06c755;
         --send-log-accent-strong: #047857;
         --send-log-accent-soft: #eafff1;
@@ -210,7 +211,7 @@
         --tab-soft: #fbf8ff;
     }
 
-    .send-log-tab.line {
+    .send-log-tab.web {
         --tab-accent: #06c755;
         --tab-soft: #f3fff7;
     }
@@ -478,7 +479,7 @@
         background: #e2e8f0;
     }
 
-    .send-log-pill.line {
+    .send-log-pill.web {
         color: #047857;
         background: #d1fae5;
     }
@@ -620,7 +621,7 @@
                             <span class="send-log-all-icon">ALL</span>
                         }
                         <div class="send-log-selected-text">
-                            <div class="send-log-selected-name">@(selectedUser?.Name ?? "Log การส่งสำเร็จทั้งหมด")</div>
+                            <div class="send-log-selected-name">@(selectedUser?.Name ?? (Model.SelectedChannel == "WEB" ? "รายการแจ้งเตือนบนเว็บ" : "Log การส่งสำเร็จทั้งหมด"))</div>
                             <div class="send-log-selected-meta">@selectedDepartmentName · @Model.SelectedChannelLabel · จำนวน badge เป็นของวันนี้ · แสดงล่าสุด @Model.Logs.Count รายการ</div>
                         </div>
                     </div>
@@ -646,7 +647,7 @@
                 @if (Model.Logs.Count == 0)
                 {
                     <div class="send-log-empty">
-                        <div>ยังไม่มี Log การส่งสำเร็จในช่องทางนี้</div>
+                        <div>ยังไม่มีประวัติในช่องทางนี้</div>
                     </div>
                 }
                 else

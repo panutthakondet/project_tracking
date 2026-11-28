@@ -711,6 +711,8 @@ namespace ProjectTracking.Controllers
         {
             key = (key ?? "").Trim().ToUpperInvariant();
 
+            if (key == ProjectTracking.Services.WebNotificationService.EnabledConfigKey)
+                return "การแจ้งเตือนบนเว็บ";
             if (key.StartsWith("TELEGRAM_NOTIFICATION_", StringComparison.Ordinal))
                 return "การแจ้งเตือน Telegram";
             if (key.StartsWith("MEETING_NOTIFICATION_", StringComparison.Ordinal))
@@ -730,6 +732,7 @@ namespace ProjectTracking.Controllers
             {
                 "แจ้งเตือนประชุมอัตโนมัติ" => 10,
                 "แจ้งเตือนงานล่าช้าอัตโนมัติ" => 20,
+                "การแจ้งเตือนบนเว็บ" => 30,
                 "การแจ้งเตือน Telegram" => 40,
                 "การลงเวลา" => 50,
                 "ค่าระบบทั่วไป" => 90,

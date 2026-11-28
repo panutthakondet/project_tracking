@@ -2053,6 +2053,7 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
         command.CommandText = @"
             INSERT INTO `system_config` (`config_key`, `config_value`, `description`, `updated_at`)
             VALUES
+              ('WEB_NOTIFICATION_ENABLED', 'true', 'เปิดการแจ้งเตือนบนเว็บและเข้าคิว Push สำหรับรายการใหม่', NOW()),
               ('MEETING_NOTIFICATION_RUN_AT', '06:00', 'Meeting Auto - เวลาส่งแจ้งเตือนประชุมอัตโนมัติ เวลาไทย', NOW()),
               ('ATTENDANCE_WORK_START_TIME', '09:00', 'Attendance - เวลาเริ่มงานปกติ', NOW()),
               ('ATTENDANCE_LATE_GRACE_MINUTES', '0', 'Attendance - นาทีผ่อนผันก่อนนับว่ามาสาย (0 = ไม่เกินเวลาเริ่มงาน)', NOW()),

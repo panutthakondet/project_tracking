@@ -9,6 +9,8 @@ namespace ProjectTracking.Services;
 
 public class WebNotificationService(IDbContextFactory<AppDbContext> factory, IDataProtectionProvider protection, IConfiguration configuration, ILogger<WebNotificationService> logger)
 {
+    public const string EnabledConfigKey = "WEB_NOTIFICATION_ENABLED";
+
     public IDataProtector Protector => protection.CreateProtector("ProjectTracking.WebPush.v1");
     public static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     private string Setting(string name, string fallback)
@@ -51,6 +53,11 @@ public class WebNotificationService(IDbContextFactory<AppDbContext> factory, IDa
         try
         {
             await using var db = await factory.CreateDbContextAsync(ct);
+            var enabled = await db.SystemConfigs.AsNoTracking()
+                .Where(x => x.ConfigKey == EnabledConfigKey)
+                .Select(x => x.ConfigValue).FirstOrDefaultAsync(ct);
+            if (bool.TryParse(enabled, out var isEnabled) && !isEnabled) return 0;
+
             var users = await db.LoginUsers.AsNoTracking().Where(u => u.Status == "ACTIVE" && (u.EmpId == empId || (u.EmpId == null && db.Employees.Any(e => e.EmpId == empId && e.LoginUserId == u.UserId)))).Select(u => u.UserId).ToListAsync(ct);
             if (users.Count == 0) return 0;
             var now = DateTime.UtcNow; var count = 0; var text = (message ?? ""); if (text.Length > 16000) text = text[..16000]; title = title.Length > 255 ? title[..255] : title;

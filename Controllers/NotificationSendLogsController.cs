@@ -26,6 +26,7 @@ namespace ProjectTracking.Controllers
             var selectedChannel = NormalizeChannel(channel);
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
+            var webDayStart = DateTime.UtcNow.AddHours(7).Date.AddHours(-7);
             var departments = await _context.ProjectDepartments
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -54,13 +55,13 @@ namespace ProjectTracking.Controllers
                 empId = null;
             var employeeById = employees.ToDictionary(x => x.EmpId);
 
-            var tabs = await BuildTabsAsync(today, tomorrow, departmentEmployeeIds);
-            var countQuery = _context.NotificationSendLogs
-                .AsNoTracking()
-                .Where(x => x.Channel == selectedChannel
-                    && x.RecipientEmpId.HasValue
-                    && x.SentAt >= today
-                    && x.SentAt < tomorrow);
+            var tabs = await BuildTabsAsync(today, tomorrow, webDayStart, departmentEmployeeIds);
+            var source = LoadChannelLogs(selectedChannel);
+            var isWeb = selectedChannel == "WEB";
+            var dayStart = isWeb ? webDayStart : today;
+            var dayEnd = dayStart.AddDays(1);
+            var countQuery = source.Where(x => x.RecipientEmpId.HasValue
+                && x.SentAt >= dayStart && x.SentAt < dayEnd);
             if (departmentEmployeeIds != null)
                 countQuery = countQuery.Where(x => departmentEmployeeIds.Contains(x.RecipientEmpId!.Value));
             var countRows = await countQuery
@@ -79,13 +80,11 @@ namespace ProjectTracking.Controllers
                 if (countByEmpId.TryGetValue(user.EmpId, out var stat))
                 {
                     user.Count = stat.Count;
-                    user.LastSentAt = stat.LastSentAt;
+                    user.LastSentAt = isWeb ? stat.LastSentAt.AddHours(7) : stat.LastSentAt;
                 }
             }
 
-            var logQuery = _context.NotificationSendLogs
-                .AsNoTracking()
-                .Where(x => x.Channel == selectedChannel);
+            var logQuery = source;
 
             if (departmentEmployeeIds != null)
                 logQuery = logQuery.Where(x => x.RecipientEmpId.HasValue
@@ -99,6 +98,10 @@ namespace ProjectTracking.Controllers
                 .ThenByDescending(x => x.LogId)
                 .Take(300)
                 .ToListAsync(HttpContext.RequestAborted);
+
+            if (isWeb)
+                foreach (var log in logs)
+                    log.SentAt = log.SentAt.AddHours(7);
 
             var model = new NotificationSendLogPageViewModel
             {
@@ -120,6 +123,7 @@ namespace ProjectTracking.Controllers
         private async Task<List<NotificationSendLogTabViewModel>> BuildTabsAsync(
             DateTime today,
             DateTime tomorrow,
+            DateTime webDayStart,
             List<int>? departmentEmployeeIds)
         {
             var query = _context.NotificationSendLogs
@@ -133,12 +137,38 @@ namespace ProjectTracking.Controllers
                 .Select(x => new { Channel = x.Key, Count = x.Count() })
                 .ToListAsync(HttpContext.RequestAborted);
 
+            var webDayEnd = webDayStart.AddDays(1);
+            var webLogs = LoadChannelLogs("WEB").Where(x => x.SentAt >= webDayStart && x.SentAt < webDayEnd);
+            if (departmentEmployeeIds != null)
+                webLogs = webLogs.Where(x => x.RecipientEmpId.HasValue
+                    && departmentEmployeeIds.Contains(x.RecipientEmpId.Value));
+
+            var webCount = await webLogs.CountAsync(HttpContext.RequestAborted);
             var countByChannel = counts.ToDictionary(x => x.Channel, x => x.Count, StringComparer.OrdinalIgnoreCase);
             return new List<NotificationSendLogTabViewModel>
             {
+                new() { Channel = "WEB", Label = "Notification", Count = webCount },
                 new() { Channel = "EMAIL", Label = "Mail", Count = countByChannel.GetValueOrDefault("EMAIL") },
                 new() { Channel = "TELEGRAM", Label = "Telegram", Count = countByChannel.GetValueOrDefault("TELEGRAM") }
             };
+        }
+
+        private IQueryable<NotificationSendLog> LoadChannelLogs(string channel)
+        {
+            if (channel != "WEB")
+                return _context.NotificationSendLogs.AsNoTracking().Where(x => x.Channel == channel);
+
+            return _context.WebNotifications.AsNoTracking().Select(x => new NotificationSendLog
+            {
+                LogId = x.Id,
+                Channel = "WEB",
+                RecipientEmpId = x.EmpId,
+                RecipientAddress = x.ReadAt.HasValue ? "อ่านแล้ว" : "ยังไม่อ่าน",
+                Title = x.Title,
+                Message = x.Message,
+                TargetUrl = x.TargetUrl,
+                SentAt = x.CreatedAt
+            });
         }
 
         private async Task<List<NotificationSendLogUserViewModel>> LoadUsersAsync(int? departmentId)
@@ -246,6 +276,7 @@ namespace ProjectTracking.Controllers
             {
                 "MAIL" or "EMAIL" => "EMAIL",
                 "TELEGRAM" => "TELEGRAM",
+                "WEB" => "WEB",
                 _ => "TELEGRAM"
             };
         }
