@@ -478,18 +478,13 @@
         <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการฝ่ายพัฒนาธุรกิจ</span></div>
 
         <p class="intro">
-            ตามที่ฝ่ายพัฒนาธุรกิจได้รับมอบหมายให้ดำเนิน@(projectName) ให้แก่@(coopName) โดยทีมผู้พัฒนาได้ดำเนินการพัฒนาระบบตามขอบเขตงานที่กำหนด และปัจจุบันอยู่ระหว่างการเตรียมความพร้อมเพื่อติดตั้งและนำระบบขึ้นใช้งานจริง (Production) นั้น
+            ตามที่ฝ่ายพัฒนาธุรกิจได้รับมอบหมายให้ดำเนิน@(projectName) ให้แก่@(coopName) วันที่พัฒนาโครงการตามสัญญา วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate)
         </p>
         <p class="intro">
             เพื่อให้การดำเนินโครงการเป็นไปอย่างมีประสิทธิภาพ และเป็นไปตามแผนงานที่กำหนด จึงขอสรุปข้อมูลการดำเนินโครงการ ขอบเขตงานเพิ่มเติม กำหนดการส่งมอบงานตามสัญญา ตลอดจนรายชื่อผู้รับผิดชอบโครงการ เพื่อเสนอให้พิจารณาและรับทราบ โดยมีรายละเอียดดังต่อไปนี้
         </p>
 
         <section class="detail-block">
-            <div class="memo-stack">
-                <span class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</span>
-                วันที่ @DateText(Model.StartDate) ถึงวันที่ @DateText(Model.EndDate)
-            </div>
-
             <div class="memo-stack">
                 <div class="memo-stack-label">รายละเอียดสัญญา</div>
             </div>
