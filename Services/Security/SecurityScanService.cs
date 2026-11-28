@@ -8,6 +8,11 @@ public class SecurityScanService(AppDbContext db,SecurityStorage storage,IConfig
 {
     private int? issueNameLimit;
 
+    private Task<IDbContextTransaction> BeginIssueTransactionAsync(CancellationToken ct) =>
+        db.Database.IsMySql()
+            ? db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, ct)
+            : db.Database.BeginTransactionAsync(ct);
+
     private async Task<int> GetIssueNameLimitAsync(CancellationToken ct)
     {
         if (issueNameLimit.HasValue) return issueNameLimit.Value;
@@ -214,9 +219,12 @@ await transaction.CommitAsync(ct);return ids;
         {
             var defaults=await db.SecurityIssueDefaults.AsNoTracking().SingleOrDefaultAsync(x=>x.SystemId==version.SystemId,ct);
             if(defaults!=null){
-                await using var issueTransaction = await db.Database.BeginTransactionAsync(ct);
-                var autoIds=await db.SecurityScanFindingRows.Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low")).Select(x=>x.Id).ToListAsync(ct);
-                foreach(var observationId in autoIds)await CreateIssueAsync(observationId,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
+                await using var issueTransaction = await BeginIssueTransactionAsync(ct);
+                var candidates=await db.SecurityScanFindingRows.AsNoTracking()
+                    .Where(x=>x.ScanId==id&&(x.Severity=="Critical"||x.Severity=="High"||x.Severity=="Medium"||x.Severity=="Low"))
+                    .Select(SecurityFindingGrouping.Summary).ToListAsync(ct);
+                foreach(var group in candidates.GroupBy(SecurityFindingGrouping.Key))
+                    await CreateIssueAsync(group.First().Id,defaults.AssignedEmpId,defaults.StartDate,defaults.EndDate,defaults.CreatedBy,defaults.CreatorEmpId,ct);
                 await issueTransaction.CommitAsync(ct);
             }
         }
@@ -252,13 +260,14 @@ await transaction.CommitAsync(ct);return ids;
         return files;
     }
 
+    private const int IssueDetailByteLimit = 60000;
+
     public static string IssueDetailsForStorage(string details,long scanId)
     {
         // Existing ProjectIssues.IssueDetail is MySQL TEXT: reserve room below its 65,535-byte limit.
-        const int limit=60000;
-        if(Encoding.UTF8.GetByteCount(details)<=limit)return details;
+        if(Encoding.UTF8.GetByteCount(details)<=IssueDetailByteLimit)return details;
         var suffix=$"\n\n[รายละเอียดใน Issue เป็นข้อความย่อ เนื่องจากผลสแกนมีขนาดใหญ่ ดูรายละเอียด หลักฐาน และรายงานฉบับเต็มที่ /SecurityScans/Scan/{scanId}]";
-        var budget=limit-Encoding.UTF8.GetByteCount(suffix);var length=0;var used=0;
+        var budget=IssueDetailByteLimit-Encoding.UTF8.GetByteCount(suffix);var length=0;var used=0;
         foreach(var rune in details.EnumerateRunes()){
             if(used+rune.Utf8SequenceLength>budget)break;
             used+=rune.Utf8SequenceLength;length+=rune.Utf16SequenceLength;
@@ -269,31 +278,71 @@ await transaction.CommitAsync(ct);return ids;
     {
         if(end.Date<start.Date)throw new InvalidOperationException("กำหนดส่งต้องไม่ก่อนวันเริ่ม");
         if(!await db.Employees.AnyAsync(e=>e.EmpId==employeeId&&e.Status=="ACTIVE",ct))throw new InvalidOperationException("เลือกผู้รับผิดชอบที่ยังใช้งาน");
-        var observation=await db.SecurityScanFindingRows.SingleAsync(x=>x.Id==observationId,ct);var finding=await db.SecurityFindingRows.SingleAsync(x=>x.Id==observation.FindingId,ct);
-        if(await db.SecurityScanRows.AnyAsync(x=>x.Id==observation.ScanId&&x.Workflow=="Development",ct))throw new InvalidOperationException("รอบสแกนระหว่างพัฒนาไม่สร้าง Issue");
-        await using var tx=db.Database.CurrentTransaction==null?await db.Database.BeginTransactionAsync(ct):null;
-        // Atomic guard serializes duplicate Issue creation for this finding.
-        await db.SecurityFindingRows.Where(x=>x.Id==finding.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);
-        var old=await db.SecurityFindingIssueLinkRows.Where(x=>x.FindingId==finding.Id).OrderByDescending(x=>x.Id).FirstOrDefaultAsync(ct);
-        int? previousIssueId=null;
-        if(old!=null){
-            var linkedIssue=await db.ProjectIssues.SingleOrDefaultAsync(x=>x.IssueId==old.IssueId,ct);
-            var sourceProject=await db.SecuritySystemRows.Where(x=>x.Id==finding.SystemId).Select(x=>x.ProjectId).SingleAsync(ct);
-            if(linkedIssue!=null){
-                if(linkedIssue.ProjectId!=sourceProject)throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
-                var sourceScan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);
-                // Only a later scan can create a recurrence; retries on the original result reuse its Issue.
-                if(linkedIssue.IssueStatus!="PASS"||sourceScan.CreatedAt<=old.CreatedAt){
-                    if(tx!=null)await tx.CommitAsync(ct);return old.IssueId;
-                }
-                previousIssueId=old.IssueId;
-            }else{
-                db.SecurityFindingIssueLinkRows.Remove(old);await db.SaveChangesAsync(ct);
+        var observation=await db.SecurityScanFindingRows.AsNoTracking().SingleAsync(x=>x.Id==observationId,ct);
+        var scan=await db.SecurityScanRows.AsNoTracking().SingleAsync(x=>x.Id==observation.ScanId,ct);
+        if(scan.Workflow=="Development")throw new InvalidOperationException("รอบสแกนระหว่างพัฒนาไม่สร้าง Issue");
+        var key=SecurityFindingGrouping.Key(observation);
+        var candidates=await db.SecurityScanFindingRows.AsNoTracking()
+            .Where(x=>x.ScanId==scan.Id&&x.RuleId==observation.RuleId)
+            .Select(SecurityFindingGrouping.Summary).ToListAsync(ct);
+        var members=candidates.Where(x=>SecurityFindingGrouping.Key(x)==key).OrderBy(x=>x.Id).ToArray();
+        var findingIds=members.Select(x=>x.FindingId).Distinct().OrderBy(x=>x).ToArray();
+        var locations=members.Select(x=>x.Location).Where(x=>!string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal).ToArray();
+        await using var tx=db.Database.CurrentTransaction==null?await BeginIssueTransactionAsync(ct):null;
+        // Lock in ID order so overlapping groups cannot create competing Issues for the same findings.
+        foreach(var findingId in findingIds)
+            await db.SecurityFindingRows.Where(x=>x.Id==findingId).ExecuteUpdateAsync(
+                s=>s.SetProperty(x=>x.LastSeenAt,x=>x.LastSeenAt),ct);
+
+        var findings=await db.SecurityFindingRows.Where(x=>findingIds.Contains(x.Id)).ToListAsync(ct);
+        var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==scan.VersionId,ct);
+        var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==version.SystemId,ct);
+        var links=await (from link in db.SecurityFindingIssueLinkRows
+                         join linkedIssue in db.ProjectIssues on link.IssueId equals linkedIssue.IssueId
+                         where findingIds.Contains(link.FindingId)
+                         orderby link.Id descending
+                         select new { Link=link, Issue=linkedIssue }).ToListAsync(ct);
+        var orphanedLinks=await db.SecurityFindingIssueLinkRows
+            .Where(link=>findingIds.Contains(link.FindingId)&&
+                !db.ProjectIssues.Any(issue=>issue.IssueId==link.IssueId)).ToListAsync(ct);
+        db.SecurityFindingIssueLinkRows.RemoveRange(orphanedLinks);
+        var latest=links.DistinctBy(x=>x.Link.FindingId).ToArray();
+        if(latest.Any(x=>x.Issue.ProjectId!=system.ProjectId))
+            throw new InvalidOperationException("Issue ที่เชื่อมอยู่ไม่ตรงกับโครงการ กรุณาตรวจสอบการเชื่อม Issue");
+
+        var reusable=latest.Where(x=>x.Issue.IssueStatus!="PASS"||scan.CreatedAt<=x.Link.CreatedAt).ToArray();
+        var linkedIds=reusable.Select(x=>x.Link.FindingId).ToHashSet();
+        var pending=findings.Where(x=>!linkedIds.Contains(x.Id)).ToArray();
+        var existing=reusable.OrderBy(x=>x.Issue.IssueStatus switch { "PASS"=>2, "REJECT"=>1, _=>0 })
+            .ThenBy(x=>x.Issue.IssueId).FirstOrDefault();
+        if(existing!=null){
+            var issueDetail=existing.Issue.IssueDetail??"";
+            var knownLocations=issueDetail.Split('\n')
+                .Select(line=>line.StartsWith("ตำแหน่ง: ",StringComparison.Ordinal)?line["ตำแหน่ง: ".Length..]:line)
+                .ToHashSet(StringComparer.Ordinal);
+            var missing=locations.Where(location=>!knownLocations.Contains(location)).ToArray();
+            if(missing.Length>0){
+                var updatedDetail=issueDetail+"\n\nตำแหน่งที่พบเพิ่มเติม:\n"+string.Join("\n",missing);
+                if(Encoding.UTF8.GetByteCount(updatedDetail)<=IssueDetailByteLimit)
+                    existing.Issue.IssueDetail=updatedDetail;
             }
+            foreach(var finding in pending){
+                db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=existing.Issue.IssueId,CreatedBy=userId});
+                finding.AssignedEmpId=existing.Issue.AssignTo;
+                finding.DueDate=existing.Issue.EndDate;
+                finding.ReviewStatus=SecurityIssueWorkflow.CurrentReviewStatus(existing.Issue);
+            }
+            await db.SaveChangesAsync(ct);
+            if(tx!=null)await tx.CommitAsync(ct);
+            return existing.Issue.IssueId;
         }
-        var system=await db.SecuritySystemRows.SingleAsync(x=>x.Id==finding.SystemId,ct);var scan=await db.SecurityScanRows.SingleAsync(x=>x.Id==observation.ScanId,ct);var version=await db.SecurityVersionRows.SingleAsync(x=>x.Id==scan.VersionId,ct);
-        var details=$"Security scan #{scan.Id} / {scan.Engine}\nระบบ: {system.Name} / {version.Environment}\nVersion: {version.VersionName} Build: {version.BuildNumber}\nความเสี่ยง: {observation.Severity} / CWE: {observation.Cwe}\nตำแหน่ง: {observation.Location}\n\nรายละเอียด:\n{observation.Description}\n\nหลักฐาน:\n{observation.Evidence}\n\nแนวทางแก้ไขจากเครื่องมือ:\n{observation.Remediation}\n\nอ้างอิง:\n{observation.References}\n\nผลสแกน: /SecurityScans/Scan/{scan.Id}";
-        if(previousIssueId.HasValue)details=$"พบปัญหาซ้ำหลัง Issue #{previousIssueId.Value} ทดสอบผ่านแล้ว\nIssue เดิม: /ProjectIssues/DevDetails/{previousIssueId.Value}\n\n"+details;
+
+        var previousIssueIds=latest.Select(x=>x.Issue.IssueId).Distinct().OrderBy(x=>x).ToArray();
+        var locationDetails=string.Join("\n",locations);
+        var details=$"Security scan #{scan.Id} / {scan.Engine}\nระบบ: {system.Name} / {version.Environment}\nVersion: {version.VersionName} Build: {version.BuildNumber}\nความเสี่ยง: {observation.Severity} / CWE: {observation.Cwe}\nตำแหน่งที่พบ:\n{locationDetails}\n\nรายละเอียด:\n{observation.Description}\n\nหลักฐาน:\n{observation.Evidence}\n\nแนวทางแก้ไขจากเครื่องมือ:\n{observation.Remediation}\n\nอ้างอิง:\n{observation.References}\n\nผลสแกน: /SecurityScans/Scan/{scan.Id}";
+        if(previousIssueIds.Length>0)
+            details="พบปัญหาซ้ำหลังทดสอบผ่านแล้ว\n"+string.Join("\n",previousIssueIds.Select(id=>$"Issue #{id}: /ProjectIssues/DevDetails/{id}"))+"\n\n"+details;
         var fullIssueName = $"[Security / {observation.Severity}] {observation.Title}";
         var limit = await GetIssueNameLimitAsync(ct);
         var titleLength = fullIssueName.EnumerateRunes().Take(limit).Sum(rune => rune.Utf16SequenceLength);
@@ -303,8 +352,14 @@ await transaction.CommitAsync(ct);return ids;
         var issue=new ProjectIssue{ProjectId=system.ProjectId,IssueName=issueName,IssueDetail=IssueDetailsForStorage(details,scan.Id),AssignTo=employeeId,CreatedBy=creatorEmpId,StartDate=start.Date,EndDate=end.Date,IssueStatus="OPEN",DevStatus="WIP",IssuePriority=observation.Severity is "Critical" or "High"?"HIGH":"NORMAL"};
         db.ProjectIssues.Add(issue);await db.SaveChangesAsync(ct);
         db.ProjectIssueStatusHistories.Add(new(){IssueId=issue.IssueId,NewStatus="OPEN",ChangedByEmpId=creatorEmpId??employeeId,ChangedAt=issue.CreatedAt});
-        db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});finding.AssignedEmpId=employeeId;finding.DueDate=end.Date;finding.ReviewStatus="InProgress";
-        db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status="InProgress",Note=previousIssueId.HasValue?$"พบซ้ำจากผลสแกน #{scan.Id}: สร้าง Issue #{issue.IssueId} ต่อจาก Issue #{previousIssueId.Value} ที่ PASS แล้ว":"สร้าง Issue #"+issue.IssueId,CreatedBy=userId});
+        foreach(var finding in pending){
+            db.SecurityFindingIssueLinkRows.Add(new(){FindingId=finding.Id,IssueId=issue.IssueId,CreatedBy=userId});
+            finding.AssignedEmpId=employeeId;
+            finding.DueDate=end.Date;
+            finding.ReviewStatus="InProgress";
+            db.SecurityFindingHistoryRows.Add(new(){FindingId=finding.Id,Status="InProgress",
+                Note=previousIssueIds.Length>0?$"พบซ้ำจากผลสแกน #{scan.Id}: สร้าง Issue #{issue.IssueId}":"สร้าง Issue #"+issue.IssueId,CreatedBy=userId});
+        }
         await db.SaveChangesAsync(ct);if(tx!=null)await tx.CommitAsync(ct);return issue.IssueId;
     }
 }

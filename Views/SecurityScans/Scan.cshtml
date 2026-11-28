@@ -50,7 +50,7 @@
     @if (grouped)
     {
         <header class="security-card-head">
-            <h2><span class="security-severity security-severity-@first.Severity.ToLowerInvariant()">@first.Severity</span> @first.Title</h2>
+            <h2>@if(Model.CanCreateIssue){<input type="checkbox" name="observationIds" form="securityIssueBatch" value="@first.Id" aria-label="เลือก @first.Title" />} <span class="security-severity security-severity-@first.Severity.ToLowerInvariant()">@first.Severity</span> @first.Title</h2>
         </header>
         @if (Model.Run?.IsWebsiteBatch == true)
         {

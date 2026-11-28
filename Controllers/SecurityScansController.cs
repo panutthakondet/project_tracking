@@ -283,12 +283,6 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             }
             var id=await scans.QueueAsync(versionId,mode,requestKey,UserId,ct,workflow:workflow);return RedirectToAction(nameof(Scan),new{id});}catch(InvalidOperationException e){TempData["Error"]=e.Message;return RedirectToAction(nameof(Index),new{projectId=system.ProjectId,workflow=SelectedWorkflow});}
     }
-    private static string FindingParameter(string location)
-    {
-        var start = location.LastIndexOf(" [param: ", StringComparison.Ordinal);
-        return start < 0 ? "" : location[start..];
-    }
-
     public async Task<IActionResult> Scan(long id,long? baselineId,CancellationToken ct,int page=1)
     {
         var scope=await Scope(id,ct);if(scope==null)return NotFound();var (scan,version,system,project)=scope.Value;
@@ -296,17 +290,9 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
         var runIds=run.Ids;
         var observationQuery=db.SecurityScanFindingRows.AsNoTracking().Where(x=>runIds.Contains(x.ScanId));
         var entries = await observationQuery
-            .Select(x => new { x.Id, x.ScanId, x.FindingId, x.Severity, x.RuleId, x.Cwe, x.Title, x.Location })
+            .Select(SecurityFindingGrouping.Summary)
             .ToListAsync(ct);
-        var groups = entries.GroupBy(x => new
-            {
-                x.ScanId,
-                x.RuleId,
-                x.Title,
-                x.Severity,
-                x.Cwe,
-                Parameter = FindingParameter(x.Location)
-            })
+        var groups = entries.GroupBy(SecurityFindingGrouping.Key)
             .OrderByDescending(g => SecurityValues.Rank(g.Key.Severity))
             .ThenBy(g => g.Key.Title, StringComparer.OrdinalIgnoreCase)
             .ThenBy(g => g.Min(x => x.Id))
@@ -495,7 +481,12 @@ public class SecurityScansController(AppDbContext db,SecurityStorage storage,Sec
             if(await db.SecurityScanFindingRows.CountAsync(x=>runIds.Contains(x.ScanId)&&ids.Contains(x.Id),ct)!=ids.Length)return BadRequest();
             if(startDate==default||endDate==default)throw new InvalidOperationException("กรุณาระบุวันเริ่มและกำหนดส่ง");
             var creator=await EmployeeId(ct);
-            foreach(var id in ids){await scans.CreateIssueAsync(id,employeeId,startDate,endDate,UserId,creator,ct);completed++;}
+            var selected=await db.SecurityScanFindingRows.AsNoTracking().Where(x=>ids.Contains(x.Id))
+                .Select(SecurityFindingGrouping.Summary).ToListAsync(ct);
+            foreach(var group in selected.GroupBy(SecurityFindingGrouping.Key)){
+                await scans.CreateIssueAsync(group.First().Id,employeeId,startDate,endDate,UserId,creator,ct);
+                completed++;
+            }
             TempData["Success"]=$"สร้างหรือเชื่อม Issue สำเร็จ {completed} รายการ";
         }catch(InvalidOperationException e){TempData["Error"]=$"ดำเนินการสำเร็จแล้ว {completed} รายการ · "+e.Message;}
         catch(DbUpdateException error){

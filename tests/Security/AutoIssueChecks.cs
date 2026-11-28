@@ -17,11 +17,18 @@ public static class AutoIssueChecks
   var start=new DateTime(2026,12,1);var end=start.AddDays(7);
   db.SecurityIssueDefaults.Add(new(){SystemId=system.Id,AssignedEmpId=employee.EmpId,StartDate=start,EndDate=end,CreatedBy=1,CreatorEmpId=employee.EmpId});await db.SaveChangesAsync();
   await service.SetHostApprovalAsync(1,"example.com",true,1,default);
-  var json=System.Text.Json.JsonSerializer.Serialize(new{alerts=new[]{"Critical","High","Medium","Low","Info"}.Select((severity,i)=>new{pluginId=i.ToString(),name="Finding "+severity,risk=severity,url="https://example.com/"+i,description="fixture",solution="fix"})});
+  var json=System.Text.Json.JsonSerializer.Serialize(new{alerts=new[]{"Critical","High","Medium","Low","Info"}.Select((severity,i)=>new{pluginId=i.ToString(),name="Finding "+severity,risk=severity,url="https://example.com/"+i,description="fixture",solution="fix"}).Concat(new[]{new{pluginId="0",name="Finding Critical",risk="Critical",url="https://example.com/other",description="fixture",solution="fix"}})});
   async Task Scan(){var id=await service.QueueAsync(version.Id,"Passive",Guid.NewGuid().ToString(),1,default);var job=await service.ClaimAsync(default);await service.CompleteAsync(id,job!.LeaseToken,json,new("fake","fake"),default);await service.CompleteAsync(id,job.LeaseToken,json,new("fake","fake"),default);}
   await Scan();
   var issues=await db.ProjectIssues.ToListAsync();
-  if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=4)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
+  if(issues.Count!=4||issues.Any(x=>x.AssignTo!=employee.EmpId||x.StartDate!=start||x.EndDate!=end)||await db.SecurityFindingIssueLinkRows.CountAsync()!=5)throw new Exception("Automatic Issues must exclude Info and copy assignee/dates");
+  var grouped=issues.Single(x=>x.IssueName.Contains("Finding Critical"));
+  if(!grouped.IssueDetail!.Contains("https://example.com/0\nhttps://example.com/other")||
+     await db.SecurityFindingIssueLinkRows.CountAsync(x=>x.IssueId==grouped.IssueId)!=2)
+   throw new Exception("Grouped Issue must contain both locations and link both findings");
+  var alternateLocation=await db.SecurityScanFindingRows.SingleAsync(x=>x.Location=="https://example.com/other");
+  if(await service.CreateIssueAsync(alternateLocation.Id,employee.EmpId,start,end,1,employee.EmpId,default)!=grouped.IssueId)
+   throw new Exception("Selecting another location must reuse the grouped Issue");
   await Scan();if(await db.ProjectIssues.CountAsync()!=4)throw new Exception("Repeated scan duplicated Issues");
   var completed=await db.SecurityScanRows.OrderBy(x=>x.Id).ToListAsync();
   completed[0].AuthProfile="web-old";completed[1].AuthProfile="web-new";
@@ -41,7 +48,7 @@ public static class AutoIssueChecks
   var devKey=Guid.NewGuid().ToString();
   var devId=await service.QueueAsync(devVersion.Id,"Passive",devKey,1,default,workflow:"Development");var devJob=await service.ClaimAsync(default);
   await service.CompleteAsync(devId,devJob!.LeaseToken,json,new("fake","development"),default);
-  if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=10||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
+  if(await db.ProjectIssues.CountAsync()!=4||await db.SecurityFindingRows.CountAsync()!=12||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Development")!=1||await db.SecurityScanRows.CountAsync(x=>x.Workflow=="Formal")!=2)throw new Exception("Development findings or history mixed with Formal / created Issues");
   var devObservation=await db.SecurityScanFindingRows.FirstAsync(x=>x.ScanId==devId);
   try{await service.CreateIssueAsync(devObservation.Id,employee.EmpId,start,end,1,employee.EmpId,default);throw new Exception("Development finding converted to Issue");}catch(InvalidOperationException){}
   try{await service.QueueAsync(version.Id,"Passive",devKey,1,default);throw new Exception("Request key changed workflow");}catch(InvalidOperationException){}
@@ -58,7 +65,7 @@ public static class AutoIssueChecks
   var rejectedIssue=await db.ProjectIssues.OrderBy(x=>x.IssueId).FirstAsync();
   rejectedIssue.IssueStatus="REJECT";
   await SecurityIssueWorkflow.StageStatusAsync(db,rejectedIssue,"AcceptedRisk",1);await db.SaveChangesAsync();
-  var acceptedLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.IssueId==rejectedIssue.IssueId);
+  var acceptedLink=await db.SecurityFindingIssueLinkRows.FirstAsync(x=>x.IssueId==rejectedIssue.IssueId);
   var acceptedId=acceptedLink.FindingId;
   async Task CheckAccepted(long versionId,int expectedIssues=4){
    var scanId=await service.QueueAsync(versionId,"Passive",Guid.NewGuid().ToString(),1,default);
@@ -82,7 +89,7 @@ public static class AutoIssueChecks
   if(unchanged.IssueStatus!="PASS"||unchanged.DevStatus!="FIXED")throw new Exception("Original PASS Issue must remain unchanged");
   var recurring=await db.ProjectIssues.OrderByDescending(x=>x.IssueId).FirstAsync();
   if(recurring.IssueStatus!="OPEN"||recurring.DevStatus!="WIP"||!recurring.IssueDetail!.Contains($"Issue #{passed.IssueId}"))throw new Exception("Recurring finding must create an OPEN Issue referencing the original");
-  var recurringLink=await db.SecurityFindingIssueLinkRows.SingleAsync(x=>x.IssueId==recurring.IssueId);
+  var recurringLink=await db.SecurityFindingIssueLinkRows.FirstAsync(x=>x.IssueId==recurring.IssueId);
   if(!await db.SecurityFindingIssueLinkRows.AnyAsync(x=>x.FindingId==recurringLink.FindingId&&x.IssueId==passed.IssueId))throw new Exception("Original Issue link must be preserved");
   if(!await db.SecurityFindingRows.AnyAsync(x=>x.Id==recurringLink.FindingId&&x.ReviewStatus=="InProgress"))throw new Exception("Recurring finding must be InProgress");
   await SecurityIssueWorkflow.StageStatusAsync(db,unchanged,"VerifiedFixed",1);await db.SaveChangesAsync();
