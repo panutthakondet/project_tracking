@@ -1,3 +1,5 @@
+.memo-sync-date { margin: 0 0 3pt; }
+.memo-sync-summary { margin: 0 0 8pt; }
 .memo-sync-table { width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.35; }
 .memo-sync-table :is(th, td) { border-bottom: 1px solid #ccc; padding: 4pt; text-align: left; overflow-wrap: anywhere; }
 .memo-sync-table .memo-sync-table-name { vertical-align: top; }
