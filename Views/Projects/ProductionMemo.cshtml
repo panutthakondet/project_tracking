@@ -58,7 +58,7 @@
                                     <div>@(index + 1). @owner.Name · @role</div>
                                     @if (owner.AssignedWork.Count > 0)
                                     {
-                                        <ul class="memo-owner-work">
+                                        <ul class="memo-owner-work" role="list">
                                             @foreach (var work in owner.AssignedWork)
                                             {
                                                 <li>@work</li>
@@ -300,6 +300,8 @@
             line-height: 1.28;
             overflow-wrap: anywhere;
         }
+
+        .production-report .memo-owner-work { list-style: none; }
 
         .owner-list {
             margin: 1px 0 10px 32px;
