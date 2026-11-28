@@ -168,13 +168,15 @@ namespace ProjectTracking.Services
                 if (string.IsNullOrWhiteSpace(toEmail))
                     continue;
 
-                await _emailService.SendAsync(
+                var delivered = await _emailService.SendAsync(
                     to: toEmail,
                     subject: subject,
                     body: bodyBuilder.ToString(),
                     ccList: null,
                     bccList: bccEmails
                 );
+                if (!delivered)
+                    return;
             }
 
             // =================================================

@@ -31,6 +31,8 @@ namespace ProjectTracking.Services
 
     public class EmailService
     {
+        public const string EnabledConfigKey = "EMAIL_NOTIFICATION_ENABLED";
+
         private readonly EmailSettings _settings;
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly ILogger<EmailService>? _logger;
@@ -57,7 +59,7 @@ namespace ProjectTracking.Services
         // =====================================================
         // GENERIC SEND (ใช้ซ้ำได้ทุกกรณี)
         // =====================================================
-        public async Task SendAsync(
+        public async Task<bool> SendAsync(
             string to,
             string subject,
             string body,
@@ -66,6 +68,16 @@ namespace ProjectTracking.Services
             IEnumerable<EmailAttachment>? attachments = null
         )
         {
+            await using (var db = await _dbFactory.CreateDbContextAsync())
+            {
+                var enabled = await db.SystemConfigs.AsNoTracking()
+                    .Where(x => x.ConfigKey == EnabledConfigKey)
+                    .Select(x => x.ConfigValue)
+                    .FirstOrDefaultAsync();
+                if (bool.TryParse(enabled, out var isEnabled) && !isEnabled)
+                    return false;
+            }
+
             // ✅ Resolve SMTP settings (Options first, then ENV fallback)
             var smtpServer = !string.IsNullOrWhiteSpace(_settings.SmtpServer)
                 ? _settings.SmtpServer
@@ -202,6 +214,7 @@ namespace ProjectTracking.Services
 
             await smtp.SendMailAsync(mail);
             await LogEmailSendSuccessAsync(mail, body);
+            return true;
         }
 
         private async Task LogEmailSendSuccessAsync(MailMessage mail, string? body)

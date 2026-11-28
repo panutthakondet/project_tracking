@@ -422,7 +422,11 @@ namespace ProjectTracking.Controllers
 
             try
             {
-                await _emailService.SendAsync(email, subject, body);
+                if (!await _emailService.SendAsync(email, subject, body))
+                {
+                    TempData["Error"] = "บันทึกผู้ใช้แล้ว แต่ระบบปิดการส่งอีเมลยืนยันไว้";
+                    return;
+                }
                 TempData["Success"] = isReverify
                     ? "✅ แก้ไขผู้ใช้แล้ว และส่งอีเมลยืนยันใหม่เรียบร้อย"
                     : "✅ สร้างผู้ใช้แล้ว และส่งอีเมลยืนยันเรียบร้อย";

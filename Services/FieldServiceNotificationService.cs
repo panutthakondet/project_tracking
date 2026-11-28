@@ -96,11 +96,16 @@ public sealed class FieldServiceNotificationService
 
             try
             {
-                await _emailService.SendAsync(
+                var delivered = await _emailService.SendAsync(
                     recipient.Email,
                     emailSubject,
                     emailBody.Replace("{{DISPLAY_NAME}}", WebUtility.HtmlEncode(recipient.DisplayName)),
                     attachments: new[] { calendarAttachment });
+                if (!delivered)
+                {
+                    skipped++;
+                    continue;
+                }
                 sent++;
             }
             catch (Exception ex)

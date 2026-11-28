@@ -196,11 +196,16 @@ namespace ProjectTracking.Services
                 {
                     var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
 
-                    await _emailService.SendAsync(
+                    var delivered = await _emailService.SendAsync(
                         recipient.Email,
                         $"เชิญประชุม: {meeting.Title}",
                         BuildCreatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: new[] { attachment });
+                    if (!delivered)
+                    {
+                        skipped++;
+                        continue;
+                    }
 
                     await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken);
                     sent++;
@@ -261,11 +266,16 @@ namespace ProjectTracking.Services
 
                 try
                 {
-                    await _emailService.SendAsync(
+                    var delivered = await _emailService.SendAsync(
                         recipient.Email,
                         $"อัปเดตประชุม: {meeting.Title}",
                         BuildUpdatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: attachment == null ? null : new[] { attachment });
+                    if (!delivered)
+                    {
+                        skipped++;
+                        continue;
+                    }
 
                     await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken);
                     sent++;
@@ -466,10 +476,15 @@ namespace ProjectTracking.Services
 
                 try
                 {
-                    await _emailService.SendAsync(
+                    var delivered = await _emailService.SendAsync(
                         recipient.Email,
                         $"ยกเลิกประชุม: {meeting.Title}",
                         BuildCancelledEmailBody(meeting, recipient.DisplayName, detailUrl));
+                    if (!delivered)
+                    {
+                        skipped++;
+                        continue;
+                    }
 
                     await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken);
                     sent++;

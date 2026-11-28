@@ -61,6 +61,14 @@ Check(await service.NotifyEmployeeSafelyAsync(10, "Disabled web event", "", "/")
     && await db.WebNotifications.CountAsync() == 1 && await db.WebPushDeliveries.CountAsync() == 1,
     "disabling web notifications prevents new inbox items and push jobs");
 db.SystemConfigs.Remove(webSetting);
+var emailSetting = new SystemConfig { ConfigKey = EmailService.EnabledConfigKey, ConfigValue = "false" };
+db.SystemConfigs.Add(emailSetting);
+await db.SaveChangesAsync();
+var email = new EmailService(Microsoft.Extensions.Options.Options.Create(new EmailSettings()), factory);
+Check(!await email.SendAsync("test@example.test", "Disabled email", "")
+    && !await db.NotificationSendLogs.AnyAsync(row => row.Channel == "EMAIL"),
+    "disabling email skips SMTP and does not record a successful send");
+db.SystemConfigs.Remove(emailSetting);
 await db.SaveChangesAsync();
 Check(new[]{"Read","Subscribe","Unsubscribe","OpenConfirmed"}.All(name=>typeof(WorkNotificationsController).GetMethod(name)!.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>()!=null),"all notification and subscription mutations require anti-forgery tokens");
 var services=new ServiceCollection().AddSingleton<IDbContextFactory<AppDbContext>>(factory).AddSingleton(service).BuildServiceProvider();var worker=new WebPushDispatcher(services.GetRequiredService<IServiceScopeFactory>(),new FakeHttpFactory(handler),NullLogger<WebPushDispatcher>.Instance);var dispatch=typeof(WebPushDispatcher).GetMethod("DispatchAsync",BindingFlags.NonPublic|BindingFlags.Instance)!;
