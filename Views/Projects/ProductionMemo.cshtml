@@ -111,6 +111,13 @@
 
                 RenderOwners();
             }
+            @if (!Model.IsDepartmentTransfer && !string.IsNullOrWhiteSpace(Model.ProductionInstallationPlan))
+            {
+                <section class="memo-stack">
+                    <div class="memo-stack-label">แผนการติดตั้งระบบจริง</div>
+                    <div class="memo-stack-value production-installation-plan">@Model.ProductionInstallationPlan</div>
+                </section>
+            }
             <div class="memo-stack"><div class="memo-stack-label">รายละเอียดตาม TOR</div><div class="memo-stack-value">@Html.Raw(ReportDetail(Model.TorDetail))</div></div>
             @if (hasExtraTorDetail)
             {
@@ -614,13 +621,6 @@
             <section class="transfer-attachment">
                 <h2 class="title">รายละเอียดประกอบการนำระบบขึ้นใช้งานจริง</h2>
                 @{ RenderAttachmentDetails(); }
-                @if (!string.IsNullOrWhiteSpace(Model.ProductionInstallationPlan))
-                {
-                    <section class="memo-stack">
-                        <div class="memo-stack-label">แผนการติดตั้งระบบจริง</div>
-                        <div class="memo-stack-value production-installation-plan">@Model.ProductionInstallationPlan</div>
-                    </section>
-                }
             </section>
             @if (Model.LatestSyncRun is { } syncRun)
             {
