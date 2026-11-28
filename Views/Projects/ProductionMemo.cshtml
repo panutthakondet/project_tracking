@@ -314,18 +314,21 @@
 
         .signature {
             width: 58%;
-            margin: 18pt 0 0 auto;
+            margin: 10pt 0 0 auto;
             text-align: center;
-            line-height: 1.7;
+            line-height: 1.45;
             break-inside: avoid;
             page-break-inside: avoid;
         }
 
+        .signature-line { margin-top: 8pt; }
+
         .memo-approval {
-            margin-top: 14pt;
-            padding-top: 8pt;
+            margin-top: 10pt;
+            padding-top: 6pt;
+            padding-bottom: 5mm;
             border-top: 1px solid #000;
-            line-height: 1.7;
+            line-height: 1.45;
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -341,8 +344,7 @@
             display: flex;
             align-items: center;
             gap: 12pt;
-            padding-bottom: 8pt;
-            margin-bottom: 8pt;
+            margin-bottom: 4pt;
         }
 
         .memo-approval-heading {
@@ -351,10 +353,9 @@
         }
 
         .memo-approval-options {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8pt;
-            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: clamp(8pt, 3vw, 24pt);
         }
 
         .memo-approval-options label {
@@ -512,8 +513,8 @@
             <p class="intro">จึงเรียนมาเพื่อโปรดทราบและพิจารณาให้ข้อเสนอแนะในการดำเนินงานต่อไป</p>
 
             <div class="signature">
-                <div>ขอแสดงความนับถือ</div><br />
-                <div>………………………………………………….</div>
+                <div>ขอแสดงความนับถือ</div>
+                <div class="signature-line">………………………………………………….</div>
                 <div>(นายปณัฐกรณ์เดช เมืองจันทร์)</div>
                 <div>ผู้จัดการโครงการ</div>
             </div>
