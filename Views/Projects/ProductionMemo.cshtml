@@ -548,10 +548,6 @@
         else
         {
             @:</div>
-            @if (Model.LatestSyncRun is { } syncRun)
-            {
-                @await Html.PartialAsync("_ProductionMemoSync", syncRun)
-            }
             <section class="transfer-attachment">
                 <h2 class="title">รายละเอียดประกอบการนำระบบขึ้นใช้งานจริง</h2>
                 @{ RenderAttachmentDetails(); }
@@ -563,6 +559,10 @@
                     </section>
                 }
             </section>
+            @if (Model.LatestSyncRun is { } syncRun)
+            {
+                @await Html.PartialAsync("_ProductionMemoSync", syncRun)
+            }
             @if (Model.SecurityReport is { } securityReport)
             {
                 <section class="transfer-attachment">
