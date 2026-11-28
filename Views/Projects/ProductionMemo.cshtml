@@ -332,21 +332,32 @@
 
         .memo-approval-signature { text-align: center; }
 
-        .memo-approval-heading { text-decoration: underline; }
+        .memo-approval-row {
+            display: flex;
+            align-items: center;
+            gap: 12pt;
+            padding-bottom: 8pt;
+            margin-bottom: 8pt;
+            border-bottom: 1px dotted #000;
+        }
+
+        .memo-approval-heading {
+            text-decoration: underline;
+            white-space: nowrap;
+        }
 
         .memo-approval-options {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8pt;
-            margin: 8pt 0;
-            padding-bottom: 8pt;
-            border-bottom: 1px dotted #000;
+            flex: 1;
         }
 
         .memo-approval-options label {
             display: flex;
             align-items: center;
             gap: 8pt;
+            white-space: nowrap;
         }
 
         .memo-approval-options input {
@@ -504,10 +515,12 @@
             </div>
 
             <div class="memo-approval">
-                <div class="memo-approval-heading" id="memo-approval-heading">สำหรับผู้อนุมัติ</div>
-                <div class="memo-approval-options" role="group" aria-labelledby="memo-approval-heading">
-                    <label><input type="radio" name="memo-approval" value="approved" /> อนุมัติ</label>
-                    <label><input type="radio" name="memo-approval" value="rejected" /> ไม่อนุมัติ</label>
+                <div class="memo-approval-row">
+                    <div class="memo-approval-heading" id="memo-approval-heading">สำหรับผู้อนุมัติ</div>
+                    <div class="memo-approval-options" role="group" aria-labelledby="memo-approval-heading">
+                        <label><input type="radio" name="memo-approval" value="approved" /> อนุมัติ</label>
+                        <label><input type="radio" name="memo-approval" value="rejected" /> ไม่อนุมัติ</label>
+                    </div>
                 </div>
                 <div class="memo-approval-signature">
                     <div>………………………………………………….</div>
